@@ -14,7 +14,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="index.html">Return to warship selection</a>
+        <a class="primary-button" href="index.html?v=navy-2">Return to warship selection</a>
       </section>
     `;
     return;
@@ -80,7 +80,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="index.html">All warships</a>
+      <a class="all-characters" href="index.html?v=navy-2">All warships</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -93,7 +93,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&v=navy-2">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>

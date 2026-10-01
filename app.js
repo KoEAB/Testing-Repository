@@ -7,7 +7,7 @@
   characters.forEach((character, index) => {
     const link = document.createElement("a");
     link.className = "character-card";
-    link.href = `character.html?id=${encodeURIComponent(character.id)}`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&v=navy-2`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty("--delay", `${index * 85}ms`);

@@ -1,12 +1,12 @@
 :root {
   color-scheme: dark;
-  --ink: #ece8dd;
-  --muted: #8d8d89;
-  --faint: #61615f;
-  --night: #0c0d0e;
-  --surface: #131516;
-  --line: rgba(236, 232, 221, 0.14);
-  --gold: #e5b96f;
+  --ink: #eef4f8;
+  --muted: #93a9bb;
+  --faint: #5d7488;
+  --night: #06111f;
+  --surface: #0b1b2c;
+  --line: rgba(154, 183, 207, 0.18);
+  --gold: #d7b568;
   --character-accent: var(--gold);
   --character-rgb: 229, 185, 111;
   --serif: Georgia, "Times New Roman", serif;
@@ -27,9 +27,9 @@ body {
   margin: 0;
   overflow-x: hidden;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    radial-gradient(circle at 50% -20%, #292622 0%, var(--night) 46%);
+    linear-gradient(rgba(132, 174, 207, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(132, 174, 207, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at 50% -20%, #17334a 0%, var(--night) 48%);
   background-size: 72px 72px, 72px 72px, auto;
   color: var(--ink);
   font-family: var(--sans);
@@ -61,7 +61,7 @@ a {
 .ambient-two {
   right: -30rem;
   bottom: -24rem;
-  background: #8296b1;
+  background: #2d7198;
 }
 
 .site-header,
@@ -202,7 +202,7 @@ p {
   --accent-rgb: 229, 185, 111;
   min-width: 0;
   border: 1px solid var(--line);
-  background: rgba(16, 18, 19, 0.82);
+  background: rgba(7, 24, 39, 0.9);
   opacity: 0;
   overflow: hidden;
   transform: translateY(22px);
@@ -243,7 +243,7 @@ p {
       rgba(255, 255, 255, 0.015) 18px,
       rgba(255, 255, 255, 0.015) 19px
     ),
-    #101213;
+    #081827;
 }
 
 .character-card .portrait-placeholder {
@@ -389,11 +389,12 @@ p {
 /* Character detail */
 .detail-page {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    linear-gradient(rgba(132, 174, 207, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(132, 174, 207, 0.028) 1px, transparent 1px),
     radial-gradient(circle at 76% 20%, rgba(var(--character-rgb), 0.1), transparent 32%),
+    radial-gradient(circle at 20% 100%, rgba(33, 78, 110, 0.2), transparent 38%),
     var(--night);
-  background-size: 72px 72px, 72px 72px, auto, auto;
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
 }
 
 .detail-shell {
@@ -471,7 +472,7 @@ blockquote {
   margin: 0 0 30px;
   padding-left: 24px;
   border-left: 1px solid var(--character-accent);
-  color: #d5d1c8;
+  color: #dce7ee;
   font-family: var(--serif);
   font-size: clamp(20px, 2.3vw, 29px);
   line-height: 1.45;
@@ -494,7 +495,7 @@ blockquote {
 .trait {
   padding: 8px 12px;
   border: 1px solid rgba(var(--character-rgb), 0.22);
-  color: #aaa7a0;
+  color: #a9bdcb;
   font-size: 8px;
   font-weight: 500;
   letter-spacing: 0.16em;

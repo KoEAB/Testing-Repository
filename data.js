@@ -29,8 +29,8 @@
           text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
-      accent: "#e5b96f",
-      rgb: "229, 185, 111"
+      accent: "#d7b568",
+      rgb: "215, 181, 104"
     },
     {
       id: "uss-lexington-cv-2",
@@ -59,8 +59,8 @@
           text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
-      accent: "#8eb5c6",
-      rgb: "142, 181, 198"
+      accent: "#87b6d2",
+      rgb: "135, 182, 210"
     },
     {
       id: "uss-hornet-cv-8",
@@ -89,8 +89,8 @@
           text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
-      accent: "#c797d8",
-      rgb: "199, 151, 216"
+      accent: "#c8776d",
+      rgb: "200, 119, 109"
     },
     {
       id: "uss-yorktown-cv-5",
@@ -119,8 +119,8 @@
           text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
-      accent: "#8fb982",
-      rgb: "143, 185, 130"
+      accent: "#9eb7c8",
+      rgb: "158, 183, 200"
     }
   ];
 })();

@@ -44,8 +44,14 @@ jobs:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error --location "$SITE_URL" | grep --quiet "Choose your"; then
-              echo "Published site is responding with the expected page."
+            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-2" --output /tmp/published-index.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-2" --output /tmp/published-data.js \
+              && grep --fixed-strings --quiet "Choose your <em>warship" /tmp/published-index.html \
+              && grep --fixed-strings --quiet 'name: "USS Enterprise"' /tmp/published-data.js \
+              && grep --fixed-strings --quiet 'name: "USS Lexington"' /tmp/published-data.js \
+              && grep --fixed-strings --quiet 'name: "USS Hornet"' /tmp/published-data.js \
+              && grep --fixed-strings --quiet 'name: "USS Yorktown"' /tmp/published-data.js; then
+              echo "Published site is responding with the navy theme and all four USS names."
               exit 0
             fi
             echo "Waiting for the published site (attempt $attempt of 12)..."
