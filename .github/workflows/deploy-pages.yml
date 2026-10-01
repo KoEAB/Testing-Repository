@@ -38,3 +38,18 @@ jobs:
       - name: Deploy site
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify published site
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error --location "$SITE_URL" | grep --quiet "Choose your"; then
+              echo "Published site is responding with the expected page."
+              exit 0
+            fi
+            echo "Waiting for the published site (attempt $attempt of 12)..."
+            sleep 5
+          done
+          echo "The published site did not return the expected page." >&2
+          exit 1
