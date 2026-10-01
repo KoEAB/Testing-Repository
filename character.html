@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meet a member of the Wayfinder crew." />
+    <title>Character — Wayfinder</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="data.js" defer></script>
+    <script src="character.js" defer></script>
+  </head>
+  <body class="detail-page">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="site-header detail-header">
+      <a class="brand" href="index.html" aria-label="Wayfinder home">
+        <span class="brand-mark" aria-hidden="true">W</span>
+        <span>Wayfinder</span>
+      </a>
+      <a class="back-link" href="index.html">
+        <span aria-hidden="true">←</span> Return to the crew
+      </a>
+    </header>
+
+    <main id="character-detail" class="detail-shell" aria-live="polite"></main>
+
+    <footer class="site-footer detail-footer">
+      <span>Wayfinder archive</span>
+      <span class="footer-rule" aria-hidden="true"></span>
+      <span id="archive-entry">Entry</span>
+    </footer>
+  </body>
+</html>

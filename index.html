@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Choose a member of the Wayfinder crew and explore their story."
+    />
+    <title>Wayfinder — Choose Your Character</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="data.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body class="selection-page">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Wayfinder home">
+        <span class="brand-mark" aria-hidden="true">W</span>
+        <span>Wayfinder</span>
+      </a>
+      <span class="chapter-label">Chapter I · The Crossing</span>
+    </header>
+
+    <main class="selection-shell">
+      <section class="selection-intro" aria-labelledby="page-title">
+        <p class="eyebrow">Assemble your crew</p>
+        <h1 id="page-title">Choose your <em>wayfinder.</em></h1>
+        <p class="intro-copy">
+          Four paths lead beyond the veil. Choose the one whose story you want
+          to follow.
+        </p>
+      </section>
+
+      <section aria-label="Character roster">
+        <div class="roster" id="character-roster"></div>
+      </section>
+
+      <p class="selection-hint">
+        <span class="hint-icon" aria-hidden="true">↗</span>
+        Select a portrait to view their story
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <span>04 playable stories</span>
+      <span class="footer-rule" aria-hidden="true"></span>
+      <span>The veil awaits</span>
+    </footer>
+  </body>
+</html>
