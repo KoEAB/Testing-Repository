@@ -14,7 +14,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="index.html?v=navy-2">Return to warship selection</a>
+        <a class="primary-button" href="index.html?v=navy-3">Return to warship selection</a>
       </section>
     `;
     return;
@@ -43,16 +43,19 @@
     .map((trait) => `<span class="trait">${trait}</span>`)
     .join("");
 
+  const artwork = character.image
+    ? `<img class="ship-art detail-ship-art" src="${character.image}" alt="${character.name} character artwork" />`
+    : `<span class="detail-monogram" aria-hidden="true">${character.name
+        .split(" ")
+        .map((part) => part[0])
+        .join("")}</span><span class="portrait-status">Ship image pending</span>`;
+
   detail.innerHTML = `
     <section class="detail-hero">
-      <div class="detail-portrait portrait-placeholder" aria-label="Ship image placeholder for ${character.name}">
+      <div class="detail-portrait portrait-placeholder${character.image ? " has-art" : ""}">
         <span class="portrait-corner portrait-corner-top" aria-hidden="true"></span>
         <span class="portrait-corner portrait-corner-bottom" aria-hidden="true"></span>
-        <span class="detail-monogram" aria-hidden="true">${character.name
-          .split(" ")
-          .map((part) => part[0])
-          .join("")}</span>
-        <span class="portrait-status">Ship image pending</span>
+        ${artwork}
         <span class="portrait-number" aria-hidden="true">${character.number}</span>
       </div>
 
@@ -80,7 +83,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="index.html?v=navy-2">All warships</a>
+      <a class="all-characters" href="index.html?v=navy-3">All warships</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -93,7 +96,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&v=navy-2">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&v=navy-3">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>

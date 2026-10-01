@@ -14,9 +14,9 @@ Then open `http://localhost:8000`.
 
 ## Add warship images
 
-Image areas are intentionally placeholders. When images are ready, add them to an `images/` directory, add an `image` path to each ship in `data.js`, and replace the placeholder markup in `app.js` and `character.js` with an `<img>` element. The recommended source aspect ratios are:
+The current transparent character artwork is stored in `images/warships/` and mapped to each ship through the `image` field in `data.js`. Both image frames use the artwork's native 3:4 ratio and `object-fit: contain`, so the supplied PNGs are never cropped.
 
 - Selection card: 3:4
-- Detail image: 4:5
+- Detail image: 3:4
 
 Ship names, historical summaries, placeholder capabilities, colors, and links are all managed in `data.js`.

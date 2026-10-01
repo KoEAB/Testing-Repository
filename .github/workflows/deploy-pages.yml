@@ -44,14 +44,18 @@ jobs:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-2" --output /tmp/published-index.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-2" --output /tmp/published-data.js \
+            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-3" --output /tmp/published-index.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-3" --output /tmp/published-data.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/enterprise-shipyard-icon.png?v=navy-3" --output /tmp/enterprise.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/lexington-shipyard-icon.png?v=navy-3" --output /tmp/lexington.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-3" --output /tmp/hornet.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-3" --output /tmp/yorktown.png \
               && grep --fixed-strings --quiet "Choose your <em>warship" /tmp/published-index.html \
               && grep --fixed-strings --quiet 'name: "USS Enterprise"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'name: "USS Lexington"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'name: "USS Hornet"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'name: "USS Yorktown"' /tmp/published-data.js; then
-              echo "Published site is responding with the navy theme and all four USS names."
+              echo "Published site is responding with the navy theme, all four USS names, and all four images."
               exit 0
             fi
             echo "Waiting for the published site (attempt $attempt of 12)..."

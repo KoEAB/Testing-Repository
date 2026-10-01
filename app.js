@@ -7,21 +7,24 @@
   characters.forEach((character, index) => {
     const link = document.createElement("a");
     link.className = "character-card";
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&v=navy-2`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&v=navy-3`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty("--delay", `${index * 85}ms`);
     link.setAttribute("aria-label", `Open the fleet record for ${character.name}, ${character.role}`);
 
-    link.innerHTML = `
-      <div class="portrait-placeholder" aria-hidden="true">
-        <span class="portrait-corner portrait-corner-top"></span>
-        <span class="portrait-corner portrait-corner-bottom"></span>
-        <span class="portrait-monogram">${character.name
+    const artwork = character.image
+      ? `<img class="ship-art" src="${character.image}" alt="" />`
+      : `<span class="portrait-monogram">${character.name
           .split(" ")
           .map((part) => part[0])
-          .join("")}</span>
-        <span class="portrait-status">Ship image pending</span>
+          .join("")}</span><span class="portrait-status">Ship image pending</span>`;
+
+    link.innerHTML = `
+      <div class="portrait-placeholder${character.image ? " has-art" : ""}" aria-hidden="true">
+        <span class="portrait-corner portrait-corner-top"></span>
+        <span class="portrait-corner portrait-corner-bottom"></span>
+        ${artwork}
       </div>
       <div class="card-content">
         <span class="character-number">${character.number}</span>
