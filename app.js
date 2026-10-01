@@ -11,7 +11,7 @@
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty("--delay", `${index * 85}ms`);
-    link.setAttribute("aria-label", `View ${character.name}, ${character.role}`);
+    link.setAttribute("aria-label", `Open the fleet record for ${character.name}, ${character.role}`);
 
     link.innerHTML = `
       <div class="portrait-placeholder" aria-hidden="true">
@@ -21,7 +21,7 @@
           .split(" ")
           .map((part) => part[0])
           .join("")}</span>
-        <span class="portrait-status">Portrait pending</span>
+        <span class="portrait-status">Ship image pending</span>
       </div>
       <div class="card-content">
         <span class="character-number">${character.number}</span>

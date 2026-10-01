@@ -8,22 +8,22 @@
   const detail = document.querySelector("#character-detail");
 
   if (!character) {
-    document.title = "Character Not Found — Wayfinder";
+    document.title = "Warship Not Found — Naval Command";
     detail.innerHTML = `
       <section class="not-found">
         <p class="eyebrow">Archive error</p>
-        <h1>This story has not been written.</h1>
-        <p>The character you were looking for could not be found.</p>
-        <a class="primary-button" href="index.html">Return to character selection</a>
+        <h1>This vessel is not in the archive.</h1>
+        <p>The warship record you requested could not be found.</p>
+        <a class="primary-button" href="index.html">Return to warship selection</a>
       </section>
     `;
     return;
   }
 
-  document.title = `${character.name} — Wayfinder`;
+  document.title = `${character.name} — Naval Command`;
   document.documentElement.style.setProperty("--character-accent", character.accent);
   document.documentElement.style.setProperty("--character-rgb", character.rgb);
-  document.querySelector("#archive-entry").textContent = `Entry ${character.number}`;
+  document.querySelector("#archive-entry").textContent = `Record ${character.number}`;
 
   const abilities = character.abilities
     .map(
@@ -45,14 +45,14 @@
 
   detail.innerHTML = `
     <section class="detail-hero">
-      <div class="detail-portrait portrait-placeholder" aria-label="Portrait placeholder for ${character.name}">
+      <div class="detail-portrait portrait-placeholder" aria-label="Ship image placeholder for ${character.name}">
         <span class="portrait-corner portrait-corner-top" aria-hidden="true"></span>
         <span class="portrait-corner portrait-corner-bottom" aria-hidden="true"></span>
         <span class="detail-monogram" aria-hidden="true">${character.name
           .split(" ")
           .map((part) => part[0])
           .join("")}</span>
-        <span class="portrait-status">Portrait pending</span>
+        <span class="portrait-status">Ship image pending</span>
         <span class="portrait-number" aria-hidden="true">${character.number}</span>
       </div>
 
@@ -62,25 +62,25 @@
         <p class="detail-role">${character.role}</p>
         <blockquote>“${character.quote}”</blockquote>
         <p class="biography">${character.description}</p>
-        <div class="traits" aria-label="Character traits">${traits}</div>
+        <div class="traits" aria-label="Vessel traits">${traits}</div>
       </div>
     </section>
 
-    <section class="character-record" aria-label="Character record">
+    <section class="character-record" aria-label="Warship record">
       <div class="facts">
-        <div class="fact"><span>Origin</span><strong>${character.origin}</strong></div>
-        <div class="fact"><span>Affinity</span><strong>${character.affinity}</strong></div>
-        <div class="fact"><span>Weapon</span><strong>${character.weapon}</strong></div>
+        <div class="fact"><span>Builder</span><strong>${character.origin}</strong></div>
+        <div class="fact"><span>Theater</span><strong>${character.affinity}</strong></div>
+        <div class="fact"><span>Armament</span><strong>${character.weapon}</strong></div>
       </div>
       <div class="abilities-section">
-        <p class="section-label">Field abilities</p>
+        <p class="section-label">Combat capabilities</p>
         <div class="abilities">${abilities}</div>
       </div>
     </section>
 
-    <nav class="character-navigation" aria-label="Browse characters">
+    <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="index.html">All characters</a>
+      <a class="all-characters" href="index.html">All warships</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;

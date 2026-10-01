@@ -3,120 +3,120 @@
 
   window.CHARACTERS = [
     {
-      id: "elara-voss",
+      id: "uss-enterprise-cv-6",
       number: "01",
-      name: "Elara Voss",
-      role: "Starbound Cartographer",
-      epithet: "The Compass",
-      quote: "Every horizon is a promise waiting to be kept.",
+      name: "USS Enterprise",
+      role: "Yorktown-class aircraft carrier · CV-6",
+      epithet: "The Big E",
+      quote: "A fighting carrier at the center of the Pacific campaign.",
       description:
-        "A gifted navigator who can read the hidden currents between worlds. Elara charts paths no map has ever held, driven by a quiet certainty that somewhere beyond the veil, her missing brother is still searching too.",
-      origin: "The Aster Reach",
-      affinity: "Starlight",
-      weapon: "Celestial Compass",
-      traits: ["Observant", "Resolute", "Empathetic"],
+        "Commissioned in 1938, USS Enterprise served in more major actions against Japan than any other United States ship. From Midway and Guadalcanal to the Philippine Sea and Leyte Gulf, CV-6 became the most decorated American warship of World War II.",
+      origin: "Newport News, Virginia",
+      affinity: "Pacific Theater",
+      weapon: "Armament profile placeholder",
+      traits: ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
       abilities: [
         {
-          name: "True North",
-          text: "Reveals hidden paths and weaknesses in the world around her."
+          name: "Capability Placeholder I",
+          text: "Reserved space for a future carrier skill or tactical description."
         },
         {
-          name: "Astral Step",
-          text: "Crosses a short distance through the space between moments."
+          name: "Capability Placeholder II",
+          text: "Reserved space for a future fleet-support skill or gameplay effect."
         },
         {
-          name: "Guiding Light",
-          text: "Creates a beacon that strengthens and protects nearby allies."
+          name: "Capability Placeholder III",
+          text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
       accent: "#e5b96f",
       rgb: "229, 185, 111"
     },
     {
-      id: "cassian-rook",
+      id: "uss-lexington-cv-2",
       number: "02",
-      name: "Cassian Rook",
-      role: "Exiled Oathkeeper",
-      epithet: "The Shield",
-      quote: "An oath broken is not an oath forgotten.",
+      name: "USS Lexington",
+      role: "Lexington-class aircraft carrier · CV-2",
+      epithet: "Lady Lex",
+      quote: "Built as a battlecruiser, reborn as a carrier.",
       description:
-        "Once the youngest captain of the Iron Concord, Cassian traded his rank for the lives of those under his command. He carries the weight of that choice in silence—and the old oathblade that still answers his call.",
-      origin: "Greyhaven Bastion",
-      affinity: "Iron",
-      weapon: "Oathblade",
-      traits: ["Steadfast", "Guarded", "Honorable"],
+        "Originally laid down as a battlecruiser, USS Lexington was completed as one of the U.S. Navy's first large aircraft carriers. Commissioned in 1927, CV-2 helped shape American carrier aviation before being lost during the Battle of the Coral Sea in May 1942.",
+      origin: "Quincy, Massachusetts",
+      affinity: "Pacific Theater",
+      weapon: "Armament profile placeholder",
+      traits: ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
       abilities: [
         {
-          name: "Hold the Line",
-          text: "Plants his blade and creates an unbreakable defensive stance."
+          name: "Capability Placeholder I",
+          text: "Reserved space for a future carrier skill or tactical description."
         },
         {
-          name: "Oathbound",
-          text: "Takes a companion's burden and turns damage into resolve."
+          name: "Capability Placeholder II",
+          text: "Reserved space for a future fleet-support skill or gameplay effect."
         },
         {
-          name: "Reckoning",
-          text: "Releases the force stored within his ancient oathblade."
+          name: "Capability Placeholder III",
+          text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
       accent: "#8eb5c6",
       rgb: "142, 181, 198"
     },
     {
-      id: "maeve-sable",
+      id: "uss-hornet-cv-8",
       number: "03",
-      name: "Maeve Sable",
-      role: "Veilborn Alchemist",
-      epithet: "The Spark",
-      quote: "The difference between poison and possibility is precision.",
+      name: "USS Hornet",
+      role: "Yorktown-class aircraft carrier · CV-8",
+      epithet: "The Raider",
+      quote: "A brief service remembered for audacious action.",
       description:
-        "Maeve emerged from the veil with no memory of the life she left behind. Restless, brilliant, and dangerously curious, she studies the strange matter in her blood before someone else decides to study it for her.",
-      origin: "Unknown",
-      affinity: "Aether",
-      weapon: "Catalyst Vials",
-      traits: ["Inventive", "Restless", "Unpredictable"],
+        "Commissioned in 1941, USS Hornet carried the Doolittle Raiders on the first American air strike against the Japanese home islands. CV-8 later fought at Midway and the Santa Cruz Islands, where she was lost after sustained enemy attack in October 1942.",
+      origin: "Newport News, Virginia",
+      affinity: "Pacific Theater",
+      weapon: "Armament profile placeholder",
+      traits: ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
       abilities: [
         {
-          name: "Catalyze",
-          text: "Combines volatile reagents into an effect suited to the moment."
+          name: "Capability Placeholder I",
+          text: "Reserved space for a future carrier skill or tactical description."
         },
         {
-          name: "Veilskin",
-          text: "Briefly becomes untouchable, leaving a cloud of aether behind."
+          name: "Capability Placeholder II",
+          text: "Reserved space for a future fleet-support skill or gameplay effect."
         },
         {
-          name: "Chain Reaction",
-          text: "Marks targets with energy that leaps when one of them falls."
+          name: "Capability Placeholder III",
+          text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
       accent: "#c797d8",
       rgb: "199, 151, 216"
     },
     {
-      id: "orin-thorne",
+      id: "uss-yorktown-cv-5",
       number: "04",
-      name: "Orin Thorne",
-      role: "Keeper of Wild Things",
-      epithet: "The Heart",
-      quote: "The old world is not gone. It is only sleeping.",
+      name: "USS Yorktown",
+      role: "Yorktown-class aircraft carrier · CV-5",
+      epithet: "Old Yorky",
+      quote: "Damaged, repaired, and returned to battle against the odds.",
       description:
-        "A quiet guardian from the last living forest, Orin hears the memories held in root and stone. He joins the crossing not for glory, but to find a place where the wild can begin again.",
-      origin: "The Verdant Hollow",
-      affinity: "Wildwood",
-      weapon: "Thornstaff",
-      traits: ["Patient", "Protective", "Intuitive"],
+        "Commissioned in 1937, USS Yorktown fought at the Battle of the Coral Sea and returned to Pearl Harbor badly damaged. Rapidly repaired in time for Midway, CV-5 played a decisive role in the battle before being abandoned and later sunk in June 1942.",
+      origin: "Newport News, Virginia",
+      affinity: "Pacific Theater",
+      weapon: "Armament profile placeholder",
+      traits: ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
       abilities: [
         {
-          name: "Rootcall",
-          text: "Commands ancient roots to bind foes and shelter companions."
+          name: "Capability Placeholder I",
+          text: "Reserved space for a future carrier skill or tactical description."
         },
         {
-          name: "Wildshape",
-          text: "Borrows the speed and senses of a creature from the old forest."
+          name: "Capability Placeholder II",
+          text: "Reserved space for a future fleet-support skill or gameplay effect."
         },
         {
-          name: "Renewal",
-          text: "Restores life to the ground, healing those who stand upon it."
+          name: "Capability Placeholder III",
+          text: "Reserved space for a future signature ability or special maneuver."
         }
       ],
       accent: "#8fb982",
