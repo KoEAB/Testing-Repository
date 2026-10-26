@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Browse the Naval Command ship profile registry." />
     <title>Shipyard — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-9" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-9" />
-    <script src="data.js?v=navy-9" defer></script>
-    <script src="app.js?v=navy-9" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-10" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-10" />
+    <script src="data.js?v=navy-10" defer></script>
+    <script src="app.js?v=navy-10" defer></script>
   </head>
   <body class="selection-page">
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
     <header class="site-header">
-      <a class="brand" href="lobby.html?v=navy-9" aria-label="Return to Home Port">
+      <a class="brand" href="lobby.html?v=navy-10" aria-label="Return to Home Port">
         <span class="brand-mark" aria-hidden="true">N</span>
         <span>Naval Command</span>
       </a>
-      <a class="back-link" href="lobby.html?v=navy-9">
+      <a class="back-link" href="lobby.html?v=navy-10">
         <span aria-hidden="true">←</span> Home Port
       </a>
     </header>
@@ -28,11 +28,52 @@
       <section class="selection-intro" aria-labelledby="page-title">
         <p class="eyebrow">Shipyard registry</p>
         <h1 id="page-title">Ship profiles.</h1>
-        <p class="intro-copy">Select a profile to view its details.</p>
+        <div class="selection-tools">
+          <p class="intro-copy">Select a profile to view its details.</p>
+          <button
+            class="filter-toggle"
+            id="filter-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="filter-panel"
+          >
+            <span class="filter-toggle-symbol" aria-hidden="true">≡</span>
+            <span>Filter ships</span>
+            <span class="filter-active-count" id="filter-active-count">0</span>
+          </button>
+        </div>
+
+        <div class="filter-panel" id="filter-panel" hidden>
+          <div class="filter-panel-header">
+            <div>
+              <p class="filter-kicker">Roster filters</p>
+              <p class="filter-result-count" id="filter-result-count" aria-live="polite">
+                42 warships available
+              </p>
+            </div>
+            <button class="filter-clear" id="filter-clear" type="button" disabled>Clear all</button>
+          </div>
+
+          <div class="filter-groups">
+            <fieldset class="filter-group">
+              <legend>Ship type</legend>
+              <div class="filter-options" id="type-filters"></div>
+            </fieldset>
+            <fieldset class="filter-group">
+              <legend>Rarity</legend>
+              <div class="filter-options rarity-options" id="rarity-filters"></div>
+            </fieldset>
+          </div>
+        </div>
       </section>
 
-      <section aria-label="Warship roster">
+      <section class="roster-section" aria-label="Warship roster">
         <div class="roster" id="character-roster"></div>
+        <div class="filter-empty" id="filter-empty" hidden>
+          <strong>No ships match these filters.</strong>
+          <span>Choose another combination or clear the current selection.</span>
+          <button id="filter-empty-clear" type="button">Clear filters</button>
+        </div>
       </section>
 
       <p class="selection-hint">

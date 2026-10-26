@@ -1,6 +1,6 @@
 # Naval Command warship selection
 
-A responsive, framework-free browser game shell with a title screen, Home Port lobby, section navigation, and a 48-slot Shipyard containing 42 historical warship records, six reserve slots, and switchable portraits.
+A responsive, framework-free browser game shell with a title screen, Home Port lobby, section navigation, and a 48-slot Shipyard containing 42 historical warship records, six reserve slots, type-and-rarity filters, and switchable portraits.
 
 ## Current flow
 
@@ -23,4 +23,4 @@ The current transparent anime artwork is stored in `images/warships/` and mapped
 - Selection card: 3:4
 - Detail image: 3:4
 
-Ship names, historical summaries, placeholder capabilities, colors, and links are all managed in `data.js`.
+Ship names, historical summaries, type codes, rarities, placeholder capabilities, colors, and links are all managed in `data.js`.

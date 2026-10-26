@@ -2,18 +2,18 @@
   "use strict";
 
   const classProfiles = {
-    Lexington: { shipType: "Aircraft carrier", weapon: "Carrier air group", accent: "#87b6d2", rgb: "135, 182, 210" },
-    Ranger: { shipType: "Aircraft carrier", weapon: "Carrier air group", accent: "#8ba4b6", rgb: "139, 164, 182" },
-    Yorktown: { shipType: "Aircraft carrier", weapon: "Carrier air group", accent: "#9eb7c8", rgb: "158, 183, 200" },
-    Wasp: { shipType: "Aircraft carrier", weapon: "Carrier air group", accent: "#a38b72", rgb: "163, 139, 114" },
-    Essex: { shipType: "Aircraft carrier", weapon: "Carrier air group", accent: "#6f91aa", rgb: "111, 145, 170" },
-    "North Carolina": { shipType: "Battleship", weapon: "9 × 16-inch guns", accent: "#789bb3", rgb: "120, 155, 179" },
-    "South Dakota": { shipType: "Battleship", weapon: "9 × 16-inch guns", accent: "#8796a5", rgb: "135, 150, 165" },
-    Pensacola: { shipType: "Heavy cruiser", weapon: "10 × 8-inch guns", accent: "#b79a63", rgb: "183, 154, 99" },
-    Northampton: { shipType: "Heavy cruiser", weapon: "9 × 8-inch guns", accent: "#8da7b8", rgb: "141, 167, 184" },
-    "New Orleans": { shipType: "Heavy cruiser", weapon: "9 × 8-inch guns", accent: "#718ea4", rgb: "113, 142, 164" },
-    Atlanta: { shipType: "Light cruiser", weapon: "16 × 5-inch dual-purpose guns", accent: "#79afbd", rgb: "121, 175, 189" },
-    Brooklyn: { shipType: "Light cruiser", weapon: "15 × 6-inch guns", accent: "#9a91a8", rgb: "154, 145, 168" }
+    Lexington: { shipType: "Aircraft carrier", typeCode: "CV", rarity: "SSR", weapon: "Carrier air group", accent: "#87b6d2", rgb: "135, 182, 210" },
+    Ranger: { shipType: "Aircraft carrier", typeCode: "CV", rarity: "R", weapon: "Carrier air group", accent: "#8ba4b6", rgb: "139, 164, 182" },
+    Yorktown: { shipType: "Aircraft carrier", typeCode: "CV", rarity: "SSR", weapon: "Carrier air group", accent: "#9eb7c8", rgb: "158, 183, 200" },
+    Wasp: { shipType: "Aircraft carrier", typeCode: "CV", rarity: "SR", weapon: "Carrier air group", accent: "#a38b72", rgb: "163, 139, 114" },
+    Essex: { shipType: "Aircraft carrier", typeCode: "CV", rarity: "UR", weapon: "Carrier air group", accent: "#6f91aa", rgb: "111, 145, 170" },
+    "North Carolina": { shipType: "Battleship", typeCode: "BB", rarity: "SSR", weapon: "9 × 16-inch guns", accent: "#789bb3", rgb: "120, 155, 179" },
+    "South Dakota": { shipType: "Battleship", typeCode: "BB", rarity: "SSR", weapon: "9 × 16-inch guns", accent: "#8796a5", rgb: "135, 150, 165" },
+    Pensacola: { shipType: "Heavy cruiser", typeCode: "CA", rarity: "R", weapon: "10 × 8-inch guns", accent: "#b79a63", rgb: "183, 154, 99" },
+    Northampton: { shipType: "Heavy cruiser", typeCode: "CA", rarity: "R", weapon: "9 × 8-inch guns", accent: "#8da7b8", rgb: "141, 167, 184" },
+    "New Orleans": { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SR", weapon: "9 × 8-inch guns", accent: "#718ea4", rgb: "113, 142, 164" },
+    Atlanta: { shipType: "Light cruiser", typeCode: "CL", rarity: "SR", weapon: "16 × 5-inch dual-purpose guns", accent: "#79afbd", rgb: "121, 175, 189" },
+    Brooklyn: { shipType: "Light cruiser", typeCode: "CL", rarity: "SR", weapon: "15 × 6-inch guns", accent: "#9a91a8", rgb: "154, 145, 168" }
   };
 
   const ships = [
@@ -40,7 +40,7 @@
       origin: "Newport News Shipbuilding", affinity: "Pacific Theater"
     },
     {
-      name: "USS Enterprise", hullNumber: "CV-6", shipClass: "Yorktown",
+      name: "USS Enterprise", hullNumber: "CV-6", shipClass: "Yorktown", rarity: "UR",
       alternateImage: "images/warships/enterprise-shipyard-icon.png",
       description: "USS Enterprise served in more major actions against Japan than any other American ship. During 1942 she fought from Midway through the Guadalcanal campaign and became the indispensable carrier of the Pacific Fleet.",
       origin: "Newport News Shipbuilding", affinity: "Pacific Theater", accent: "#d7b568", rgb: "215, 181, 104"
@@ -67,17 +67,17 @@
       origin: "New York Naval Shipyard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Washington", hullNumber: "BB-56", shipClass: "North Carolina",
+      name: "USS Washington", hullNumber: "BB-56", shipClass: "North Carolina", rarity: "UR",
       description: "USS Washington served with the British Home Fleet before moving to the Pacific. On the night of 14–15 November 1942, her radar-directed gunfire mortally damaged the Japanese battleship Kirishima off Guadalcanal.",
       origin: "Philadelphia Naval Shipyard", affinity: "Atlantic and Pacific"
     },
     {
-      name: "USS South Dakota", hullNumber: "BB-57", shipClass: "South Dakota",
+      name: "USS South Dakota", hullNumber: "BB-57", shipClass: "South Dakota", rarity: "UR",
       description: "Commissioned in March 1942, USS South Dakota defended Enterprise at Santa Cruz and fought in the night action off Guadalcanal. Electrical failures left her exposed, but she survived heavy Japanese gunfire.",
       origin: "New York Shipbuilding", affinity: "Pacific Theater"
     },
     {
-      name: "USS Indiana", hullNumber: "BB-58", shipClass: "South Dakota",
+      name: "USS Indiana", hullNumber: "BB-58", shipClass: "South Dakota", rarity: "SR",
       description: "USS Indiana was commissioned in April 1942 and reached the South Pacific late that year. She reinforced the fast battleship force and began carrier-screening operations around Guadalcanal.",
       origin: "Newport News Shipbuilding", affinity: "Pacific Theater"
     },
@@ -97,7 +97,7 @@
       origin: "New York Navy Yard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Salt Lake City", hullNumber: "CA-25", shipClass: "Pensacola",
+      name: "USS Salt Lake City", hullNumber: "CA-25", shipClass: "Pensacola", rarity: "SR",
       description: "USS Salt Lake City supported the Doolittle Raid and fought at the Battle of Cape Esperance in October 1942, trading heavy gunfire with Japanese cruisers during the Guadalcanal campaign.",
       origin: "New York Shipbuilding", affinity: "Pacific Theater"
     },
@@ -107,12 +107,12 @@
       origin: "Fore River Shipyard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Chester", hullNumber: "CA-27", shipClass: "Northampton",
+      name: "USS Chester", hullNumber: "CA-27", shipClass: "Northampton", rarity: "C",
       description: "USS Chester served with American carrier forces during the first year of the Pacific War. She survived both a February air attack and an October 1942 submarine torpedo hit.",
       origin: "New York Shipbuilding", affinity: "Pacific Theater"
     },
     {
-      name: "USS Louisville", hullNumber: "CA-28", shipClass: "Northampton",
+      name: "USS Louisville", hullNumber: "CA-28", shipClass: "Northampton", rarity: "U",
       description: "USS Louisville escorted convoys and carrier groups across the Pacific during 1942, operating from the Aleutians to the South Pacific as American forces moved onto the offensive.",
       origin: "Puget Sound Navy Yard", affinity: "Pacific Theater"
     },
@@ -122,7 +122,7 @@
       origin: "Mare Island Navy Yard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Houston", hullNumber: "CA-30", shipClass: "Northampton",
+      name: "USS Houston", hullNumber: "CA-30", shipClass: "Northampton", rarity: "SSR",
       description: "Flagship of the United States Asiatic Fleet, USS Houston fought through the failed defense of the Netherlands East Indies. She was overwhelmed and sunk at the Battle of Sunda Strait on 1 March 1942.",
       origin: "Newport News Shipbuilding", affinity: "Southwest Pacific"
     },
@@ -147,12 +147,12 @@
       origin: "Philadelphia Navy Yard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Tuscaloosa", hullNumber: "CA-37", shipClass: "New Orleans",
+      name: "USS Tuscaloosa", hullNumber: "CA-37", shipClass: "New Orleans", rarity: "R",
       description: "USS Tuscaloosa spent much of 1942 in the Atlantic, serving with the British Home Fleet, escorting convoys, and supporting Allied operations connected with the invasion of North Africa.",
       origin: "New York Shipbuilding", affinity: "Atlantic Theater"
     },
     {
-      name: "USS San Francisco", hullNumber: "CA-38", shipClass: "New Orleans",
+      name: "USS San Francisco", hullNumber: "CA-38", shipClass: "New Orleans", rarity: "SSR",
       description: "USS San Francisco fought at Cape Esperance and served as Admiral Callaghan's flagship in the Naval Battle of Guadalcanal. She survived a brutal close-range action on 13 November 1942.",
       origin: "Mare Island Navy Yard", affinity: "Pacific Theater"
     },
@@ -167,7 +167,7 @@
       origin: "Fore River Shipyard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Atlanta", hullNumber: "CL-51", shipClass: "Atlanta",
+      name: "USS Atlanta", hullNumber: "CL-51", shipClass: "Atlanta", rarity: "SSR",
       description: "Designed as a fast antiaircraft cruiser, USS Atlanta escorted carriers and fought around Guadalcanal. Heavy damage during the night action of 13 November 1942 forced her crew to scuttle the ship.",
       origin: "Federal Shipbuilding", affinity: "Pacific Theater"
     },
@@ -182,7 +182,7 @@
       origin: "Fore River Shipyard", affinity: "Pacific Theater"
     },
     {
-      name: "USS San Juan", hullNumber: "CL-54", shipClass: "Atlanta",
+      name: "USS San Juan", hullNumber: "CL-54", shipClass: "Atlanta", rarity: "R",
       description: "USS San Juan entered combat in the South Pacific during 1942, screening carrier groups and fighting through the Guadalcanal and Santa Cruz operations.",
       origin: "Fore River Shipyard", affinity: "Pacific Theater"
     },
@@ -192,12 +192,12 @@
       origin: "New York Navy Yard", affinity: "Atlantic Theater"
     },
     {
-      name: "USS Philadelphia", hullNumber: "CL-41", shipClass: "Brooklyn",
+      name: "USS Philadelphia", hullNumber: "CL-41", shipClass: "Brooklyn", rarity: "C",
       description: "USS Philadelphia escorted Atlantic convoys and provided naval gunfire during Operation Torch, supporting American landings at Safi in November 1942.",
       origin: "Philadelphia Navy Yard", affinity: "Atlantic Theater"
     },
     {
-      name: "USS Savannah", hullNumber: "CL-42", shipClass: "Brooklyn",
+      name: "USS Savannah", hullNumber: "CL-42", shipClass: "Brooklyn", rarity: "U",
       description: "USS Savannah served on Atlantic patrols before joining Operation Torch. She supported the assault on Safi with reconnaissance aircraft and sustained naval gunfire.",
       origin: "New York Shipbuilding", affinity: "Atlantic Theater"
     },
@@ -207,7 +207,7 @@
       origin: "New York Shipbuilding", affinity: "Pacific Theater"
     },
     {
-      name: "USS Phoenix", hullNumber: "CL-46", shipClass: "Brooklyn",
+      name: "USS Phoenix", hullNumber: "CL-46", shipClass: "Brooklyn", rarity: "U",
       description: "USS Phoenix escaped the attack on Pearl Harbor without damage. During 1942 she escorted convoys between the United States, Australia, and the Indian Ocean.",
       origin: "New York Shipbuilding", affinity: "Pacific Theater"
     },
@@ -222,12 +222,12 @@
       origin: "New York Navy Yard", affinity: "Pacific Theater"
     },
     {
-      name: "USS St. Louis", hullNumber: "CL-49", shipClass: "Brooklyn",
+      name: "USS St. Louis", hullNumber: "CL-49", shipClass: "Brooklyn", rarity: "R",
       description: "USS St. Louis escaped Pearl Harbor and spent 1942 on convoy, Aleutian, and South Pacific duties before joining the hard-fought campaign around Guadalcanal.",
       origin: "Newport News Shipbuilding", affinity: "Pacific Theater"
     },
     {
-      name: "USS Helena", hullNumber: "CL-50", shipClass: "Brooklyn",
+      name: "USS Helena", hullNumber: "CL-50", shipClass: "Brooklyn", rarity: "SSR",
       description: "Repaired after Pearl Harbor, USS Helena returned with modern radar and fought aggressively at Cape Esperance and in the Naval Battle of Guadalcanal during 1942.",
       origin: "New York Navy Yard", affinity: "Pacific Theater"
     }
@@ -258,7 +258,9 @@
       alternateImage: ship.alternateImage || null,
       shipClass: ship.shipClass,
       shipType: profile.shipType,
+      typeCode: profile.typeCode,
       hullNumber: ship.hullNumber,
+      rarity: ship.rarity || profile.rarity,
       role: `${ship.shipClass}-class ${profile.shipType.toLowerCase()} · ${ship.hullNumber}`,
       description: ship.description,
       origin: ship.origin,
@@ -288,7 +290,9 @@
       name,
       shipClass: "资料未定",
       shipType: "舰种待录",
+      typeCode: null,
       hullNumber: "舷号待定",
+      rarity: null,
       role: "舰籍待录 · 资料未定",
       defaultImage: null,
       alternateImage: null,

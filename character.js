@@ -15,7 +15,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="shipyard.html?v=navy-9">Return to Shipyard</a>
+        <a class="primary-button" href="shipyard.html?v=navy-10">Return to Shipyard</a>
       </section>
     `;
     return;
@@ -40,7 +40,7 @@
 
       <nav class="character-navigation empty-navigation" aria-label="Browse warships">
         ${renderAdjacentLink(character, -1, "上一项")}
-        <a class="all-characters" href="shipyard.html?v=navy-9">全部档案</a>
+        <a class="all-characters" href="shipyard.html?v=navy-10">全部档案</a>
         ${renderAdjacentLink(character, 1, "下一项")}
       </nav>
     `;
@@ -94,6 +94,7 @@
 
     <section class="character-record" aria-label="Warship record">
       <div class="facts">
+        <div class="fact"><span>Rarity</span><strong class="detail-rarity" data-rarity="${character.rarity}">${character.rarity}</strong></div>
         <div class="fact"><span>Builder</span><strong>${character.origin}</strong></div>
         <div class="fact"><span>Theater</span><strong>${character.affinity}</strong></div>
         <div class="fact"><span>Armament</span><strong>${character.weapon}</strong></div>
@@ -106,7 +107,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="shipyard.html?v=navy-9">All profiles</a>
+      <a class="all-characters" href="shipyard.html?v=navy-10">All profiles</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -119,7 +120,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-9">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-10">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>
