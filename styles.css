@@ -76,7 +76,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: min(1440px, calc(100% - 96px));
+  width: min(1720px, calc(100% - 64px));
   margin: 0 auto;
   padding: 34px 0;
   border-bottom: 1px solid var(--line);
@@ -134,7 +134,7 @@ a {
 }
 
 .selection-shell {
-  width: min(1440px, calc(100% - 96px));
+  width: min(1720px, calc(100% - 64px));
   margin: 0 auto;
   padding: clamp(64px, 8vw, 112px) 0 70px;
 }
@@ -193,8 +193,8 @@ p {
 
 .roster {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .character-card {
@@ -244,6 +244,38 @@ p {
       rgba(255, 255, 255, 0.015) 19px
     ),
     #081827;
+}
+
+.portrait-layer {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 1;
+  transition: opacity 260ms ease;
+}
+
+.portrait-alternate {
+  opacity: 0;
+}
+
+.show-alternate-portraits .portrait-primary {
+  opacity: 0;
+}
+
+.show-alternate-portraits .portrait-alternate {
+  opacity: 1;
+}
+
+.empty-profile-mark {
+  width: 42%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(var(--accent-rgb), 0.23);
+  border-radius: 50%;
+  background:
+    linear-gradient(45deg, transparent calc(50% - 0.5px), rgba(var(--accent-rgb), 0.2) 50%, transparent calc(50% + 0.5px)),
+    linear-gradient(-45deg, transparent calc(50% - 0.5px), rgba(var(--accent-rgb), 0.2) 50%, transparent calc(50% + 0.5px));
 }
 
 .ship-art {
@@ -326,10 +358,11 @@ p {
 
 .card-content {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 14px;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
   align-items: start;
-  padding: 24px 22px 26px;
+  min-height: 92px;
+  padding: 15px 13px 17px;
 }
 
 .character-number {
@@ -340,20 +373,36 @@ p {
 }
 
 .card-content h2 {
-  margin-bottom: 7px;
+  margin-bottom: 6px;
   font-family: var(--serif);
-  font-size: clamp(21px, 2vw, 28px);
+  font-size: clamp(16px, 1.35vw, 21px);
   font-weight: 400;
-  line-height: 1;
+  line-height: 1.08;
 }
 
 .card-content p {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 9px;
-  letter-spacing: 0.12em;
+  font-size: 7px;
+  letter-spacing: 0.1em;
   line-height: 1.5;
   text-transform: uppercase;
+}
+
+.character-card .card-portrait-number {
+  top: 14px;
+  right: 15px;
+  z-index: 3;
+  font-size: 9px;
+}
+
+.empty-card .card-content h2 {
+  color: #c1d0da;
+  letter-spacing: 0.08em;
+}
+
+.empty-card .card-content p {
+  color: var(--faint);
 }
 
 .card-arrow {
@@ -380,6 +429,47 @@ p {
   text-transform: uppercase;
 }
 
+.selection-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 28px;
+}
+
+.alternate-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 148px;
+  justify-content: center;
+  padding: 13px 18px;
+  border: 1px solid rgba(215, 181, 104, 0.48);
+  background: rgba(8, 24, 39, 0.92);
+  color: var(--gold);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.alternate-toggle:hover,
+.alternate-toggle:focus-visible,
+.alternate-toggle[aria-pressed="true"] {
+  border-color: var(--gold);
+  background: rgba(215, 181, 104, 0.1);
+  color: var(--ink);
+  outline: none;
+}
+
+.toggle-symbol {
+  font-size: 13px;
+}
+
 .hint-icon {
   color: var(--gold);
 }
@@ -387,7 +477,7 @@ p {
 .site-footer {
   display: flex;
   align-items: center;
-  width: min(1440px, calc(100% - 96px));
+  width: min(1720px, calc(100% - 64px));
   margin: 0 auto;
   padding: 28px 0 36px;
   border-top: 1px solid var(--line);
@@ -660,6 +750,29 @@ blockquote {
   align-content: center;
 }
 
+.empty-record {
+  display: grid;
+  min-height: 58vh;
+  place-items: center;
+}
+
+.empty-record-frame {
+  --accent: var(--character-accent);
+  --accent-rgb: var(--character-rgb);
+  width: min(320px, 70vw);
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(var(--character-rgb), 0.34);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.3);
+}
+
+.empty-detail-mark {
+  width: 36%;
+}
+
+.empty-navigation {
+  margin-top: 40px;
+}
+
 .not-found h1 {
   margin-bottom: 20px;
   font-family: var(--serif);
@@ -686,7 +799,7 @@ blockquote {
 
 @media (max-width: 1050px) {
   .roster {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .detail-hero,
@@ -729,6 +842,7 @@ blockquote {
   }
 
   .roster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
 

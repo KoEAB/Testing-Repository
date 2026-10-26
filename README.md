@@ -1,6 +1,6 @@
 # Naval Command warship selection
 
-A responsive, framework-free warship selection screen with individual fleet-record views.
+A responsive, framework-free 24-slot warship selection screen with individual fleet-record views and switchable primary/alternate portraits.
 
 ## Run locally
 

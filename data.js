@@ -7,6 +7,7 @@
       number: "01",
       name: "USS Enterprise",
       image: "images/warships/enterprise-shipyard-icon.png",
+      alternateImage: null,
       role: "Yorktown-class aircraft carrier · CV-6",
       epithet: "The Big E",
       quote: "A fighting carrier at the center of the Pacific campaign.",
@@ -38,6 +39,7 @@
       number: "02",
       name: "USS Lexington",
       image: "images/warships/lexington-shipyard-icon.png",
+      alternateImage: null,
       role: "Lexington-class aircraft carrier · CV-2",
       epithet: "Lady Lex",
       quote: "Built as a battlecruiser, reborn as a carrier.",
@@ -69,6 +71,7 @@
       number: "03",
       name: "USS Hornet",
       image: "images/warships/hornet-shipyard-icon.png",
+      alternateImage: null,
       role: "Yorktown-class aircraft carrier · CV-8",
       epithet: "The Raider",
       quote: "A brief service remembered for audacious action.",
@@ -100,6 +103,7 @@
       number: "04",
       name: "USS Yorktown",
       image: "images/warships/yorktown-shipyard-icon.png",
+      alternateImage: null,
       role: "Yorktown-class aircraft carrier · CV-5",
       epithet: "Old Yorky",
       quote: "Damaged, repaired, and returned to battle against the odds.",
@@ -127,4 +131,51 @@
       rgb: "158, 183, 200"
     }
   ];
+
+  const placeholderNames = [
+    "玄霜",
+    "苍澜",
+    "赤羽",
+    "云岚",
+    "星璃",
+    "墨潮",
+    "青鸢",
+    "白夜",
+    "凌波",
+    "紫电",
+    "寒舟",
+    "烬海",
+    "月汐",
+    "金乌",
+    "霁雪",
+    "幽兰",
+    "天狼",
+    "飞燕",
+    "龙渊",
+    "曦光"
+  ];
+
+  const placeholderPalette = [
+    { accent: "#6f91aa", rgb: "111, 145, 170" },
+    { accent: "#8ba4b6", rgb: "139, 164, 182" },
+    { accent: "#a38b72", rgb: "163, 139, 114" },
+    { accent: "#7e8797", rgb: "126, 135, 151" }
+  ];
+
+  placeholderNames.forEach((name, index) => {
+    const number = index + 5;
+    const color = placeholderPalette[index % placeholderPalette.length];
+
+    window.CHARACTERS.push({
+      id: `empty-slot-${String(number).padStart(2, "0")}`,
+      number: String(number).padStart(2, "0"),
+      name,
+      role: "舰籍待录 · 资料未定",
+      image: null,
+      alternateImage: null,
+      placeholder: true,
+      accent: color.accent,
+      rgb: color.rgb
+    });
+  });
 })();

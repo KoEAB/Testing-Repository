@@ -8,17 +8,17 @@
       content="Choose a legendary United States Navy aircraft carrier and open its fleet record."
     />
     <title>Naval Command — Choose Your Warship</title>
-    <link rel="icon" href="favicon.svg?v=navy-3" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-3" />
-    <script src="data.js?v=navy-3" defer></script>
-    <script src="app.js?v=navy-3" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-4" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-4" />
+    <script src="data.js?v=navy-4" defer></script>
+    <script src="app.js?v=navy-4" defer></script>
   </head>
   <body class="selection-page">
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
     <header class="site-header">
-      <a class="brand" href="index.html?v=navy-3" aria-label="Naval Command home">
+      <a class="brand" href="index.html?v=navy-4" aria-label="Naval Command home">
         <span class="brand-mark" aria-hidden="true">N</span>
         <span>Naval Command</span>
       </a>
@@ -30,8 +30,8 @@
         <p class="eyebrow">Assemble the task force</p>
         <h1 id="page-title">Choose your <em>warship.</em></h1>
         <p class="intro-copy">
-          Four storied carriers stand ready. Choose a vessel to open its fleet
-          record.
+          Twenty-four fleet records await assignment. Choose a profile to open
+          its archive entry.
         </p>
       </section>
 
@@ -41,12 +41,19 @@
 
       <p class="selection-hint">
         <span class="hint-icon" aria-hidden="true">↗</span>
-        Select a warship to open its record
+        Select a profile to open its record
       </p>
+
+      <div class="selection-controls">
+        <button class="alternate-toggle" id="alternate-toggle" type="button" aria-pressed="false">
+          <span class="toggle-symbol" aria-hidden="true">◈</span>
+          <span class="toggle-label">切换副图</span>
+        </button>
+      </div>
     </main>
 
     <footer class="site-footer">
-      <span>04 fleet records</span>
+      <span>24 fleet records</span>
       <span class="footer-rule" aria-hidden="true"></span>
       <span>The Pacific awaits</span>
     </footer>
