@@ -13,8 +13,18 @@
   const SCALE_STEP = 0.1;
   const MOVE_RANGE = 5;
   const ATTACK_RANGE = 7;
+  const TORPEDO_RANGE = 4;
   const TURN_DURATION = 260;
-  const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV"]);
+  const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
+  const TORPEDO_CODES = new Set(["SS", "SSV", "DD"]);
+  const UNIT_STATS = {
+    SS: { health: 70, torpedo: 110 }, SSV: { health: 80, torpedo: 100 },
+    DD: { health: 100, gun: 35, torpedo: 85 }, DE: { health: 110, gun: 30 },
+    CL: { health: 180, gun: 45 }, CA: { health: 240, gun: 60 }, CB: { health: 320, gun: 75 },
+    BC: { health: 380, gun: 85 }, BB: { health: 450, gun: 100 }, BBV: { health: 430, gun: 95 },
+    CV: { health: 360, gun: 20 }, CVL: { health: 280 }, CVE: { health: 220 },
+    BM: { health: 200, gun: 55 }, AR: { health: 180 }
+  };
 
   const shipTypes = [
     { code: "SS", label: "Submarine", column: 18, row: 24, group: "submarine" },
@@ -32,7 +42,38 @@
     { code: "CVE", label: "Escort aircraft carrier", column: 30, row: 24, group: "aviation" },
     { code: "BM", label: "Monitor", column: 31, row: 24, group: "coastal" },
     { code: "AR", label: "Repair ship", column: 32, row: 24, group: "support" }
-  ].map((ship) => ({ ...ship, heading: 0, moved: false, attacked: false, health: 100 }));
+  ].map((ship) => createUnitState(ship, ship.code, "friendly"));
+
+  let unitSequence = shipTypes.length;
+  const unitTemplates = new Map(shipTypes.map(({ code, label, group }) => [code, { code, label, group }]));
+
+  function actionLayout(code) {
+    if (code === "DD") return ["move", "gun", "torpedo"];
+    if (code === "SS" || code === "SSV") return ["move", "torpedo"];
+    if (code === "CV") return ["move", "gun", "air"];
+    if (code === "CVL" || code === "CVE") return ["move", "air"];
+    if (["CL", "CA", "CB", "BC", "BB", "BBV", "BM", "DE"].includes(code)) return ["move", "gun"];
+    return ["move"];
+  }
+
+  function createUnitState(ship, id, team) {
+    const stats = UNIT_STATS[ship.code];
+    return {
+      ...ship,
+      id,
+      team,
+      heading: 0,
+      moved: false,
+      attacked: false,
+      torpedoed: false,
+      airUsed: false,
+      health: stats.health,
+      maxHealth: stats.health,
+      gunDamage: stats.gun || 0,
+      torpedoDamage: stats.torpedo || 0,
+      actions: actionLayout(ship.code)
+    };
+  }
 
   const islandShapes = [
     { column: 3, row: 4, width: 5, height: 6 },
@@ -72,13 +113,25 @@
   const detailName = document.querySelector("#unit-detail-name");
   const detailCategory = document.querySelector("#unit-detail-category");
   const detailPosition = document.querySelector("#unit-detail-position");
+  const detailTeam = document.querySelector("#unit-detail-team");
+  const detailHealth = document.querySelector("#unit-detail-health");
   const detailMovement = document.querySelector("#unit-detail-movement");
   const detailAttack = document.querySelector("#unit-detail-attack");
+  const detailTorpedo = document.querySelector("#unit-detail-torpedo");
   const detailStatus = document.querySelector("#unit-detail-status");
   const detailInstruction = document.querySelector("#unit-detail-instruction");
   const detailClose = document.querySelector("#unit-detail-close");
   const nextTurnButton = document.querySelector("#next-turn");
   const turnNumber = document.querySelector("#turn-number");
+  const gunOrderButton = document.querySelector("#gun-order");
+  const torpedoOrderButton = document.querySelector("#torpedo-order");
+  const developerPanel = document.querySelector("#developer-panel");
+  const developerPanelToggle = document.querySelector("#developer-panel-toggle");
+  const developerTeam = document.querySelector("#developer-team");
+  const developerType = document.querySelector("#developer-type");
+  const developerAdd = document.querySelector("#developer-add");
+  const developerInstruction = document.querySelector("#developer-instruction");
+  const developerUnitLists = document.querySelector("#developer-unit-lists");
   const tileElements = new Map();
   const unitElements = new Map();
   let scale = 1;
@@ -90,6 +143,7 @@
   let mode = null;
   let isAnimating = false;
   let currentTurn = 1;
+  let placementOrder = null;
 
   function cellKey(column, row) {
     return `${column},${row}`;
@@ -161,21 +215,106 @@
       }
     }
 
-    shipTypes.forEach((shipType) => {
-      const marker = document.createElement("button");
-      marker.className = "map-unit";
-      marker.type = "button";
-      marker.dataset.shipType = shipType.code;
-      marker.dataset.heading = "0";
-      marker.style.setProperty("--heading", "0deg");
-      positionMarker(marker, shipType.column, shipType.row);
-      marker.setAttribute("aria-label", `${shipType.code}: ${shipType.label}, full health`);
-      marker.innerHTML = `<span class="map-unit-icon">${renderIcon(shipType.code)}</span><span class="unit-health" aria-hidden="true"><i></i></span>`;
-      marker.addEventListener("click", (event) => handleUnitClick(event, marker, shipType));
-      marker.addEventListener("contextmenu", (event) => beginAttackMode(event, marker, shipType));
-      unitElements.set(shipType.code, marker);
-      map.appendChild(marker);
+    shipTypes.forEach(renderUnit);
+    renderDeveloperLists();
+  }
+
+  function renderUnit(shipType) {
+    const marker = document.createElement("button");
+    marker.className = `map-unit team-${shipType.team}`;
+    marker.type = "button";
+    marker.dataset.shipType = shipType.code;
+    marker.dataset.unitId = shipType.id;
+    marker.dataset.heading = String(shipType.heading);
+    marker.style.setProperty("--heading", `${shipType.heading}deg`);
+    positionMarker(marker, shipType.column, shipType.row);
+    marker.setAttribute("aria-label", `${shipType.team} ${shipType.code}: ${shipType.label}`);
+    const actionSegments = shipType.actions.map((action) => `<i data-action="${action}"></i>`).join("");
+    marker.innerHTML = `<span class="map-unit-icon">${renderIcon(shipType.code)}</span><span class="unit-health" aria-hidden="true"><i></i></span><span class="unit-actions" aria-hidden="true">${actionSegments}</span>`;
+    marker.addEventListener("click", (event) => handleUnitClick(event, marker, shipType));
+    marker.addEventListener("contextmenu", (event) => beginAttackMode(event, marker, shipType));
+    unitElements.set(shipType.id, marker);
+    map.appendChild(marker);
+    refreshUnitDisplay(shipType);
+  }
+
+  function actionIsUsed(shipType, action) {
+    if (shipType.health <= 0) return true;
+    if (action === "move") return shipType.moved;
+    if (action === "gun") return shipType.attacked;
+    if (action === "torpedo") return shipType.torpedoed;
+    return shipType.airUsed;
+  }
+
+  function refreshUnitDisplay(shipType) {
+    const marker = unitElements.get(shipType.id);
+    if (!marker) return;
+    const healthPercent = Math.max(0, shipType.health / shipType.maxHealth * 100);
+    marker.querySelector(".unit-health i").style.width = `${healthPercent}%`;
+    marker.classList.toggle("is-destroyed", shipType.health <= 0);
+    marker.querySelectorAll(".unit-actions i").forEach((segment) => {
+      segment.classList.toggle("is-used", actionIsUsed(shipType, segment.dataset.action));
     });
+    marker.setAttribute("aria-label", `${shipType.team} ${shipType.code}: ${shipType.label}, ${shipType.health} of ${shipType.maxHealth} health`);
+  }
+
+  function renderDeveloperLists() {
+    developerUnitLists.innerHTML = ["friendly", "enemy"].map((team) => {
+      const units = shipTypes.filter((ship) => ship.team === team);
+      const rows = units.length ? units.map((ship) => `
+        <div class="developer-unit-row">
+          <span><strong>${ship.code}</strong>${coordinateLabel(ship.column, ship.row)} · ${ship.health}/${ship.maxHealth}</span>
+          <button type="button" data-delete-unit="${ship.id}" aria-label="Delete ${ship.code}">×</button>
+        </div>`).join("") : `<p class="developer-empty">No ${team} units</p>`;
+      return `<section><h3>${team}</h3>${rows}</section>`;
+    }).join("");
+  }
+
+  function showPlacementArea() {
+    clearTacticalHighlights();
+    const occupied = occupiedCells(null);
+    tileElements.forEach((tile, key) => {
+      if (!landCells.has(key) && !occupied.has(key)) tile.classList.add("is-placement");
+    });
+  }
+
+  function beginPlacement() {
+    if (isAnimating) return;
+    deselectUnit();
+    placementOrder = { team: developerTeam.value, code: developerType.value };
+    developerInstruction.textContent = `Select an empty sea hex for the ${placementOrder.team} ${placementOrder.code}.`;
+    showPlacementArea();
+  }
+
+  function placeUnit(key) {
+    if (!placementOrder || landCells.has(key) || occupiedCells(null).has(key)) return;
+    const template = unitTemplates.get(placementOrder.code);
+    const cell = parseCellKey(key);
+    const unit = createUnitState({
+      code: template.code,
+      label: template.label,
+      group: template.group,
+      column: cell.column,
+      row: cell.row
+    }, `${placementOrder.team}-${template.code}-${++unitSequence}`, placementOrder.team);
+    shipTypes.push(unit);
+    renderUnit(unit);
+    developerInstruction.textContent = `${unit.team} ${unit.code} deployed at ${coordinateLabel(cell.column, cell.row)}.`;
+    placementOrder = null;
+    clearTacticalHighlights();
+    renderDeveloperLists();
+  }
+
+  function deleteUnit(id) {
+    const index = shipTypes.findIndex((ship) => ship.id === id);
+    if (index < 0 || isAnimating) return;
+    if (selectedUnit?.id === id) deselectUnit();
+    unitElements.get(id)?.remove();
+    unitElements.delete(id);
+    shipTypes.splice(index, 1);
+    renderDeveloperLists();
+    if (placementOrder) showPlacementArea();
+    else if (selectedUnit && mode === "move") showMovementArea(selectedUnit);
   }
 
   function positionMarker(marker, column, row) {
@@ -197,13 +336,13 @@
     ].filter((cell) => cell.column >= 0 && cell.column < COLUMNS && cell.row >= 0 && cell.row < ROWS);
   }
 
-  function occupiedCells(exceptCode) {
-    return new Set(shipTypes.filter((ship) => ship.code !== exceptCode).map((ship) => cellKey(ship.column, ship.row)));
+  function occupiedCells(exceptId) {
+    return new Set(shipTypes.filter((ship) => ship.id !== exceptId).map((ship) => cellKey(ship.column, ship.row)));
   }
 
   function calculateReachable(shipType) {
     const startKey = cellKey(shipType.column, shipType.row);
-    const blocked = occupiedCells(shipType.code);
+    const blocked = occupiedCells(shipType.id);
     const distance = new Map([[startKey, 0]]);
     const previous = new Map();
     const queue = [startKey];
@@ -246,7 +385,7 @@
 
   function clearTacticalHighlights() {
     tileElements.forEach((tile) => {
-      tile.classList.remove("is-reachable", "is-unit-selected", "is-route", "is-attackable");
+      tile.classList.remove("is-reachable", "is-unit-selected", "is-route", "is-attackable", "is-torpedoable", "is-placement");
       delete tile.dataset.distance;
       tile.tabIndex = -1;
     });
@@ -284,18 +423,40 @@
     });
   }
 
+  function showTorpedoArea(shipType) {
+    clearTacticalHighlights();
+    reachableState = null;
+    mode = "torpedo";
+    markSelectedOrigin(shipType);
+    attackCells = calculateRadius(shipType, TORPEDO_RANGE);
+    attackCells.forEach((key) => {
+      const tile = tileElements.get(key);
+      tile.classList.add("is-torpedoable");
+      tile.tabIndex = 0;
+    });
+  }
+
   function updateDetailPanel(shipType, status = "Awaiting orders") {
     const canAttack = ATTACK_CODES.has(shipType.code);
     detailCode.textContent = shipType.code;
     detailName.textContent = shipType.label;
     detailCategory.textContent = shipType.group.charAt(0).toUpperCase() + shipType.group.slice(1);
     detailPosition.textContent = coordinateLabel(shipType.column, shipType.row);
+    detailTeam.textContent = shipType.team.charAt(0).toUpperCase() + shipType.team.slice(1);
+    detailHealth.textContent = `${shipType.health} / ${shipType.maxHealth}`;
     detailMovement.textContent = shipType.moved ? "Spent" : "Ready · 5 hexes";
     detailAttack.textContent = canAttack ? (shipType.attacked ? "Spent" : "Ready · 7 hexes") : "Unavailable";
+    detailTorpedo.textContent = TORPEDO_CODES.has(shipType.code) ? (shipType.torpedoed ? "Spent" : "Ready · 4 hexes") : "Unavailable";
+    gunOrderButton.hidden = !canAttack;
+    gunOrderButton.disabled = shipType.attacked;
+    torpedoOrderButton.hidden = !TORPEDO_CODES.has(shipType.code);
+    torpedoOrderButton.disabled = shipType.torpedoed;
     detailStatus.textContent = status;
     detailInstruction.textContent = mode === "attack"
-      ? "Select a red hex to fire. Ships in range may be targeted."
-      : "Hover to preview facing. Left-click to move; right-click to set facing.";
+      ? "Select a red hex to fire the ship's guns."
+      : mode === "torpedo"
+        ? "Select a cyan hex to launch torpedoes."
+        : "Hover to preview facing. Left-click to move; right-click to set facing.";
     detailPanel.hidden = false;
   }
 
@@ -306,7 +467,7 @@
   }
 
   function setHeadingBetween(shipType, from, to, options = {}) {
-    const marker = unitElements.get(shipType.code);
+    const marker = unitElements.get(shipType.id);
     let heading = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
     if (options.broadside) heading += 90;
     const current = Number(marker.dataset.heading || shipType.heading || 0);
@@ -320,7 +481,7 @@
 
   function restoreCommittedFacing() {
     if (!selectedUnit || isAnimating) return;
-    const marker = unitElements.get(selectedUnit.code);
+    const marker = unitElements.get(selectedUnit.id);
     marker.dataset.heading = String(selectedUnit.heading);
     marker.style.setProperty("--heading", `${selectedUnit.heading}deg`);
   }
@@ -340,13 +501,14 @@
 
   function handleUnitClick(event, marker, shipType) {
     event.stopPropagation();
-    if (isAnimating) return;
+    if (isAnimating || shipType.health <= 0) return;
     const key = cellKey(shipType.column, shipType.row);
-    if (mode === "attack" && selectedUnit && selectedUnit.code !== shipType.code && attackCells.has(key)) {
-      fireVolley(key);
+    if ((mode === "attack" || mode === "torpedo") && selectedUnit && selectedUnit.id !== shipType.id && attackCells.has(key)) {
+      if (mode === "torpedo") fireTorpedoes(key);
+      else fireVolley(key);
       return;
     }
-    if (selectedUnit?.code === shipType.code && mode === "move") {
+    if (selectedUnit?.id === shipType.id && mode === "move") {
       deselectUnit();
       return;
     }
@@ -355,6 +517,7 @@
 
   function selectUnit(marker, shipType) {
     if (isAnimating) return;
+    placementOrder = null;
     restoreCommittedFacing();
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     selectedUnit = shipType;
@@ -367,7 +530,12 @@
   function beginAttackMode(event, marker, shipType) {
     event.preventDefault();
     event.stopPropagation();
-    if (isAnimating) return;
+    if (isAnimating || shipType.health <= 0) return;
+    if (!ATTACK_CODES.has(shipType.code) && TORPEDO_CODES.has(shipType.code)) {
+      selectUnit(marker, shipType);
+      activateTorpedoMode();
+      return;
+    }
     if (!ATTACK_CODES.has(shipType.code)) {
       selectUnit(marker, shipType);
       updateDetailPanel(shipType, "No ranged armament");
@@ -387,8 +555,23 @@
     updateDetailPanel(shipType, "Select firing target");
   }
 
+  function activateGunMode() {
+    if (!selectedUnit || selectedUnit.attacked || !ATTACK_CODES.has(selectedUnit.code) || isAnimating) return;
+    showAttackArea(selectedUnit);
+    unitReadout.textContent = `${selectedUnit.code} · Gun range`;
+    updateDetailPanel(selectedUnit, "Select firing target");
+  }
+
+  function activateTorpedoMode() {
+    if (!selectedUnit || selectedUnit.torpedoed || !TORPEDO_CODES.has(selectedUnit.code) || isAnimating) return;
+    showTorpedoArea(selectedUnit);
+    unitReadout.textContent = `${selectedUnit.code} · Torpedo range`;
+    updateDetailPanel(selectedUnit, "Select torpedo target");
+  }
+
   function deselectUnit() {
     if (isAnimating) return;
+    placementOrder = null;
     restoreCommittedFacing();
     selectedUnit = null;
     reachableState = null;
@@ -464,7 +647,7 @@
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
-    const marker = unitElements.get(shipType.code);
+    const marker = unitElements.get(shipType.id);
     const targetCell = parseCellKey(targetKey);
     const startPoint = cellCenter(shipType.column, shipType.row);
     const targetPoint = cellCenter(targetCell.column, targetCell.row);
@@ -503,6 +686,8 @@
     shipType.column = targetCell.column;
     shipType.row = targetCell.row;
     shipType.moved = true;
+    refreshUnitDisplay(shipType);
+    renderDeveloperLists();
     marker.classList.remove("is-moving");
     isAnimating = false;
     clearTacticalHighlights();
@@ -518,6 +703,20 @@
     effect.style.top = `${center.y}px`;
     map.appendChild(effect);
     return effect;
+  }
+
+  function unitAt(key, exceptId) {
+    return shipTypes.find((ship) => ship.id !== exceptId && cellKey(ship.column, ship.row) === key);
+  }
+
+  function applyDamage(target, amount) {
+    if (!target || amount <= 0) return;
+    target.health = Math.max(0, target.health - amount);
+    refreshUnitDisplay(target);
+    renderDeveloperLists();
+    if (selectedUnit?.id === target.id) {
+      updateDetailPanel(target, target.health > 0 ? `Hit for ${amount} damage` : "Unit destroyed");
+    }
   }
 
   async function animateVolley(shipType, targetKey) {
@@ -544,7 +743,7 @@
     });
     await Promise.all(shots);
 
-    const navalTarget = shipTypes.some((ship) => ship.code !== shipType.code && cellKey(ship.column, ship.row) === targetKey);
+    const navalTarget = unitAt(targetKey, shipType.id);
     const impactClass = landCells.has(targetKey) || navalTarget ? "impact-explosion" : "impact-splash";
     const impact = createEffect(impactClass, destination);
     const impactAnimation = impact.animate([
@@ -552,6 +751,7 @@
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
     ], { duration: 800, easing: "ease-out", fill: "forwards" });
+    if (navalTarget) applyDamage(navalTarget, shipType.gunDamage);
     await impactAnimation.finished;
     impact.remove();
   }
@@ -561,6 +761,8 @@
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
+    shipType.attacked = true;
+    refreshUnitDisplay(shipType);
     setMarkerHeading(shipType, parseCellKey(targetKey), { broadside: true, commit: true });
     clearTacticalHighlights();
     markSelectedOrigin(shipType);
@@ -568,10 +770,64 @@
     unitReadout.textContent = `${shipType.code} · Firing volley`;
     await wait(TURN_DURATION);
     await animateVolley(shipType, targetKey);
-    shipType.attacked = true;
+    renderDeveloperLists();
     isAnimating = false;
     updateDetailPanel(shipType, "Volley complete");
     unitReadout.textContent = `${shipType.code} · Volley complete`;
+    if (!shipType.moved) showMovementArea(shipType);
+    else markSelectedOrigin(shipType);
+  }
+
+  async function animateTorpedoAttack(shipType, targetKey) {
+    const origin = cellCenter(shipType.column, shipType.row);
+    const targetCell = parseCellKey(targetKey);
+    const destination = cellCenter(targetCell.column, targetCell.row);
+    const launches = [-6, 6].map(async (offset, index) => {
+      await wait(index * 90);
+      const torpedo = createEffect("torpedo-wake", origin);
+      torpedo.style.marginTop = `${offset}px`;
+      const animation = torpedo.animate([
+        { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 0.3 },
+        { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
+      ], { duration: 720, easing: "linear", fill: "forwards" });
+      await animation.finished;
+      torpedo.remove();
+    });
+    await Promise.all(launches);
+    const navalTarget = unitAt(targetKey, shipType.id);
+    const impactClass = navalTarget ? "impact-explosion" : "impact-splash";
+    const impact = createEffect(impactClass, destination);
+    const impactAnimation = impact.animate([
+      { opacity: 0, transform: "translate(-50%, -50%) scale(.15)" },
+      { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
+      { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
+    ], { duration: 800, easing: "ease-out", fill: "forwards" });
+    if (navalTarget) applyDamage(navalTarget, shipType.torpedoDamage);
+    await impactAnimation.finished;
+    impact.remove();
+  }
+
+  async function fireTorpedoes(targetKey) {
+    if (!selectedUnit || selectedUnit.torpedoed || !attackCells.has(targetKey) || isAnimating) return;
+    isAnimating = true;
+    mode = null;
+    const shipType = selectedUnit;
+    shipType.torpedoed = true;
+    refreshUnitDisplay(shipType);
+    setMarkerHeading(shipType, parseCellKey(targetKey), {
+      broadside: shipType.code === "DD",
+      commit: true
+    });
+    clearTacticalHighlights();
+    markSelectedOrigin(shipType);
+    updateDetailPanel(shipType, "Launching torpedoes");
+    unitReadout.textContent = `${shipType.code} · Launching torpedoes`;
+    await wait(TURN_DURATION);
+    await animateTorpedoAttack(shipType, targetKey);
+    renderDeveloperLists();
+    isAnimating = false;
+    updateDetailPanel(shipType, "Torpedo attack complete");
+    unitReadout.textContent = `${shipType.code} · Torpedo attack complete`;
     if (!shipType.moved) showMovementArea(shipType);
     else markSelectedOrigin(shipType);
   }
@@ -581,8 +837,12 @@
       ignoreNextTileClick = false;
       return;
     }
-    if (mode === "attack" && attackCells.has(key)) {
+    if (placementOrder) {
+      placeUnit(key);
+    } else if (mode === "attack" && attackCells.has(key)) {
       fireVolley(key);
+    } else if (mode === "torpedo" && attackCells.has(key)) {
+      fireTorpedoes(key);
     } else if (mode === "move" && reachableState?.distance.has(key)) {
       moveSelectedUnit(key);
     }
@@ -593,7 +853,11 @@
     shipTypes.forEach((ship) => {
       ship.moved = false;
       ship.attacked = false;
+      ship.torpedoed = false;
+      ship.airUsed = false;
+      refreshUnitDisplay(ship);
     });
+    renderDeveloperLists();
     currentTurn += 1;
     turnNumber.textContent = String(currentTurn);
     deselectUnit();
@@ -641,6 +905,17 @@
 
   detailClose.addEventListener("click", deselectUnit);
   nextTurnButton.addEventListener("click", advanceTurn);
+  gunOrderButton.addEventListener("click", activateGunMode);
+  torpedoOrderButton.addEventListener("click", activateTorpedoMode);
+  developerPanelToggle.addEventListener("click", () => {
+    const collapsed = developerPanel.classList.toggle("is-collapsed");
+    developerPanelToggle.setAttribute("aria-expanded", String(!collapsed));
+  });
+  developerAdd.addEventListener("click", beginPlacement);
+  developerUnitLists.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-delete-unit]");
+    if (button) deleteUnit(button.dataset.deleteUnit);
+  });
   viewport.addEventListener("contextmenu", (event) => event.preventDefault());
   viewport.addEventListener("wheel", (event) => {
     event.preventDefault();
@@ -673,6 +948,9 @@
   viewport.addEventListener("pointercancel", stopDragging);
   window.addEventListener("resize", () => setScale(scale, false));
 
+  developerType.innerHTML = [...new Map(shipTypes.map((ship) => [ship.code, ship])).values()]
+    .map((ship) => `<option value="${ship.code}">${ship.code} · ${ship.label}</option>`)
+    .join("");
   renderMap();
   resetView();
 })();

@@ -2,7 +2,7 @@
 
 A responsive, framework-free browser game shell with a title screen, Home Port lobby, section navigation, a full-screen 50-by-50 zoomable hex-map combat demo, and a 64-slot Shipyard containing 58 historical warship records, six reserve slots, type-and-rarity filters, and switchable portraits.
 
-The combat demo uses 15 green top-down naval classification symbols with health bars. Left-click selection provides five-hex movement and facing previews: ships travel in one straight geometric line when clear, and use simplified multi-segment detours only when land blocks that line. Right-clicking eligible gunships provides a seven-hex attack mode with animated volleys, explosions, splashes, and non-damaging friendly fire. Movement and attacks are limited to once per ship per turn. SS/SSV, DD/DE, CL/CA/CB, BC/BB/BBV, and CV/CVL/CVE share their respective symbol families; BM and AR use dedicated symbols.
+The combat demo uses green top-down naval symbols with health and segmented action-readiness bars. Left-click selection provides five-hex movement: ships travel in one straight geometric line when clear, and use simplified detours only when land blocks that line. Gunships have seven-hex gun attacks; submarines and destroyers have four-hex torpedo attacks with class-specific firing orientations, damage, explosions, and splashes. A collapsible developer panel can deploy, control, and delete friendly or enemy units. Movement, guns, and torpedoes are tracked independently each turn.
 
 ## Current flow
 

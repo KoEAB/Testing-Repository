@@ -44,26 +44,26 @@ jobs:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-15" --output /tmp/published-index.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-15" --output /tmp/published-lobby.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipyard.html?v=navy-15" --output /tmp/published-shipyard.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-15" --output /tmp/published-campaign.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.html?v=navy-15" --output /tmp/published-combat-demo.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.js?v=navy-15" --output /tmp/published-combat-demo.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shop.html?v=navy-15" --output /tmp/published-shop.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipbuilding.html?v=navy-15" --output /tmp/published-shipbuilding.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/gear.html?v=navy-15" --output /tmp/published-gear.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-15" --output /tmp/published-data.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/app.js?v=navy-15" --output /tmp/published-app.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/character.js?v=navy-15" --output /tmp/published-character.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/enterprise-shipyard-icon.png?v=navy-15" --output /tmp/enterprise.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/lexington-shipyard-icon.png?v=navy-15" --output /tmp/lexington.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-15" --output /tmp/hornet.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-15" --output /tmp/yorktown.png \
+            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-16" --output /tmp/published-index.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-16" --output /tmp/published-lobby.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipyard.html?v=navy-16" --output /tmp/published-shipyard.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-16" --output /tmp/published-campaign.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.html?v=navy-16" --output /tmp/published-combat-demo.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.js?v=navy-16" --output /tmp/published-combat-demo.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shop.html?v=navy-16" --output /tmp/published-shop.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipbuilding.html?v=navy-16" --output /tmp/published-shipbuilding.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/gear.html?v=navy-16" --output /tmp/published-gear.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-16" --output /tmp/published-data.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/app.js?v=navy-16" --output /tmp/published-app.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/character.js?v=navy-16" --output /tmp/published-character.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/enterprise-shipyard-icon.png?v=navy-16" --output /tmp/enterprise.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/lexington-shipyard-icon.png?v=navy-16" --output /tmp/lexington.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-16" --output /tmp/hornet.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-16" --output /tmp/yorktown.png \
               && grep --fixed-strings --quiet "Click to start" /tmp/published-index.html \
-              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-15"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-16"' /tmp/published-lobby.html \
               && grep --fixed-strings --quiet '<strong>Combat</strong>' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="combat-demo.html?v=navy-15"' /tmp/published-campaign.html \
+              && grep --fixed-strings --quiet 'href="combat-demo.html?v=navy-16"' /tmp/published-campaign.html \
               && grep --fixed-strings --quiet 'Combat demo' /tmp/published-campaign.html \
               && grep --fixed-strings --quiet 'id="hex-map-viewport"' /tmp/published-combat-demo.html \
               && grep --fixed-strings --quiet 'const shipTypes' /tmp/published-combat-demo.js \
@@ -71,20 +71,25 @@ jobs:
               && grep --fixed-strings --quiet 'const ROWS = 50' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'const MOVE_RANGE = 5' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'const ATTACK_RANGE = 7' /tmp/published-combat-demo.js \
+              && grep --fixed-strings --quiet 'const TORPEDO_RANGE = 4' /tmp/published-combat-demo.js \
+              && grep --fixed-strings --quiet 'const UNIT_STATS' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'function calculateReachable' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'function lineCrossesLand' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'function simplifyLandRoute' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'async function moveSelectedUnit' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'async function fireVolley' /tmp/published-combat-demo.js \
+              && grep --fixed-strings --quiet 'async function fireTorpedoes' /tmp/published-combat-demo.js \
+              && grep --fixed-strings --quiet 'function beginPlacement' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'id="unit-detail-panel"' /tmp/published-combat-demo.html \
+              && grep --fixed-strings --quiet 'id="developer-panel"' /tmp/published-combat-demo.html \
               && grep --fixed-strings --quiet 'id="next-turn"' /tmp/published-combat-demo.html \
               && grep --fixed-strings --quiet 'id="turn-number"' /tmp/published-combat-demo.html \
               && grep --fixed-strings --quiet 'CVE: carrier' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'function setScale' /tmp/published-combat-demo.js \
-              && grep --fixed-strings --quiet 'href="shipyard.html?v=navy-15"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="shop.html?v=navy-15"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="shipbuilding.html?v=navy-15"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="gear.html?v=navy-15"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shipyard.html?v=navy-16"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shop.html?v=navy-16"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shipbuilding.html?v=navy-16"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="gear.html?v=navy-16"' /tmp/published-lobby.html \
               && grep --fixed-strings --quiet 'id="alternate-toggle"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet 'id="filter-toggle"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet 'id="type-filters"' /tmp/published-shipyard.html \
@@ -115,7 +120,7 @@ jobs:
               && grep --fixed-strings --quiet 'activeFilters' /tmp/published-app.js \
               && ! grep --fixed-strings --quiet '<blockquote>' /tmp/published-character.js \
               && ! grep --fixed-strings --quiet 'epithet:' /tmp/published-data.js; then
-              echo "Published site includes 58 historically rated warships, the 50-by-50 turn-based combat map with direct-line and land-detour movement, volley animations, filtering, and the existing navigation routes."
+              echo "Published site includes the 50-by-50 combat map with segmented actions, damaging gun and torpedo attacks, developer fleet controls, direct-line movement, filtering, and existing navigation routes."
               exit 0
             fi
             echo "Waiting for the published site (attempt $attempt of 12)..."
