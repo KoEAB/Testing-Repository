@@ -337,8 +337,8 @@
       if (!marker) return;
       const opponents = shipTypes.filter((other) => other.health > 0 && other.team !== ship.team);
       const detected = ship.health > 0 && opponents.some((other) => hexDistance(ship, other) <= ship.concealmentRange);
-      const visibleToFriendly = ship.team !== "enemy" || ship.health <= 0 || shipTypes.some((other) =>
-        other.health > 0 && other.team === "friendly" && hexDistance(ship, other) <= other.concealmentRange);
+      // A ship is revealed when an opponent enters the ship's own concealment radius.
+      const visibleToFriendly = ship.team !== "enemy" || ship.health <= 0 || detected;
       marker.classList.toggle("is-detected", detected);
       marker.classList.toggle("is-concealed-enemy", concealmentDemo && ship.team === "enemy" && !visibleToFriendly);
     });
