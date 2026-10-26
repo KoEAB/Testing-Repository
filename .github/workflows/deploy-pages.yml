@@ -44,25 +44,26 @@ jobs:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-7" --output /tmp/published-index.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-7" --output /tmp/published-lobby.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipyard.html?v=navy-7" --output /tmp/published-shipyard.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-7" --output /tmp/published-campaign.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shop.html?v=navy-7" --output /tmp/published-shop.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipbuilding.html?v=navy-7" --output /tmp/published-shipbuilding.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/gear.html?v=navy-7" --output /tmp/published-gear.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-7" --output /tmp/published-data.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/app.js?v=navy-7" --output /tmp/published-app.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/enterprise-shipyard-icon.png?v=navy-7" --output /tmp/enterprise.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/lexington-shipyard-icon.png?v=navy-7" --output /tmp/lexington.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-7" --output /tmp/hornet.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-7" --output /tmp/yorktown.png \
+            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-8" --output /tmp/published-index.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-8" --output /tmp/published-lobby.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipyard.html?v=navy-8" --output /tmp/published-shipyard.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-8" --output /tmp/published-campaign.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shop.html?v=navy-8" --output /tmp/published-shop.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipbuilding.html?v=navy-8" --output /tmp/published-shipbuilding.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/gear.html?v=navy-8" --output /tmp/published-gear.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-8" --output /tmp/published-data.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/app.js?v=navy-8" --output /tmp/published-app.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/character.js?v=navy-8" --output /tmp/published-character.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/enterprise-shipyard-icon.png?v=navy-8" --output /tmp/enterprise.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/lexington-shipyard-icon.png?v=navy-8" --output /tmp/lexington.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-8" --output /tmp/hornet.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-8" --output /tmp/yorktown.png \
               && grep --fixed-strings --quiet "Click to start" /tmp/published-index.html \
-              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-7"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="shipyard.html?v=navy-7"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="shop.html?v=navy-7"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="shipbuilding.html?v=navy-7"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="gear.html?v=navy-7"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-8"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shipyard.html?v=navy-8"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shop.html?v=navy-8"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shipbuilding.html?v=navy-8"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="gear.html?v=navy-8"' /tmp/published-lobby.html \
               && grep --fixed-strings --quiet 'id="alternate-toggle"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet "Select a profile to view its details" /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet 'name: "USS Enterprise"' /tmp/published-data.js \
@@ -76,8 +77,10 @@ jobs:
               && grep --fixed-strings --quiet 'alternateImage: "images/warships/enterprise-shipyard-icon.png"' /tmp/published-data.js \
               && grep --fixed-strings --quiet '"曦光"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'portrait=default' /tmp/published-app.js \
-              && grep --fixed-strings --quiet 'show-alternate-portraits' /tmp/published-app.js; then
-              echo "Published site includes the revised typography, default/alternate portrait mapping, title screen, lobby, and section routes."
+              && grep --fixed-strings --quiet 'show-alternate-portraits' /tmp/published-app.js \
+              && ! grep --fixed-strings --quiet '<blockquote>' /tmp/published-character.js \
+              && ! grep --fixed-strings --quiet 'epithet:' /tmp/published-data.js; then
+              echo "Published site includes enlarged detail typography, simplified ship introductions, structured card specifications, and the existing navigation routes."
               exit 0
             fi
             echo "Waiting for the published site (attempt $attempt of 12)..."

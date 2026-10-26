@@ -394,7 +394,7 @@ p {
   overflow: hidden;
   margin: 0;
   font-family: var(--sans);
-  font-size: 7px;
+  font-size: 8px;
   line-height: 1.45;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -529,6 +529,22 @@ p {
   background-size: 72px 72px, 72px 72px, auto, auto, auto;
 }
 
+.detail-page .brand {
+  font-size: 13px;
+}
+
+.detail-page .back-link {
+  font-size: 11px;
+}
+
+.detail-page .site-footer {
+  font-size: 10px;
+}
+
+.detail-page .portrait-status {
+  font-size: 10px;
+}
+
 .detail-shell {
   width: min(1240px, calc(100% - 96px));
   margin: 0 auto;
@@ -568,7 +584,7 @@ p {
   right: 24px;
   color: var(--character-accent);
   font-family: var(--serif);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .detail-intro {
@@ -582,11 +598,6 @@ p {
   }
 }
 
-.detail-intro .eyebrow {
-  color: var(--character-accent);
-  margin-bottom: 22px;
-}
-
 .detail-intro h1 {
   margin-bottom: 7px;
   font-family: var(--serif);
@@ -597,31 +608,20 @@ p {
 }
 
 .detail-role {
-  margin-bottom: 48px;
+  margin-bottom: 26px;
   color: var(--character-accent);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
-blockquote {
-  max-width: 540px;
-  margin: 0 0 30px;
-  padding-left: 24px;
-  border-left: 1px solid var(--character-accent);
-  color: #dce7ee;
-  font-family: var(--serif);
-  font-size: clamp(20px, 2.3vw, 29px);
-  line-height: 1.45;
-}
-
 .biography {
-  max-width: 590px;
-  margin-bottom: 30px;
+  max-width: 620px;
+  margin-bottom: 34px;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.9;
+  font-size: 16px;
+  line-height: 1.8;
 }
 
 .traits {
@@ -631,10 +631,10 @@ blockquote {
 }
 
 .trait {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid rgba(var(--character-rgb), 0.22);
   color: #a9bdcb;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -659,14 +659,14 @@ blockquote {
   align-items: baseline;
   justify-content: space-between;
   gap: 18px;
-  padding: 17px 0;
+  padding: 20px 0;
   border-bottom: 1px solid var(--line);
 }
 
 .fact span,
 .ability-number {
   color: var(--faint);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -674,13 +674,16 @@ blockquote {
 
 .fact strong {
   font-family: var(--serif);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 400;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .abilities-section .section-label {
-  margin-bottom: 22px;
+  margin-bottom: 24px;
   color: var(--character-accent);
+  font-size: 11px;
 }
 
 .abilities {
@@ -689,9 +692,9 @@ blockquote {
 
 .ability {
   display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 12px;
-  padding: 20px 0;
+  grid-template-columns: 42px 1fr;
+  gap: 14px;
+  padding: 24px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -701,16 +704,16 @@ blockquote {
 }
 
 .ability h3 {
-  margin-bottom: 7px;
+  margin-bottom: 9px;
   font-family: var(--serif);
-  font-size: 21px;
+  font-size: 24px;
   font-weight: 400;
 }
 
 .ability p {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
 }
 
@@ -732,7 +735,7 @@ blockquote {
 .adjacent-link span,
 .all-characters {
   color: var(--faint);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -740,7 +743,7 @@ blockquote {
 
 .adjacent-link strong {
   font-family: var(--serif);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 400;
   transition: color 180ms ease;
 }

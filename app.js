@@ -17,7 +17,7 @@
     const link = document.createElement("a");
     link.className = `character-card${character.placeholder ? " empty-card" : ""}`;
     link.dataset.characterId = character.id;
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-7`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-8`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
@@ -70,7 +70,7 @@
       : "切换副图";
 
     roster.querySelectorAll(".character-card").forEach((link) => {
-      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-7`;
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-8`;
     });
   });
 })();
