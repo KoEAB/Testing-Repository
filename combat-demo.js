@@ -612,11 +612,12 @@
       return;
     }
     const key = cellKey(shipType.column, shipType.row);
-    if ((mode === "attack" || mode === "torpedo") && selectedUnit && selectedUnit.id !== shipType.id && attackCells.has(key)) {
+    if ((mode === "attack" || mode === "torpedo") && selectedUnit && shipType.team !== selectedUnit.team && selectedUnit.id !== shipType.id && attackCells.has(key)) {
       if (mode === "torpedo") fireTorpedoes(key);
       else fireVolley(key);
       return;
     }
+    if ((mode === "attack" || mode === "torpedo") && selectedUnit && shipType.team === selectedUnit.team) return;
     if (concealmentDemo && shipType.team === "enemy") return;
     if (selectedUnit?.id === shipType.id && mode === "move") {
       deselectUnit();
@@ -853,8 +854,13 @@
       (!concealmentDemo || ship.team !== "enemy" || !unitElements.get(ship.id)?.classList.contains("is-concealed-enemy")));
   }
 
-  function applyDamage(target, amount) {
-    if (!target || target.health <= 0 || amount <= 0) return;
+  function targetIsFriendly(key, attacker) {
+    const target = unitAt(key, attacker?.id);
+    return Boolean(target && attacker && target.team === attacker.team);
+  }
+
+  function applyDamage(target, amount, attacker) {
+    if (!target || !attacker || target.team === attacker.team || target.health <= 0 || amount <= 0) return;
     target.health = Math.max(0, target.health - amount);
     if (target.health === 0) {
       target.sunkTurn = currentTurn;
@@ -901,13 +907,13 @@
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
     ], { duration: 800, easing: "ease-out", fill: "forwards" });
-    if (navalTarget) applyDamage(navalTarget, shipType.gunDamage);
+    if (navalTarget) applyDamage(navalTarget, shipType.gunDamage, shipType);
     await impactAnimation.finished;
     impact.remove();
   }
 
   async function fireVolley(targetKey) {
-    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !attackCells.has(targetKey) || isAnimating) return;
+    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
@@ -962,21 +968,27 @@
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
     ], { duration: 800, easing: "ease-out", fill: "forwards" });
-    if (navalTarget) applyDamage(navalTarget, shipType.torpedoDamage);
+    if (navalTarget) applyDamage(navalTarget, shipType.torpedoDamage, shipType);
     await impactAnimation.finished;
     impact.remove();
   }
 
   async function fireTorpedoes(targetKey) {
-    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !attackCells.has(targetKey) || isAnimating) return;
+    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
     shipType.torpedoed = true;
     shipType.torpedoReloadRemaining = shipType.torpedoReloadDuration;
     refreshUnitDisplay(shipType);
-    setMarkerHeading(shipType, parseCellKey(targetKey), {
-      broadside: shipType.code === "DD",
+    const targetCell = parseCellKey(targetKey);
+    const from = cellCenter(shipType.column, shipType.row);
+    const to = cellCenter(targetCell.column, targetCell.row);
+    const bearing = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+    const difference = ((bearing - shipType.heading + 540) % 360) - 180;
+    const torpedoSide = difference >= 0 ? "right" : "left";
+    setMarkerHeading(shipType, targetCell, {
+      broadside: shipType.code === "DD" || shipType.code === "DE" ? torpedoSide : false,
       commit: true
     });
     clearTacticalHighlights();
@@ -1006,6 +1018,8 @@
       fireTorpedoes(key);
     } else if (mode === "move" && reachableState?.distance.has(key)) {
       moveSelectedUnit(key);
+    } else if (selectedUnit && (mode === "move" || mode === "attack" || mode === "torpedo")) {
+      deselectUnit();
     }
   }
 
