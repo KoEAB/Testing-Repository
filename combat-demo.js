@@ -651,6 +651,7 @@
     restoreCommittedFacing();
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     selectedUnit = shipType;
+    inspectedEnemy = null;
     marker.classList.add("is-selected");
     updateConcealmentOutline(shipType);
     unitReadout.textContent = `${shipType.code} · ${shipType.label}`;
@@ -719,6 +720,7 @@
     restoreCommittedFacing();
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     selectedUnit = shipType;
+    inspectedEnemy = null;
     marker.classList.add("is-selected");
     updateConcealmentOutline(shipType);
     if (shipType.gunAttacksRemaining <= 0) {
