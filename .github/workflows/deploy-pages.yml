@@ -44,13 +44,13 @@ jobs:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-31" --output /tmp/published-index.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-31" --output /tmp/published-lobby.html \
+            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-32" --output /tmp/published-index.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-32" --output /tmp/published-lobby.html \
               && curl --fail --silent --show-error --location "${SITE_URL%/}/shipyard.html?v=navy-17" --output /tmp/published-shipyard.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-31" --output /tmp/published-campaign.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.html?v=navy-31" --output /tmp/published-combat-demo.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.js?v=navy-31" --output /tmp/published-combat-demo.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/concealment-demo.html?v=navy-31" --output /tmp/published-concealment-demo.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-32" --output /tmp/published-campaign.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.html?v=navy-32" --output /tmp/published-combat-demo.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.js?v=navy-32" --output /tmp/published-combat-demo.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/concealment-demo.html?v=navy-32" --output /tmp/published-concealment-demo.html \
               && curl --fail --silent --show-error --location "${SITE_URL%/}/shop.html?v=navy-17" --output /tmp/published-shop.html \
               && curl --fail --silent --show-error --location "${SITE_URL%/}/shipbuilding.html?v=navy-17" --output /tmp/published-shipbuilding.html \
               && curl --fail --silent --show-error --location "${SITE_URL%/}/gear.html?v=navy-17" --output /tmp/published-gear.html \
@@ -62,11 +62,11 @@ jobs:
               && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-17" --output /tmp/hornet.png \
               && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-17" --output /tmp/yorktown.png \
               && grep --fixed-strings --quiet "Click to start" /tmp/published-index.html \
-              && grep --fixed-strings --quiet 'href="lobby.html?v=navy-31"' /tmp/published-index.html \
-              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-31"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="lobby.html?v=navy-32"' /tmp/published-index.html \
+              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-32"' /tmp/published-lobby.html \
               && grep --fixed-strings --quiet '<strong>Combat</strong>' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="combat-demo.html?v=navy-31"' /tmp/published-campaign.html \
-              && grep --fixed-strings --quiet 'href="concealment-demo.html?v=navy-31"' /tmp/published-campaign.html \
+              && grep --fixed-strings --quiet 'href="combat-demo.html?v=navy-32"' /tmp/published-campaign.html \
+              && grep --fixed-strings --quiet 'href="concealment-demo.html?v=navy-32"' /tmp/published-campaign.html \
               && grep --fixed-strings --quiet 'data-mode="concealment"' /tmp/published-concealment-demo.html \
               && grep --fixed-strings --quiet 'DEFAULT_CONCEALMENT = 10' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'visibleToFriendly = ship.team !== "enemy" || ship.health <= 0 || detected' /tmp/published-combat-demo.js \
@@ -85,6 +85,7 @@ jobs:
               && grep --fixed-strings --quiet 'gunRange: 23' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'health: 660, shellCount: 9, alphaDamage: 131' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'function resolveApSalvo' /tmp/published-combat-demo.js \
+              && grep --fixed-strings --quiet 'function northCarolinaMissChance' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'id="unit-detail-last-salvo"' /tmp/published-combat-demo.html \
               && grep --fixed-strings --quiet 'gunAttacksPerTurn: 4' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'torpedoReloadDuration: 3' /tmp/published-combat-demo.js \

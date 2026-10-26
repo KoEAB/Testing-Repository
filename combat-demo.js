@@ -47,7 +47,7 @@
     ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
     ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
     ["AR", { label: "Repair ship", group: "support" }],
-    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, shellCount: 9, alphaDamage: 131, gunRange: 23, concealmentRange: 15 }],
+    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, shellCount: 9, alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
     ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
     ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
   ].map(([code, details]) => [code, { code, ...details }]));
@@ -926,6 +926,18 @@
     return damageDealt;
   }
 
+  function northCarolinaMissChance(attacker, target, distance) {
+    const concealment = attacker.concealmentRange;
+    const maximum = attacker.gunRange;
+    const targetSizeAdjustment = 0.02 * (3 - (SIZE_RANK[target.code] || 3));
+    const closeMissChance = Math.min(0.33, Math.max(0.08,
+      0.18 + 0.11 * Math.min(distance / Math.max(1, concealment), 1) + targetSizeAdjustment));
+    if (distance <= concealment || maximum <= concealment) return closeMissChance;
+    const missAtConcealment = Math.min(0.33, Math.max(0.08, 0.29 + targetSizeAdjustment));
+    const longRangeProgress = Math.min(1, (distance - concealment) / (maximum - concealment));
+    return missAtConcealment + (0.72 - missAtConcealment) * longRangeProgress;
+  }
+
   function resolveApSalvo(attacker, target) {
     const from = cellCenter(attacker.column, attacker.row);
     const to = cellCenter(target.column, target.row);
@@ -935,7 +947,9 @@
     const sizeAdvantage = Math.max(0, (SIZE_RANK[attacker.code] || 3) - (SIZE_RANK[target.code] || 3));
     const sizeDisadvantage = Math.max(0, (SIZE_RANK[target.code] || 3) - (SIZE_RANK[attacker.code] || 3));
     const distance = hexDistance(attacker, target);
-    const missChance = Math.min(0.4, Math.max(0.12, 0.17 + 0.18 * distance / attacker.gunRange - 0.02 * ((SIZE_RANK[target.code] || 3) - 3)));
+    const missChance = attacker.accuracyProfile === "north-carolina"
+      ? northCarolinaMissChance(attacker, target, distance)
+      : Math.min(0.4, Math.max(0.12, 0.17 + 0.18 * distance / attacker.gunRange - 0.02 * ((SIZE_RANK[target.code] || 3) - 3)));
     const ricochetChance = broadside >= 0.98 ? 0 : Math.max(0.03, 0.32 - 0.075 * sizeAdvantage) * (1 - broadside);
     const nonPenChance = Math.min(0.26, 0.08 + 0.1 * (1 - broadside) + 0.025 * sizeDisadvantage);
     const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 : 0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside);
