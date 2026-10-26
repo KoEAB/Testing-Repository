@@ -1011,7 +1011,7 @@
     const groups = shipType.salvoPattern || [shipType.shellCount];
     const shots = [];
     groups.forEach((groupSize, groupIndex) => {
-      const groupStart = shipType.salvoPattern ? groupIndex * 700 : 0;
+      const groupStart = shipType.salvoPattern ? groupIndex * 240 : 0;
       shots.push((async () => {
         await wait(groupStart);
         const flash = createEffect("muzzle-flash", origin);
@@ -1019,7 +1019,7 @@
           { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
           { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
           { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
-        ], { duration: 420, easing: "ease-out" }).finished;
+        ], { duration: shipType.salvoPattern ? 180 : 420, easing: "ease-out" }).finished;
         flash.remove();
       })());
       for (let index = 0; index < groupSize; index += 1) {
