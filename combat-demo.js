@@ -42,7 +42,10 @@
     ["BB", { label: "Battleship", group: "capital" }], ["BBV", { label: "Aviation battleship", group: "capital" }],
     ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
     ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
-    ["AR", { label: "Repair ship", group: "support" }]
+    ["AR", { label: "Repair ship", group: "support" }],
+    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", gunRange: 23 }],
+    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", gunRange: 16, gunAttacksPerTurn: 2 }],
+    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3 }]
   ].map(([code, details]) => [code, { code, ...details }]));
   const shipTypes = [];
   let unitSequence = 0;
@@ -71,8 +74,14 @@
       airUsed: false,
       health: stats.health,
       maxHealth: stats.health,
-      gunDamage: stats.gun || 0,
-      torpedoDamage: stats.torpedo || 0,
+      gunDamage: ship.gunDamage ?? stats.gun ?? 0,
+      torpedoDamage: ship.torpedoDamage ?? stats.torpedo ?? 0,
+      gunRange: ship.gunRange || ATTACK_RANGE,
+      gunAttacksPerTurn: ship.gunAttacksPerTurn || 1,
+      gunAttacksRemaining: ship.gunAttacksPerTurn || 1,
+      torpedoRange: ship.torpedoRange || TORPEDO_RANGE,
+      torpedoReloadDuration: ship.torpedoReloadDuration || 0,
+      torpedoReloadRemaining: 0,
       angleWhenFiring: null,
       broadsideWhenFiring: null,
       sunkTurn: null,
@@ -248,7 +257,7 @@
   function actionIsUsed(shipType, action) {
     if (shipType.health <= 0) return true;
     if (action === "move") return shipType.moved;
-    if (action === "gun") return shipType.attacked;
+    if (action === "gun") return shipType.gunAttacksRemaining <= 0;
     if (action === "torpedo") return shipType.torpedoed;
     return shipType.airUsed;
   }
@@ -290,13 +299,13 @@
       const sunkUnits = shipTypes.filter((ship) => ship.team === team && ship.health <= 0);
       const rows = units.length ? units.map((ship) => `
         <div class="developer-unit-row">
-          <span><strong>${ship.code}</strong>${coordinateLabel(ship.column, ship.row)} · ${ship.health}/${ship.maxHealth}</span>
+          <span><strong>${ship.code}</strong>${ship.label.startsWith("USS ") ? ` ${ship.label}` : ""} · ${coordinateLabel(ship.column, ship.row)} · ${ship.health}/${ship.maxHealth}</span>
           <button type="button" data-delete-unit="${ship.id}" aria-label="Delete ${ship.code}">×</button>
         </div>`).join("") : `<p class="developer-empty">No ${team} units</p>`;
       const sunkRows = sunkUnits.map((ship) => {
         const status = ship.wreckTurnsRemaining > 0 ? `Wreck · ${ship.wreckTurnsRemaining} turn${ship.wreckTurnsRemaining === 1 ? "" : "s"}` : "Death marker";
         return `<div class="developer-unit-row developer-sunk-row">
-          <button type="button" class="developer-sunk-select" data-inspect-sunk="${ship.id}"><strong>${ship.code}</strong>${coordinateLabel(ship.column, ship.row)} · ${status}</button>
+          <button type="button" class="developer-sunk-select" data-inspect-sunk="${ship.id}"><strong>${ship.code}</strong>${ship.label.startsWith("USS ") ? ` ${ship.label}` : ""} · ${coordinateLabel(ship.column, ship.row)} · ${status}</button>
           <button type="button" data-delete-unit="${ship.id}" aria-label="Remove ${ship.code} record">×</button>
         </div>`;
       }).join("");
@@ -325,9 +334,7 @@
     const template = unitTemplates.get(placementOrder.code);
     const cell = parseCellKey(key);
     const unit = createUnitState({
-      code: template.code,
-      label: template.label,
-      group: template.group,
+      ...template,
       column: cell.column,
       row: cell.row
     }, `${placementOrder.team}-${template.code}-${++unitSequence}`, placementOrder.team);
@@ -450,7 +457,7 @@
     reachableState = null;
     mode = "attack";
     markSelectedOrigin(shipType);
-    attackCells = calculateRadius(shipType, ATTACK_RANGE);
+    attackCells = calculateRadius(shipType, shipType.gunRange);
     attackCells.forEach((key) => {
       const tile = tileElements.get(key);
       tile.classList.add("is-attackable");
@@ -463,7 +470,7 @@
     reachableState = null;
     mode = "torpedo";
     markSelectedOrigin(shipType);
-    attackCells = calculateRadius(shipType, TORPEDO_RANGE);
+    attackCells = calculateRadius(shipType, shipType.torpedoRange);
     attackCells.forEach((key) => {
       const tile = tileElements.get(key);
       tile.classList.add("is-torpedoable");
@@ -480,12 +487,19 @@
     detailTeam.textContent = shipType.team.charAt(0).toUpperCase() + shipType.team.slice(1);
     detailHealth.textContent = `${shipType.health} / ${shipType.maxHealth}`;
     detailMovement.textContent = shipType.moved ? "Spent" : "Ready · 5 hexes";
-    detailAttack.textContent = canAttack ? (shipType.attacked ? "Spent" : "Ready · 7 hexes") : "Unavailable";
-    detailTorpedo.textContent = TORPEDO_CODES.has(shipType.code) ? (shipType.torpedoed ? "Spent" : "Ready · 4 hexes") : "Unavailable";
+    const shotsRemaining = shipType.gunAttacksRemaining;
+    detailAttack.textContent = canAttack
+      ? (shotsRemaining > 0 ? `Ready · ${shipType.gunRange} tiles · ${shotsRemaining} shot${shotsRemaining === 1 ? "" : "s"}` : `Spent · ${shipType.gunRange} tiles`)
+      : "Unavailable";
+    detailTorpedo.textContent = TORPEDO_CODES.has(shipType.code)
+      ? (shipType.torpedoReloadRemaining > 0
+        ? `Reloading · ${shipType.torpedoReloadRemaining} turn${shipType.torpedoReloadRemaining === 1 ? "" : "s"}`
+        : shipType.torpedoed ? "Spent" : `Ready · ${shipType.torpedoRange} tiles`)
+      : "Unavailable";
     gunOrderButton.hidden = !canAttack;
-    gunOrderButton.disabled = shipType.attacked;
+    gunOrderButton.disabled = shotsRemaining <= 0;
     torpedoOrderButton.hidden = !TORPEDO_CODES.has(shipType.code);
-    torpedoOrderButton.disabled = shipType.torpedoed;
+    torpedoOrderButton.disabled = shipType.torpedoed || shipType.torpedoReloadRemaining > 0;
     detailStatus.textContent = status;
     detailInstruction.textContent = mode === "attack"
       ? "Select a red hex to fire the ship's guns."
@@ -613,7 +627,7 @@
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     selectedUnit = shipType;
     marker.classList.add("is-selected");
-    if (shipType.attacked) {
+    if (shipType.gunAttacksRemaining <= 0) {
       showMovementArea(shipType);
       updateDetailPanel(shipType, "Attack already used this turn");
       return;
@@ -624,14 +638,14 @@
   }
 
   function activateGunMode() {
-    if (!selectedUnit || selectedUnit.attacked || !ATTACK_CODES.has(selectedUnit.code) || isAnimating) return;
+    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !ATTACK_CODES.has(selectedUnit.code) || isAnimating) return;
     showAttackArea(selectedUnit);
     unitReadout.textContent = `${selectedUnit.code} · Gun range`;
     updateDetailPanel(selectedUnit, "Select firing target");
   }
 
   function activateTorpedoMode() {
-    if (!selectedUnit || selectedUnit.torpedoed || !TORPEDO_CODES.has(selectedUnit.code) || isAnimating) return;
+    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code) || isAnimating) return;
     showTorpedoArea(selectedUnit);
     unitReadout.textContent = `${selectedUnit.code} · Torpedo range`;
     updateDetailPanel(selectedUnit, "Select torpedo target");
@@ -831,11 +845,12 @@
   }
 
   async function fireVolley(targetKey) {
-    if (!selectedUnit || selectedUnit.attacked || !attackCells.has(targetKey) || isAnimating) return;
+    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !attackCells.has(targetKey) || isAnimating) return;
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
-    shipType.attacked = true;
+    shipType.gunAttacksRemaining -= 1;
+    shipType.attacked = shipType.gunAttacksRemaining <= 0;
     refreshUnitDisplay(shipType);
     const target = parseCellKey(targetKey);
     const from = cellCenter(shipType.column, shipType.row);
@@ -856,7 +871,8 @@
     isAnimating = false;
     updateDetailPanel(shipType, "Volley complete");
     unitReadout.textContent = `${shipType.code} · Volley complete`;
-    if (!shipType.moved) showMovementArea(shipType);
+    if (shipType.gunAttacksRemaining > 0) showAttackArea(shipType);
+    else if (!shipType.moved) showMovementArea(shipType);
     else markSelectedOrigin(shipType);
   }
 
@@ -890,11 +906,12 @@
   }
 
   async function fireTorpedoes(targetKey) {
-    if (!selectedUnit || selectedUnit.torpedoed || !attackCells.has(targetKey) || isAnimating) return;
+    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !attackCells.has(targetKey) || isAnimating) return;
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
     shipType.torpedoed = true;
+    shipType.torpedoReloadRemaining = shipType.torpedoReloadDuration;
     refreshUnitDisplay(shipType);
     setMarkerHeading(shipType, parseCellKey(targetKey), {
       broadside: shipType.code === "DD",
@@ -936,8 +953,14 @@
       if (ship.health > 0) {
         ship.moved = false;
         ship.attacked = false;
-        ship.torpedoed = false;
+        ship.gunAttacksRemaining = ship.gunAttacksPerTurn;
         ship.airUsed = false;
+        if (ship.torpedoReloadRemaining > 0) {
+          ship.torpedoReloadRemaining -= 1;
+          if (ship.torpedoReloadRemaining === 0) ship.torpedoed = false;
+        } else if (!ship.torpedoReloadDuration) {
+          ship.torpedoed = false;
+        }
       } else if (ship.wreckTurnsRemaining > 0) {
         ship.wreckTurnsRemaining -= 1;
       }
@@ -1039,8 +1062,8 @@
   viewport.addEventListener("pointercancel", stopDragging);
   window.addEventListener("resize", () => setScale(scale, false));
 
-  developerType.innerHTML = [...unitTemplates.values()]
-    .map((ship) => `<option value="${ship.code}">${ship.code} · ${ship.label}</option>`)
+  developerType.innerHTML = [...unitTemplates.entries()]
+    .map(([templateId, ship]) => `<option value="${templateId}">${templateId.startsWith("uss-") ? ship.label : `${ship.code} · ${ship.label}`}</option>`)
     .join("");
   renderMap();
   resetView();
