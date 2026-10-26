@@ -47,9 +47,9 @@
     ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
     ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
     ["AR", { label: "Repair ship", group: "support" }],
-    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, shellCount: 9, salvoPattern: [3, 3, 3], alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
-    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
-    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
+    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, speedKnots: 27.5, shellCount: 9, salvoPattern: [3, 3, 3], alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
+    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", health: 350, speedKnots: 32.5, shellCount: 9, salvoPattern: [3, 3, 3], alphaDamage: 46, gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
+    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", health: 170, speedKnots: 36.5, shellCount: 5, salvoPattern: [1, 1, 1, 1, 1], salvoGroupGapMs: 75, alphaDamage: 21, gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
   ].map(([code, details]) => [code, { code, ...details }]));
   const shipTypes = concealmentDemo ? [
     ["uss-fletcher", "friendly", 17, 24], ["uss-new-orleans", "friendly", 15, 25], ["uss-north-carolina", "friendly", 14, 18],
@@ -81,6 +81,7 @@
       airUsed: false,
       health: ship.health ?? stats.health,
       maxHealth: ship.health ?? stats.health,
+      speedKnots: ship.speedKnots ?? null,
       gunDamage: ship.gunDamage ?? stats.gun ?? 0,
       shellType: "AP",
       shellCount: ship.shellCount ?? (stats.gun ? 3 : 0),
@@ -144,6 +145,7 @@
   const detailPosition = document.querySelector("#unit-detail-position");
   const detailTeam = document.querySelector("#unit-detail-team");
   const detailHealth = document.querySelector("#unit-detail-health");
+  const detailSpeed = document.querySelector("#unit-detail-speed");
   const detailConcealment = document.querySelector("#unit-detail-concealment");
   const detailMovement = document.querySelector("#unit-detail-movement");
   const detailAttack = document.querySelector("#unit-detail-attack");
@@ -567,6 +569,7 @@
     detailPosition.textContent = coordinateLabel(shipType.column, shipType.row);
     detailTeam.textContent = shipType.team.charAt(0).toUpperCase() + shipType.team.slice(1);
     detailHealth.textContent = `${shipType.health} / ${shipType.maxHealth}`;
+    detailSpeed.textContent = shipType.speedKnots == null ? "Not specified" : `${shipType.speedKnots} knots`;
     detailConcealment.textContent = `${shipType.concealmentRange} hexes · ${unitElements.get(shipType.id)?.classList.contains("is-detected") ? "Detected" : "Undetected"}`;
     detailMovement.textContent = shipType.moved ? "Spent" : "Ready · 5 hexes";
     const shotsRemaining = shipType.gunAttacksRemaining;
@@ -1013,7 +1016,7 @@
     const groups = shipType.salvoPattern || [shipType.shellCount];
     const shots = [];
     groups.forEach((groupSize, groupIndex) => {
-      const groupStart = groupIndex * 170;
+      const groupStart = groupIndex * (shipType.salvoGroupGapMs ?? 170);
       shots.push((async () => {
         await wait(groupStart);
         const flash = createEffect("muzzle-flash", origin);
@@ -1026,7 +1029,8 @@
       })());
       for (let index = 0; index < groupSize; index += 1) {
         const launchDelay = groupStart + index * 35;
-        const offset = (index - (groupSize - 1) / 2) * 5;
+        const offset = (index - (groupSize - 1) / 2) * 5 +
+          (groupSize === 1 ? (groupIndex - (groups.length - 1) / 2) * 3 : 0);
         shots.push((async () => {
           await wait(launchDelay);
           const shell = createEffect("volley-shell", origin);
