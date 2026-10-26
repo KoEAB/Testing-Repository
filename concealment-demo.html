@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Locate concealed enemy ships on the tactical map." />
+    <title>Concealment Demo — Naval Command</title>
+    <link rel="icon" href="favicon.svg?v=navy-21" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-21" />
+    <script src="combat-demo.js?v=navy-21" defer></script>
+  </head>
+  <body class="combat-map-page" data-mode="concealment">
+    <main class="combat-map-shell">
+      <section class="tactical-board" aria-label="Interactive combat map">
+        <div class="combat-turn-hud">
+          <a href="campaign.html?v=navy-21"><span aria-hidden="true">←</span> Exit combat</a>
+          <div class="turn-counter">Turn <strong id="turn-number">1</strong></div>
+          <button id="next-turn" type="button">Next turn <span aria-hidden="true">→</span></button>
+        </div>
+
+        <aside class="developer-panel" id="developer-panel">
+          <button class="developer-panel-toggle" id="developer-panel-toggle" type="button" aria-expanded="true">
+            <span>Developer fleet control</span><span aria-hidden="true">‹</span>
+          </button>
+          <div class="developer-panel-body">
+            <div class="developer-add-controls">
+              <label>Side<select id="developer-team"><option value="friendly">Friendly</option><option value="enemy">Enemy</option></select></label>
+              <label>Ship type<select id="developer-type"></select></label>
+              <button id="developer-add" type="button">Place unit</button>
+            </div>
+            <p id="developer-instruction">Choose a side and ship type, then place it on an empty sea hex.</p>
+            <div class="developer-unit-lists" id="developer-unit-lists"></div>
+          </div>
+        </aside>
+
+        <div class="map-status-strip">
+          <span><span class="status-dot" aria-hidden="true"></span> Training waters online</span>
+          <span id="unit-readout" aria-live="polite">Select a friendly ship to locate enemy units</span>
+        </div>
+
+        <div
+          class="hex-map-viewport"
+          id="hex-map-viewport"
+          tabindex="0"
+          aria-label="Hexagonal sea and land map. Drag to pan and use the mouse wheel or controls to zoom."
+        >
+          <div class="hex-map-stage" id="hex-map-stage">
+            <div class="hex-map" id="hex-map"></div>
+          </div>
+        </div>
+
+        <div class="map-footer-strip">
+          <div class="terrain-legend" aria-label="Terrain legend">
+            <span><i class="terrain-swatch sea-swatch" aria-hidden="true"></i>Sea</span>
+            <span><i class="terrain-swatch land-swatch" aria-hidden="true"></i>Land</span>
+          </div>
+          <span>50 × 50 sector · Find and destroy concealed enemy ships</span>
+          <span>Drag to pan · Mouse wheel to zoom</span>
+        </div>
+
+        <aside class="unit-detail-panel" id="unit-detail-panel" aria-live="polite" hidden>
+          <div class="unit-detail-heading">
+            <p>Selected unit</p>
+            <button id="unit-detail-close" type="button" aria-label="Close ship details">×</button>
+          </div>
+          <div class="unit-detail-title">
+            <span id="unit-detail-code">—</span>
+            <h2 id="unit-detail-name">No ship selected</h2>
+          </div>
+          <dl>
+            <div><dt>Category</dt><dd id="unit-detail-category">—</dd></div>
+            <div><dt>Position</dt><dd id="unit-detail-position">—</dd></div>
+            <div><dt>Side</dt><dd id="unit-detail-team">Friendly</dd></div>
+            <div><dt>Health</dt><dd id="unit-detail-health">100 / 100</dd></div>
+            <div><dt>Concealment</dt><dd id="unit-detail-concealment">10 hexes</dd></div>
+            <div><dt>Movement</dt><dd id="unit-detail-movement">Ready</dd></div>
+            <div><dt>Guns</dt><dd id="unit-detail-attack">Ready</dd></div>
+            <div><dt>Torpedoes</dt><dd id="unit-detail-torpedo">Unavailable</dd></div>
+            <div><dt>Status</dt><dd id="unit-detail-status">Awaiting orders</dd></div>
+          </dl>
+          <div class="unit-order-actions">
+            <button id="gun-order" type="button">Gun range</button>
+            <button id="torpedo-order" type="button">Torpedo range</button>
+          </div>
+          <p id="unit-detail-instruction">Select a highlighted sea tile to issue a movement order.</p>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
