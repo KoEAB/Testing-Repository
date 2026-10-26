@@ -133,6 +133,7 @@
   }
 
   const viewport = document.querySelector("#hex-map-viewport");
+  const tacticalBoard = document.querySelector(".tactical-board");
   const stage = document.querySelector("#hex-map-stage");
   const map = document.querySelector("#hex-map");
   const unitReadout = document.querySelector("#unit-readout");
@@ -152,6 +153,8 @@
   const detailStatus = document.querySelector("#unit-detail-status");
   const detailInstruction = document.querySelector("#unit-detail-instruction");
   const detailClose = document.querySelector("#unit-detail-close");
+  const detailCollapse = document.querySelector("#unit-detail-collapse");
+  const detailHeading = document.querySelector(".unit-detail-heading");
   const nextTurnButton = document.querySelector("#next-turn");
   const turnNumber = document.querySelector("#turn-number");
   const gunOrderButton = document.querySelector("#gun-order");
@@ -176,6 +179,7 @@
   concealmentOutline.style.display = "none";
   let scale = 1;
   let dragState = null;
+  let detailDragState = null;
   let ignoreNextTileClick = false;
   let selectedUnit = null;
   let inspectedEnemy = null;
@@ -1009,7 +1013,7 @@
     const groups = shipType.salvoPattern || [shipType.shellCount];
     const shots = [];
     groups.forEach((groupSize, groupIndex) => {
-      const groupStart = shipType.salvoPattern ? groupIndex * 240 : 0;
+      const groupStart = groupIndex * 170;
       shots.push((async () => {
         await wait(groupStart);
         const flash = createEffect("muzzle-flash", origin);
@@ -1017,11 +1021,11 @@
           { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
           { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
           { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
-        ], { duration: shipType.salvoPattern ? 180 : 420, easing: "ease-out" }).finished;
+        ], { duration: 150, easing: "ease-out" }).finished;
         flash.remove();
       })());
       for (let index = 0; index < groupSize; index += 1) {
-        const launchDelay = groupStart + index * (shipType.salvoPattern ? 45 : 65);
+        const launchDelay = groupStart + index * 35;
         const offset = (index - (groupSize - 1) / 2) * 5;
         shots.push((async () => {
           await wait(launchDelay);
@@ -1030,7 +1034,7 @@
           const animation = shell.animate([
             { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
             { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
-          ], { duration: 520, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
+          ], { duration: 440, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
           await animation.finished;
           shell.remove();
         })());
@@ -1045,8 +1049,8 @@
       { opacity: 0, transform: "translate(-50%, -50%) scale(.15)" },
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
-    ], { duration: 800, easing: "ease-out", fill: "forwards" });
-    if (navalTarget && hit) {
+    ], { duration: 550, easing: "ease-out", fill: "forwards" });
+    if (navalTarget && hit && navalTarget.health > 0) {
       salvo.damageDealt = applyDamage(navalTarget, salvo.totalDamage, shipType);
       showDamagePopup(destination, salvo.damageDealt);
     }
@@ -1075,16 +1079,17 @@
     markSelectedOrigin(shipType);
     await wait(TURN_DURATION);
     const salvoCount = useRemaining ? shipType.gunAttacksRemaining : 1;
+    const volleys = [];
     for (let index = 0; index < salvoCount; index += 1) {
-      if (useRemaining && (initialTarget.health <= 0 || unitAt(targetKey, shipType.id)?.id !== initialTarget.id)) break;
       shipType.gunAttacksRemaining -= 1;
       shipType.attacked = shipType.gunAttacksRemaining <= 0;
       refreshUnitDisplay(shipType);
       updateDetailPanel(shipType, useRemaining ? `Firing salvo ${index + 1} of ${salvoCount}` : "Firing volley");
       unitReadout.textContent = `${shipType.code} · Salvo ${index + 1} of ${salvoCount}`;
-      await animateVolley(shipType, targetKey);
-      if (useRemaining && index + 1 < salvoCount && initialTarget.health > 0) await wait(180);
+      volleys.push(animateVolley(shipType, targetKey));
+      if (useRemaining && index + 1 < salvoCount) await wait(180);
     }
+    await Promise.all(volleys);
     renderDeveloperLists();
     isAnimating = false;
     if (shipType.gunAttacksRemaining > 0) showAttackArea(shipType);
@@ -1250,6 +1255,50 @@
     viewport.classList.remove("is-dragging");
   }
 
+  function clampDetailPanel() {
+    if (!detailPanel.style.left) return;
+    const maxLeft = Math.max(8, tacticalBoard.clientWidth - detailPanel.offsetWidth - 8);
+    const maxTop = Math.max(8, tacticalBoard.clientHeight - detailPanel.offsetHeight - 8);
+    detailPanel.style.left = `${Math.max(8, Math.min(parseFloat(detailPanel.style.left), maxLeft))}px`;
+    detailPanel.style.top = `${Math.max(8, Math.min(parseFloat(detailPanel.style.top), maxTop))}px`;
+  }
+
+  detailCollapse.addEventListener("click", () => {
+    const collapsed = detailPanel.classList.toggle("is-collapsed");
+    detailCollapse.setAttribute("aria-expanded", String(!collapsed));
+    detailCollapse.setAttribute("aria-label", collapsed ? "Expand ship details" : "Collapse ship details");
+    detailCollapse.textContent = collapsed ? "+" : "−";
+    clampDetailPanel();
+  });
+  detailHeading.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || event.target.closest("button")) return;
+    const boardRect = tacticalBoard.getBoundingClientRect();
+    const panelRect = detailPanel.getBoundingClientRect();
+    detailPanel.style.left = `${panelRect.left - boardRect.left}px`;
+    detailPanel.style.top = `${panelRect.top - boardRect.top}px`;
+    detailPanel.style.right = "auto";
+    detailPanel.style.bottom = "auto";
+    detailDragState = { pointerId: event.pointerId, x: event.clientX, y: event.clientY,
+      left: parseFloat(detailPanel.style.left), top: parseFloat(detailPanel.style.top) };
+    detailHeading.setPointerCapture(event.pointerId);
+    detailHeading.classList.add("is-dragging");
+    event.preventDefault();
+  });
+  detailHeading.addEventListener("pointermove", (event) => {
+    if (!detailDragState || event.pointerId !== detailDragState.pointerId) return;
+    detailPanel.style.left = `${detailDragState.left + event.clientX - detailDragState.x}px`;
+    detailPanel.style.top = `${detailDragState.top + event.clientY - detailDragState.y}px`;
+    clampDetailPanel();
+  });
+  function stopDetailDragging(event) {
+    if (!detailDragState || event.pointerId !== detailDragState.pointerId) return;
+    if (detailHeading.hasPointerCapture(event.pointerId)) detailHeading.releasePointerCapture(event.pointerId);
+    detailDragState = null;
+    detailHeading.classList.remove("is-dragging");
+  }
+  detailHeading.addEventListener("pointerup", stopDetailDragging);
+  detailHeading.addEventListener("pointercancel", stopDetailDragging);
+
   detailClose.addEventListener("click", deselectUnit);
   nextTurnButton.addEventListener("click", advanceTurn);
   gunOrderButton.addEventListener("click", activateGunMode);
@@ -1305,7 +1354,7 @@
   });
   viewport.addEventListener("pointerup", stopDragging);
   viewport.addEventListener("pointercancel", stopDragging);
-  window.addEventListener("resize", () => setScale(scale, false));
+  window.addEventListener("resize", () => { setScale(scale, false); clampDetailPanel(); });
 
   developerType.innerHTML = [...unitTemplates.entries()]
     .map(([templateId, ship]) => `<option value="${templateId}">${templateId.startsWith("uss-") ? ship.label : `${ship.code} · ${ship.label}`}</option>`)

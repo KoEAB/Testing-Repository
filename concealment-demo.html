@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Locate concealed enemy ships on the tactical map." />
     <title>Concealment Demo — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-35" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-35" />
-    <script src="combat-demo.js?v=navy-35" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-36" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-36" />
+    <script src="combat-demo.js?v=navy-36" defer></script>
   </head>
   <body class="combat-map-page" data-mode="concealment">
     <main class="combat-map-shell">
       <section class="tactical-board" aria-label="Interactive combat map">
         <div class="combat-turn-hud">
-          <a href="campaign.html?v=navy-35"><span aria-hidden="true">←</span> Exit combat</a>
+          <a href="campaign.html?v=navy-36"><span aria-hidden="true">←</span> Exit combat</a>
           <div class="turn-counter">Turn <strong id="turn-number">1</strong></div>
           <button id="next-turn" type="button">Next turn <span aria-hidden="true">→</span></button>
         </div>
@@ -66,13 +66,17 @@
 
         <aside class="unit-detail-panel" id="unit-detail-panel" aria-live="polite" hidden>
           <div class="unit-detail-heading">
-            <p>Selected unit</p>
-            <button id="unit-detail-close" type="button" aria-label="Close ship details">×</button>
+            <p>Selected unit · Drag to move</p>
+            <div class="unit-detail-heading-actions">
+              <button id="unit-detail-collapse" type="button" aria-label="Collapse ship details" aria-controls="unit-detail-body" aria-expanded="true">−</button>
+              <button id="unit-detail-close" type="button" aria-label="Close ship details">×</button>
+            </div>
           </div>
           <div class="unit-detail-title">
             <span id="unit-detail-code">—</span>
             <h2 id="unit-detail-name">No ship selected</h2>
           </div>
+          <div class="unit-detail-body" id="unit-detail-body">
           <dl>
             <div><dt>Category</dt><dd id="unit-detail-category">—</dd></div>
             <div><dt>Position</dt><dd id="unit-detail-position">—</dd></div>
@@ -91,6 +95,7 @@
             <button id="torpedo-order" type="button">Torpedo range</button>
           </div>
           <p id="unit-detail-instruction">Select a highlighted sea tile to issue a movement order.</p>
+          </div>
         </aside>
       </section>
     </main>

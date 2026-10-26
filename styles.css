@@ -1954,7 +1954,7 @@ p {
 .developer-panel {
   position: absolute;
   z-index: 26;
-  top: 78px;
+  top: 136px;
   left: 24px;
   width: 340px;
   border: 1px solid var(--line);
@@ -2133,7 +2133,7 @@ p {
 .map-status-strip {
   position: absolute;
   z-index: 12;
-  bottom: 28px;
+  top: 78px;
   left: 32px;
   min-height: 44px;
   border: 1px solid var(--line);
@@ -2246,7 +2246,6 @@ p {
 }
 
 .hex-cell.is-reachable::after,
-.hex-cell.is-unit-selected::after,
 .hex-cell.is-route::after {
   position: absolute;
   z-index: 2;
@@ -2271,11 +2270,6 @@ p {
 .hex-cell.is-unit-selected {
   z-index: 3;
   background: var(--gold);
-}
-
-.hex-cell.is-unit-selected::after {
-  border-color: rgba(255, 241, 196, 0.94);
-  box-shadow: inset 0 0 24px rgba(215, 181, 104, 0.26);
 }
 
 .hex-cell.is-route {
@@ -2618,7 +2612,7 @@ p {
   position: absolute;
   z-index: 12;
   right: 32px;
-  bottom: 28px;
+  top: 78px;
   min-height: 44px;
   border: 1px solid var(--line);
   background: rgba(3, 13, 23, 0.88);
@@ -2629,7 +2623,7 @@ p {
   position: absolute;
   z-index: 18;
   right: 50%;
-  bottom: 84px;
+  bottom: 28px;
   transform: translateX(50%);
   pointer-events: none;
 }
@@ -2666,6 +2660,8 @@ p {
   background: rgba(3, 13, 23, 0.94);
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(10px);
+  max-height: calc(100% - 96px);
+  overflow: auto;
 }
 
 .unit-detail-panel[hidden] {
@@ -2683,10 +2679,17 @@ p {
 
 .unit-detail-heading {
   margin-bottom: 14px;
+  cursor: grab;
+  touch-action: none;
 }
 
+.unit-detail-heading.is-dragging { cursor: grabbing; }
+.unit-detail-heading-actions { display: flex; gap: 6px; }
+.unit-detail-panel.is-collapsed .unit-detail-body { display: none; }
+.unit-detail-panel.is-collapsed .unit-detail-title { padding-bottom: 0; border-bottom: 0; }
+
 .unit-detail-heading p,
-.unit-detail-panel > p {
+.unit-detail-body > p {
   margin: 0;
   color: var(--muted);
   font-size: 9px;
@@ -2925,7 +2928,7 @@ p {
   }
 
   .developer-panel {
-    top: 66px;
+    top: 170px;
     left: 14px;
     width: min(340px, calc(100% - 28px));
   }
@@ -2994,14 +2997,14 @@ p {
   }
 
   .map-status-strip {
-    display: none;
+    top: 64px;
   }
 
   .map-footer-strip {
-    bottom: 14px;
+    top: 116px;
   }
 
-  .combat-skills { bottom: 65px; }
+  .combat-skills { bottom: 14px; }
 
   .unit-detail-panel {
     right: 14px;
@@ -3014,4 +3017,6 @@ p {
   .terrain-legend {
     display: none;
   }
+
+  .map-status-strip #unit-readout { display: none; }
 }
