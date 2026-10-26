@@ -1878,6 +1878,79 @@ p {
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
 }
 
+.combat-turn-hud {
+  position: absolute;
+  z-index: 30;
+  top: 20px;
+  right: 24px;
+  left: 24px;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 1fr auto 1fr;
+  pointer-events: none;
+}
+
+.combat-turn-hud a,
+.combat-turn-hud button,
+.turn-counter {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: rgba(3, 13, 23, 0.9);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.combat-turn-hud a,
+.combat-turn-hud button {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  padding: 0 18px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.combat-turn-hud button {
+  justify-self: end;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--sans);
+}
+
+.combat-turn-hud a:hover,
+.combat-turn-hud a:focus-visible,
+.combat-turn-hud button:hover,
+.combat-turn-hud button:focus-visible {
+  border-color: var(--gold);
+  color: var(--gold);
+  outline: none;
+}
+
+.turn-counter {
+  display: flex;
+  align-items: center;
+  min-width: 126px;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.turn-counter strong {
+  color: var(--gold);
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+}
+
 .map-status-strip,
 .map-footer-strip {
   display: flex;
@@ -2051,6 +2124,35 @@ p {
   border-color: rgba(180, 230, 244, 0.9);
 }
 
+.hex-cell.is-attackable {
+  z-index: 2;
+  background: rgba(202, 78, 68, 0.95);
+  cursor: crosshair;
+}
+
+.hex-cell.is-attackable::before {
+  background:
+    radial-gradient(circle at center, rgba(229, 101, 86, 0.34), transparent 58%),
+    #56302f;
+}
+
+.hex-cell.is-attackable::after {
+  position: absolute;
+  z-index: 2;
+  inset: 9px;
+  border: 2px solid rgba(242, 129, 111, 0.82);
+  clip-path: inherit;
+  content: "";
+  pointer-events: none;
+}
+
+.hex-cell.is-attackable:hover::before,
+.hex-cell.is-attackable:focus-visible::before {
+  background:
+    radial-gradient(circle at center, rgba(255, 143, 120, 0.46), transparent 58%),
+    #713735;
+}
+
 .hex-cell span {
   position: absolute;
   z-index: 1;
@@ -2067,7 +2169,7 @@ p {
 }
 
 .map-unit {
-  --unit-color: var(--gold);
+  --unit-color: #79d99a;
   position: absolute;
   z-index: 5;
   display: grid;
@@ -2080,9 +2182,7 @@ p {
   cursor: pointer;
   place-items: center;
   transform: translate(-50%, -50%);
-  transition:
-    left 360ms ease-in-out,
-    top 360ms ease-in-out;
+  transition: none;
 }
 
 .map-unit:hover,
@@ -2119,12 +2219,73 @@ p {
 .map-unit-icon svg polygon,
 .map-unit-icon svg rect,
 .map-unit-icon svg circle {
-  fill: var(--ink);
+  fill: var(--unit-color);
   stroke: none;
+}
+
+.unit-health {
+  position: absolute;
+  right: 18px;
+  bottom: 10px;
+  left: 18px;
+  height: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(3, 13, 23, 0.9);
+  background: rgba(2, 10, 17, 0.78);
+  box-shadow: 0 0 0 1px rgba(208, 235, 217, 0.2);
+  pointer-events: none;
+}
+
+.unit-health i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #58c77f;
 }
 
 .map-unit.is-moving {
   z-index: 8;
+}
+
+.combat-effect {
+  position: absolute;
+  z-index: 12;
+  display: block;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.volley-shell {
+  width: 13px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff4bd;
+  box-shadow: 0 0 8px #ffd66d, -9px 0 11px rgba(255, 202, 89, 0.65);
+}
+
+.muzzle-flash {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 9%, #ffd76b 10% 25%, rgba(240, 112, 51, 0.6) 38%, transparent 70%);
+}
+
+.impact-explosion,
+.impact-splash {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+}
+
+.impact-explosion {
+  background: radial-gradient(circle, #fff5bd 0 8%, #ffca54 9% 24%, #d95e35 34%, rgba(96, 36, 28, 0.72) 48%, transparent 72%);
+  box-shadow: 0 0 30px rgba(244, 131, 59, 0.74);
+}
+
+.impact-splash {
+  border: 5px solid rgba(191, 232, 241, 0.84);
+  background: radial-gradient(circle, rgba(232, 249, 252, 0.9) 0 8%, rgba(115, 190, 211, 0.55) 22%, transparent 62%);
+  box-shadow: 0 0 22px rgba(122, 203, 224, 0.65);
 }
 
 .map-footer-strip {
@@ -2362,6 +2523,26 @@ p {
   .combat-map-shell {
     width: 100%;
     padding: 0;
+  }
+
+  .combat-turn-hud {
+    top: 14px;
+    right: 14px;
+    left: 14px;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .combat-turn-hud a,
+  .combat-turn-hud button {
+    min-height: 40px;
+    padding: 0 11px;
+    font-size: 7px;
+  }
+
+  .turn-counter {
+    min-width: 82px;
+    min-height: 40px;
+    font-size: 7px;
   }
 
   .combat-map-header {

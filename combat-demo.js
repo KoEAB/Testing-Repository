@@ -12,8 +12,9 @@
   const MAX_SCALE = 2.2;
   const SCALE_STEP = 0.1;
   const MOVE_RANGE = 5;
-  const TURN_DURATION = 280;
-  const STEP_DURATION = 360;
+  const ATTACK_RANGE = 7;
+  const TURN_DURATION = 260;
+  const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV"]);
 
   const shipTypes = [
     { code: "SS", label: "Submarine", column: 18, row: 24, group: "submarine" },
@@ -31,7 +32,7 @@
     { code: "CVE", label: "Escort aircraft carrier", column: 30, row: 24, group: "aviation" },
     { code: "BM", label: "Monitor", column: 31, row: 24, group: "coastal" },
     { code: "AR", label: "Repair ship", column: 32, row: 24, group: "support" }
-  ];
+  ].map((ship) => ({ ...ship, heading: 0, moved: false, attacked: false, health: 100 }));
 
   const islandShapes = [
     { column: 3, row: 4, width: 5, height: 6 },
@@ -58,37 +59,26 @@
         const edgeVariation = ((column * 17 + row * 29 + index * 11) % 9 - 4) * 0.035;
         return x * x + y * y < 1 + edgeVariation;
       });
-      if (isLand && !(row === 24 && column >= 17 && column <= 32)) {
-        landCells.add(`${column},${row}`);
-      }
+      if (isLand && !(row === 24 && column >= 17 && column <= 32)) landCells.add(`${column},${row}`);
     }
   }
-
-  const groupColors = {
-    submarine: "#78aec3",
-    escort: "#8eb5c8",
-    cruiser: "#d0a76d",
-    capital: "#d7b568",
-    aviation: "#aaa0d2",
-    coastal: "#a6a17b",
-    support: "#7fb093"
-  };
 
   const viewport = document.querySelector("#hex-map-viewport");
   const stage = document.querySelector("#hex-map-stage");
   const map = document.querySelector("#hex-map");
-  const zoomValue = document.querySelector("#zoom-value");
-  const zoomIn = document.querySelector("#zoom-in");
-  const zoomOut = document.querySelector("#zoom-out");
-  const zoomReset = document.querySelector("#zoom-reset");
   const unitReadout = document.querySelector("#unit-readout");
   const detailPanel = document.querySelector("#unit-detail-panel");
   const detailCode = document.querySelector("#unit-detail-code");
   const detailName = document.querySelector("#unit-detail-name");
   const detailCategory = document.querySelector("#unit-detail-category");
   const detailPosition = document.querySelector("#unit-detail-position");
+  const detailMovement = document.querySelector("#unit-detail-movement");
+  const detailAttack = document.querySelector("#unit-detail-attack");
   const detailStatus = document.querySelector("#unit-detail-status");
+  const detailInstruction = document.querySelector("#unit-detail-instruction");
   const detailClose = document.querySelector("#unit-detail-close");
+  const nextTurnButton = document.querySelector("#next-turn");
+  const turnNumber = document.querySelector("#turn-number");
   const tileElements = new Map();
   const unitElements = new Map();
   let scale = 1;
@@ -96,7 +86,10 @@
   let ignoreNextTileClick = false;
   let selectedUnit = null;
   let reachableState = null;
-  let isMoving = false;
+  let attackCells = new Set();
+  let mode = null;
+  let isAnimating = false;
+  let currentTurn = 1;
 
   function cellKey(column, row) {
     return `${column},${row}`;
@@ -126,7 +119,7 @@
   }
 
   function renderIcon(code) {
-    const submarine = '<path d="M3 24 16 16H34L43 10H57L67 16H78L94 24 78 32H67L57 38H43L34 32H16Z"/>';
+    const submarine = '<rect x="8" y="8" width="8" height="32"/><polygon points="26,8 91,24 26,40"/>';
     const destroyer = '<polygon points="8,8 91,24 8,40"/>';
     const cruiser = '<polygon points="8,8 43,8 28,40 8,40"/><polygon points="51,8 66,8 91,24 66,40 38,40"/>';
     const battleship = '<polygon points="8,8 37,8 22,40 8,40"/><polygon points="45,8 58,8 42,40 28,40"/><polygon points="67,8 91,24 67,40 49,40"/>';
@@ -134,21 +127,10 @@
     const monitor = '<polygon points="7,14 21,8 68,8 92,24 68,40 21,40 7,34"/><rect x="27" y="16" width="26" height="16" rx="8"/>';
     const repairShip = '<path fill-rule="evenodd" d="M4 14 19 8H67L93 24 67 40H19L4 34 10 24ZM37 15H49V20H55V28H49V33H37V28H31V20H37Z"/>';
     const shapes = {
-      SS: submarine,
-      SSV: submarine,
-      DD: destroyer,
-      DE: destroyer,
-      CL: cruiser,
-      CA: cruiser,
-      CB: cruiser,
-      BC: battleship,
-      BB: battleship,
-      BBV: battleship,
-      CV: carrier,
-      CVL: carrier,
-      CVE: carrier,
-      BM: monitor,
-      AR: repairShip
+      SS: submarine, SSV: submarine, DD: destroyer, DE: destroyer,
+      CL: cruiser, CA: cruiser, CB: cruiser, BC: battleship,
+      BB: battleship, BBV: battleship, CV: carrier, CVL: carrier,
+      CVE: carrier, BM: monitor, AR: repairShip
     };
     return `<svg viewBox="0 0 96 48" aria-hidden="true" focusable="false">${shapes[code]}</svg>`;
   }
@@ -170,7 +152,10 @@
         tile.tabIndex = -1;
         if (terrain === "land") tile.setAttribute("aria-disabled", "true");
         tile.setAttribute("aria-label", `${coordinateLabel(column, row)} · ${terrain}`);
+        tile.addEventListener("mouseenter", () => previewMovementFacing(key));
+        tile.addEventListener("mouseleave", restoreCommittedFacing);
         tile.addEventListener("click", () => handleTileClick(key));
+        tile.addEventListener("contextmenu", (event) => handleTileRightClick(event, key));
         tileElements.set(key, tile);
         map.appendChild(tile);
       }
@@ -182,15 +167,12 @@
       marker.type = "button";
       marker.dataset.shipType = shipType.code;
       marker.dataset.heading = "0";
-      marker.style.setProperty("--unit-color", groupColors[shipType.group]);
       marker.style.setProperty("--heading", "0deg");
       positionMarker(marker, shipType.column, shipType.row);
-      marker.setAttribute("aria-label", `${shipType.code}: ${shipType.label}`);
-      marker.innerHTML = `<span class="map-unit-icon">${renderIcon(shipType.code)}</span>`;
-      marker.addEventListener("click", (event) => {
-        event.stopPropagation();
-        selectUnit(marker, shipType);
-      });
+      marker.setAttribute("aria-label", `${shipType.code}: ${shipType.label}, full health`);
+      marker.innerHTML = `<span class="map-unit-icon">${renderIcon(shipType.code)}</span><span class="unit-health" aria-hidden="true"><i></i></span>`;
+      marker.addEventListener("click", (event) => handleUnitClick(event, marker, shipType));
+      marker.addEventListener("contextmenu", (event) => beginAttackMode(event, marker, shipType));
       unitElements.set(shipType.code, marker);
       map.appendChild(marker);
     });
@@ -205,17 +187,14 @@
   function getNeighbors(column, row) {
     const diagonalRows = column % 2 ? [row, row + 1] : [row - 1, row];
     return [
-      { column, row: row - 1 },
-      { column, row: row + 1 },
-      { column: column - 1, row: diagonalRows[0] },
-      { column: column - 1, row: diagonalRows[1] },
-      { column: column + 1, row: diagonalRows[0] },
-      { column: column + 1, row: diagonalRows[1] }
+      { column, row: row - 1 }, { column, row: row + 1 },
+      { column: column - 1, row: diagonalRows[0] }, { column: column - 1, row: diagonalRows[1] },
+      { column: column + 1, row: diagonalRows[0] }, { column: column + 1, row: diagonalRows[1] }
     ].filter((cell) => cell.column >= 0 && cell.column < COLUMNS && cell.row >= 0 && cell.row < ROWS);
   }
 
   function occupiedCells(exceptCode) {
-    return new Set(shipTypes.filter((shipType) => shipType.code !== exceptCode).map((shipType) => cellKey(shipType.column, shipType.row)));
+    return new Set(shipTypes.filter((ship) => ship.code !== exceptCode).map((ship) => cellKey(ship.column, ship.row)));
   }
 
   function calculateReachable(shipType) {
@@ -241,50 +220,172 @@
     return { startKey, distance, previous };
   }
 
+  function calculateRadius(shipType, radius) {
+    const startKey = cellKey(shipType.column, shipType.row);
+    const distance = new Map([[startKey, 0]]);
+    const queue = [startKey];
+    while (queue.length) {
+      const currentKey = queue.shift();
+      const currentDistance = distance.get(currentKey);
+      if (currentDistance >= radius) continue;
+      const current = parseCellKey(currentKey);
+      getNeighbors(current.column, current.row).forEach((neighbor) => {
+        const key = cellKey(neighbor.column, neighbor.row);
+        if (distance.has(key)) return;
+        distance.set(key, currentDistance + 1);
+        queue.push(key);
+      });
+    }
+    distance.delete(startKey);
+    return new Set(distance.keys());
+  }
+
   function clearTacticalHighlights() {
     tileElements.forEach((tile) => {
-      tile.classList.remove("is-reachable", "is-unit-selected", "is-route");
+      tile.classList.remove("is-reachable", "is-unit-selected", "is-route", "is-attackable");
       delete tile.dataset.distance;
       tile.tabIndex = -1;
     });
   }
 
-  function showReachableArea(shipType) {
+  function markSelectedOrigin(shipType) {
+    tileElements.get(cellKey(shipType.column, shipType.row))?.classList.add("is-unit-selected");
+  }
+
+  function showMovementArea(shipType) {
     clearTacticalHighlights();
-    reachableState = calculateReachable(shipType);
-    tileElements.get(reachableState.startKey)?.classList.add("is-unit-selected");
+    attackCells.clear();
+    mode = "move";
+    markSelectedOrigin(shipType);
+    reachableState = shipType.moved ? null : calculateReachable(shipType);
+    if (!reachableState) return;
     reachableState.distance.forEach((distance, key) => {
       const tile = tileElements.get(key);
-      if (!tile) return;
       tile.classList.add("is-reachable");
       tile.dataset.distance = String(distance);
       tile.tabIndex = 0;
     });
   }
 
-  function updateDetailPanel(shipType, status = "Ready") {
+  function showAttackArea(shipType) {
+    clearTacticalHighlights();
+    reachableState = null;
+    mode = "attack";
+    markSelectedOrigin(shipType);
+    attackCells = calculateRadius(shipType, ATTACK_RANGE);
+    attackCells.forEach((key) => {
+      const tile = tileElements.get(key);
+      tile.classList.add("is-attackable");
+      tile.tabIndex = 0;
+    });
+  }
+
+  function updateDetailPanel(shipType, status = "Awaiting orders") {
+    const canAttack = ATTACK_CODES.has(shipType.code);
     detailCode.textContent = shipType.code;
     detailName.textContent = shipType.label;
     detailCategory.textContent = shipType.group.charAt(0).toUpperCase() + shipType.group.slice(1);
     detailPosition.textContent = coordinateLabel(shipType.column, shipType.row);
+    detailMovement.textContent = shipType.moved ? "Spent" : "Ready · 5 hexes";
+    detailAttack.textContent = canAttack ? (shipType.attacked ? "Spent" : "Ready · 7 hexes") : "Unavailable";
     detailStatus.textContent = status;
+    detailInstruction.textContent = mode === "attack"
+      ? "Select a red hex to fire. Ships in range may be targeted."
+      : "Hover to preview facing. Left-click to move; right-click to set facing.";
     detailPanel.hidden = false;
   }
 
+  function setMarkerHeading(shipType, targetCell, options = {}) {
+    const marker = unitElements.get(shipType.code);
+    const from = cellCenter(shipType.column, shipType.row);
+    const to = cellCenter(targetCell.column, targetCell.row);
+    let heading = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+    if (options.broadside) heading += 90;
+    const current = Number(marker.dataset.heading || shipType.heading || 0);
+    while (heading - current > 180) heading -= 360;
+    while (heading - current < -180) heading += 360;
+    marker.dataset.heading = String(heading);
+    marker.style.setProperty("--heading", `${heading}deg`);
+    if (options.commit) shipType.heading = heading;
+    return heading;
+  }
+
+  function restoreCommittedFacing() {
+    if (!selectedUnit || isAnimating) return;
+    const marker = unitElements.get(selectedUnit.code);
+    marker.dataset.heading = String(selectedUnit.heading);
+    marker.style.setProperty("--heading", `${selectedUnit.heading}deg`);
+  }
+
+  function previewMovementFacing(key) {
+    if (mode !== "move" || !selectedUnit || isAnimating || !reachableState?.distance.has(key)) return;
+    setMarkerHeading(selectedUnit, parseCellKey(key));
+  }
+
+  function handleTileRightClick(event, key) {
+    event.preventDefault();
+    if (mode !== "move" || !selectedUnit || isAnimating || !reachableState?.distance.has(key)) return;
+    const target = parseCellKey(key);
+    setMarkerHeading(selectedUnit, target, { commit: true });
+    updateDetailPanel(selectedUnit, `Facing ${coordinateLabel(target.column, target.row)}`);
+  }
+
+  function handleUnitClick(event, marker, shipType) {
+    event.stopPropagation();
+    if (isAnimating) return;
+    const key = cellKey(shipType.column, shipType.row);
+    if (mode === "attack" && selectedUnit && selectedUnit.code !== shipType.code && attackCells.has(key)) {
+      fireVolley(key);
+      return;
+    }
+    if (selectedUnit?.code === shipType.code && mode === "move") {
+      deselectUnit();
+      return;
+    }
+    selectUnit(marker, shipType);
+  }
+
   function selectUnit(marker, shipType) {
-    if (isMoving) return;
+    if (isAnimating) return;
+    restoreCommittedFacing();
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     selectedUnit = shipType;
     marker.classList.add("is-selected");
     unitReadout.textContent = `${shipType.code} · ${shipType.label}`;
+    showMovementArea(shipType);
     updateDetailPanel(shipType);
-    showReachableArea(shipType);
+  }
+
+  function beginAttackMode(event, marker, shipType) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isAnimating) return;
+    if (!ATTACK_CODES.has(shipType.code)) {
+      selectUnit(marker, shipType);
+      updateDetailPanel(shipType, "No ranged armament");
+      return;
+    }
+    restoreCommittedFacing();
+    map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
+    selectedUnit = shipType;
+    marker.classList.add("is-selected");
+    if (shipType.attacked) {
+      showMovementArea(shipType);
+      updateDetailPanel(shipType, "Attack already used this turn");
+      return;
+    }
+    showAttackArea(shipType);
+    unitReadout.textContent = `${shipType.code} · Attack range`;
+    updateDetailPanel(shipType, "Select firing target");
   }
 
   function deselectUnit() {
-    if (isMoving) return;
+    if (isAnimating) return;
+    restoreCommittedFacing();
     selectedUnit = null;
     reachableState = null;
+    attackCells.clear();
+    mode = null;
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     clearTacticalHighlights();
     detailPanel.hidden = true;
@@ -305,48 +406,110 @@
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
   }
 
-  function turnMarker(marker, fromCell, toCell) {
-    const from = cellCenter(fromCell.column, fromCell.row);
-    const to = cellCenter(toCell.column, toCell.row);
-    let nextHeading = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
-    const currentHeading = Number(marker.dataset.heading || 0);
-    while (nextHeading - currentHeading > 180) nextHeading -= 360;
-    while (nextHeading - currentHeading < -180) nextHeading += 360;
-    marker.dataset.heading = String(nextHeading);
-    marker.style.setProperty("--heading", `${nextHeading}deg`);
-  }
-
   async function moveSelectedUnit(targetKey) {
-    if (!selectedUnit || !reachableState || !reachableState.distance.has(targetKey) || isMoving) return;
+    if (!selectedUnit || selectedUnit.moved || !reachableState?.distance.has(targetKey) || isAnimating) return;
     const path = buildPath(targetKey);
     if (!path.length) return;
-    isMoving = true;
+    isAnimating = true;
+    mode = null;
     const shipType = selectedUnit;
     const marker = unitElements.get(shipType.code);
-    marker.classList.add("is-moving");
-    reachableState.distance.forEach((distance, key) => tileElements.get(key)?.classList.remove("is-reachable"));
+    const targetCell = parseCellKey(targetKey);
+    setMarkerHeading(shipType, targetCell, { commit: true });
+    clearTacticalHighlights();
     path.forEach((key) => tileElements.get(key)?.classList.add("is-route"));
+    marker.classList.add("is-moving");
     updateDetailPanel(shipType, "Underway");
-    unitReadout.textContent = `${shipType.code} · Moving ${path.length} hex${path.length === 1 ? "" : "es"}`;
+    unitReadout.textContent = `${shipType.code} · Underway`;
+    await wait(TURN_DURATION);
 
-    for (const nextKey of path) {
-      const fromCell = { column: shipType.column, row: shipType.row };
-      const nextCell = parseCellKey(nextKey);
-      turnMarker(marker, fromCell, nextCell);
-      await wait(TURN_DURATION);
-      positionMarker(marker, nextCell.column, nextCell.row);
-      await wait(STEP_DURATION);
-      shipType.column = nextCell.column;
-      shipType.row = nextCell.row;
-      tileElements.get(nextKey)?.classList.remove("is-route");
-      updateDetailPanel(shipType, "Underway");
-    }
-
+    const cells = [{ column: shipType.column, row: shipType.row }, ...path.map(parseCellKey)];
+    const keyframes = cells.map((cell, index) => {
+      const center = cellCenter(cell.column, cell.row);
+      return { left: `${center.x}px`, top: `${center.y}px`, offset: index / (cells.length - 1) };
+    });
+    const movement = marker.animate(keyframes, {
+      duration: 520 + path.length * 170,
+      easing: "linear",
+      fill: "forwards"
+    });
+    await movement.finished;
+    positionMarker(marker, targetCell.column, targetCell.row);
+    movement.cancel();
+    shipType.column = targetCell.column;
+    shipType.row = targetCell.row;
+    shipType.moved = true;
     marker.classList.remove("is-moving");
-    isMoving = false;
-    unitReadout.textContent = `${shipType.code} · ${shipType.label}`;
-    updateDetailPanel(shipType, "Ready");
-    showReachableArea(shipType);
+    isAnimating = false;
+    clearTacticalHighlights();
+    markSelectedOrigin(shipType);
+    updateDetailPanel(shipType, "Movement complete");
+    unitReadout.textContent = `${shipType.code} · Movement complete`;
+  }
+
+  function createEffect(className, center) {
+    const effect = document.createElement("span");
+    effect.className = `combat-effect ${className}`;
+    effect.style.left = `${center.x}px`;
+    effect.style.top = `${center.y}px`;
+    map.appendChild(effect);
+    return effect;
+  }
+
+  async function animateVolley(shipType, targetKey) {
+    const origin = cellCenter(shipType.column, shipType.row);
+    const target = parseCellKey(targetKey);
+    const destination = cellCenter(target.column, target.row);
+    const flash = createEffect("muzzle-flash", origin);
+    flash.animate([
+      { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
+      { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
+      { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
+    ], { duration: 420, easing: "ease-out" }).finished.finally(() => flash.remove());
+
+    const shots = [0, 110, 220].map(async (delay, index) => {
+      await wait(delay);
+      const shell = createEffect("volley-shell", origin);
+      shell.style.marginTop = `${(index - 1) * 5}px`;
+      const animation = shell.animate([
+        { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
+        { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
+      ], { duration: 520, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
+      await animation.finished;
+      shell.remove();
+    });
+    await Promise.all(shots);
+
+    const navalTarget = shipTypes.some((ship) => ship.code !== shipType.code && cellKey(ship.column, ship.row) === targetKey);
+    const impactClass = landCells.has(targetKey) || navalTarget ? "impact-explosion" : "impact-splash";
+    const impact = createEffect(impactClass, destination);
+    const impactAnimation = impact.animate([
+      { opacity: 0, transform: "translate(-50%, -50%) scale(.15)" },
+      { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
+      { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
+    ], { duration: 800, easing: "ease-out", fill: "forwards" });
+    await impactAnimation.finished;
+    impact.remove();
+  }
+
+  async function fireVolley(targetKey) {
+    if (!selectedUnit || selectedUnit.attacked || !attackCells.has(targetKey) || isAnimating) return;
+    isAnimating = true;
+    mode = null;
+    const shipType = selectedUnit;
+    setMarkerHeading(shipType, parseCellKey(targetKey), { broadside: true, commit: true });
+    clearTacticalHighlights();
+    markSelectedOrigin(shipType);
+    updateDetailPanel(shipType, "Firing volley");
+    unitReadout.textContent = `${shipType.code} · Firing volley`;
+    await wait(TURN_DURATION);
+    await animateVolley(shipType, targetKey);
+    shipType.attacked = true;
+    isAnimating = false;
+    updateDetailPanel(shipType, "Volley complete");
+    unitReadout.textContent = `${shipType.code} · Volley complete`;
+    if (!shipType.moved) showMovementArea(shipType);
+    else markSelectedOrigin(shipType);
   }
 
   function handleTileClick(key) {
@@ -354,7 +517,23 @@
       ignoreNextTileClick = false;
       return;
     }
-    if (selectedUnit && reachableState?.distance.has(key)) moveSelectedUnit(key);
+    if (mode === "attack" && attackCells.has(key)) {
+      fireVolley(key);
+    } else if (mode === "move" && reachableState?.distance.has(key)) {
+      moveSelectedUnit(key);
+    }
+  }
+
+  function advanceTurn() {
+    if (isAnimating) return;
+    shipTypes.forEach((ship) => {
+      ship.moved = false;
+      ship.attacked = false;
+    });
+    currentTurn += 1;
+    turnNumber.textContent = String(currentTurn);
+    deselectUnit();
+    unitReadout.textContent = `Turn ${currentTurn} · All units ready`;
   }
 
   function setScale(nextScale, preserveCenter = true) {
@@ -369,10 +548,6 @@
     map.style.left = `${Math.max(0, (viewport.clientWidth - scaledWidth) / 2)}px`;
     map.style.top = `${Math.max(0, (viewport.clientHeight - scaledHeight) / 2)}px`;
     map.style.transform = `scale(${scale})`;
-    zoomValue.value = `${Math.round(scale * 100)}%`;
-    zoomValue.textContent = `${Math.round(scale * 100)}%`;
-    zoomOut.disabled = scale <= MIN_SCALE;
-    zoomIn.disabled = scale >= MAX_SCALE;
     if (preserveCenter) {
       requestAnimationFrame(() => {
         viewport.scrollLeft = centerX * scale - viewport.clientWidth / 2;
@@ -394,35 +569,24 @@
     if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
     if (dragState.moved) {
       ignoreNextTileClick = true;
-      window.setTimeout(() => {
-        ignoreNextTileClick = false;
-      }, 0);
+      window.setTimeout(() => { ignoreNextTileClick = false; }, 0);
     }
     dragState = null;
     viewport.classList.remove("is-dragging");
   }
 
-  zoomIn.addEventListener("click", () => setScale(scale + SCALE_STEP));
-  zoomOut.addEventListener("click", () => setScale(scale - SCALE_STEP));
-  zoomReset.addEventListener("click", resetView);
   detailClose.addEventListener("click", deselectUnit);
+  nextTurnButton.addEventListener("click", advanceTurn);
+  viewport.addEventListener("contextmenu", (event) => event.preventDefault());
   viewport.addEventListener("wheel", (event) => {
     event.preventDefault();
     setScale(scale + (event.deltaY < 0 ? SCALE_STEP : -SCALE_STEP));
   }, { passive: false });
   viewport.addEventListener("keydown", (event) => {
-    if (event.key === "+" || event.key === "=") {
-      event.preventDefault();
-      setScale(scale + SCALE_STEP);
-    } else if (event.key === "-") {
-      event.preventDefault();
-      setScale(scale - SCALE_STEP);
-    } else if (event.key === "0") {
-      event.preventDefault();
-      resetView();
-    } else if (event.key === "Escape") {
-      deselectUnit();
-    }
+    if (event.key === "+" || event.key === "=") setScale(scale + SCALE_STEP);
+    else if (event.key === "-") setScale(scale - SCALE_STEP);
+    else if (event.key === "0") resetView();
+    else if (event.key === "Escape") deselectUnit();
   });
   viewport.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || event.target.closest(".map-unit")) return;

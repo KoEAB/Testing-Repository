@@ -5,41 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Interactive Naval Command combat demonstration map." />
     <title>Combat Demo — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-13" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-13" />
-    <script src="combat-demo.js?v=navy-13" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-14" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-14" />
+    <script src="combat-demo.js?v=navy-14" defer></script>
   </head>
   <body class="combat-map-page">
-    <div class="ambient ambient-one" aria-hidden="true"></div>
-    <div class="ambient ambient-two" aria-hidden="true"></div>
-
-    <header class="site-header combat-map-header">
-      <a class="brand" href="lobby.html?v=navy-13" aria-label="Naval Command Home Port">
-        <span class="brand-mark" aria-hidden="true">N</span>
-        <span>Naval Command</span>
-      </a>
-      <a class="back-link" href="campaign.html?v=navy-13">
-        <span aria-hidden="true">←</span> Combat
-      </a>
-    </header>
-
     <main class="combat-map-shell">
-      <section class="combat-map-heading" aria-labelledby="combat-demo-title">
-        <div>
-          <p class="eyebrow">Training operation · Sector 01</p>
-          <h1 id="combat-demo-title">Combat demo</h1>
-          <p>Command the formation across a 50 × 50 hexagonal operations area.</p>
-        </div>
-
-        <div class="map-controls" aria-label="Map zoom controls">
-          <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
-          <output id="zoom-value" aria-live="polite">100%</output>
-          <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
-          <button class="map-reset" id="zoom-reset" type="button">Reset view</button>
-        </div>
-      </section>
-
       <section class="tactical-board" aria-label="Interactive combat map">
+        <div class="combat-turn-hud">
+          <a href="campaign.html?v=navy-14"><span aria-hidden="true">←</span> Exit combat</a>
+          <div class="turn-counter">Turn <strong id="turn-number">1</strong></div>
+          <button id="next-turn" type="button">Next turn <span aria-hidden="true">→</span></button>
+        </div>
+
         <div class="map-status-strip">
           <span><span class="status-dot" aria-hidden="true"></span> Training waters online</span>
           <span id="unit-readout" aria-live="polite">Select a ship-type marker</span>
@@ -77,18 +55,14 @@
           <dl>
             <div><dt>Category</dt><dd id="unit-detail-category">—</dd></div>
             <div><dt>Position</dt><dd id="unit-detail-position">—</dd></div>
-            <div><dt>Movement</dt><dd>5 hexes</dd></div>
-            <div><dt>Status</dt><dd id="unit-detail-status">Ready</dd></div>
+            <div><dt>Health</dt><dd>100 / 100</dd></div>
+            <div><dt>Movement</dt><dd id="unit-detail-movement">Ready</dd></div>
+            <div><dt>Attack</dt><dd id="unit-detail-attack">Ready</dd></div>
+            <div><dt>Status</dt><dd id="unit-detail-status">Awaiting orders</dd></div>
           </dl>
-          <p>Select a highlighted sea tile to issue a movement order.</p>
+          <p id="unit-detail-instruction">Select a highlighted sea tile to issue a movement order.</p>
         </aside>
       </section>
     </main>
-
-    <footer class="site-footer">
-      <span>Combat prototype</span>
-      <span class="footer-rule" aria-hidden="true"></span>
-      <a href="index.html?v=navy-13">Return to title</a>
-    </footer>
   </body>
 </html>
