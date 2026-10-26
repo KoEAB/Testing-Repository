@@ -50,8 +50,8 @@
     ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
   ].map(([code, details]) => [code, { code, ...details }]));
   const shipTypes = concealmentDemo ? [
-    ["uss-fletcher", "friendly", 17, 24], ["uss-new-orleans", "friendly", 19, 24], ["uss-north-carolina", "friendly", 21, 24],
-    ["uss-fletcher", "enemy", 38, 30], ["uss-new-orleans", "enemy", 43, 27], ["uss-north-carolina", "enemy", 35, 30]
+    ["uss-fletcher", "friendly", 17, 24], ["uss-new-orleans", "friendly", 15, 25], ["uss-north-carolina", "friendly", 14, 18],
+    ["uss-fletcher", "enemy", 38, 30], ["uss-new-orleans", "enemy", 43, 27], ["uss-north-carolina", "enemy", 34, 27]
   ].map(([key, team, column, row], index) => createUnitState({ ...unitTemplates.get(key), column, row }, `${team}-${key}-${index}`, team)) : [];
   let unitSequence = shipTypes.length;
 
