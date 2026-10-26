@@ -17,14 +17,17 @@
     const link = document.createElement("a");
     link.className = `character-card${character.placeholder ? " empty-card" : ""}`;
     link.dataset.characterId = character.id;
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-6`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-7`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
       "--delay",
       `${(index % 8) * 45 + Math.floor(index / 8) * 70}ms`
     );
-    link.setAttribute("aria-label", `Open the fleet record for ${character.name}, ${character.role}`);
+    link.setAttribute(
+      "aria-label",
+      `Open the fleet record for ${character.name}, ${character.shipClass} class, ${character.shipType}, hull number ${character.hullNumber}`
+    );
 
     link.innerHTML = `
       <div class="portrait-placeholder${character.defaultImage ? " has-art" : ""}">
@@ -45,7 +48,11 @@
       <div class="card-content">
         <div>
           <h2>${character.name}</h2>
-          <p>${character.role}</p>
+          <dl class="card-specs">
+            <div><dt>Class</dt><dd>${character.shipClass}</dd></div>
+            <div><dt>Type</dt><dd>${character.shipType}</dd></div>
+            <div><dt>Hull number</dt><dd>${character.hullNumber}</dd></div>
+          </dl>
         </div>
         <span class="card-arrow" aria-hidden="true">↗</span>
       </div>
@@ -63,7 +70,7 @@
       : "切换副图";
 
     roster.querySelectorAll(".character-card").forEach((link) => {
-      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-6`;
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-7`;
     });
   });
 })();

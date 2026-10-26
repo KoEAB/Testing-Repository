@@ -375,13 +375,41 @@ p {
   line-height: 1.08;
 }
 
-.card-content p {
-  margin-bottom: 0;
-  color: var(--muted);
+.card-specs {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.card-specs div {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.card-specs dt,
+.card-specs dd {
+  overflow: hidden;
+  margin: 0;
+  font-family: var(--sans);
   font-size: 7px;
-  letter-spacing: 0.1em;
-  line-height: 1.5;
+  line-height: 1.45;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.card-specs dt {
+  color: var(--faint);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.card-specs dd {
+  color: var(--muted);
+  letter-spacing: 0.06em;
 }
 
 .character-card .card-portrait-number {
@@ -396,7 +424,7 @@ p {
   letter-spacing: 0.08em;
 }
 
-.empty-card .card-content p {
+.empty-card .card-specs dd {
   color: var(--faint);
 }
 
