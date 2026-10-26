@@ -47,7 +47,7 @@
     ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
     ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
     ["AR", { label: "Repair ship", group: "support" }],
-    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, shellCount: 9, alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
+    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, shellCount: 9, salvoPattern: [3, 3, 3], alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
     ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
     ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
   ].map(([code, details]) => [code, { code, ...details }]));
@@ -943,16 +943,26 @@
     const to = cellCenter(target.column, target.row);
     const incomingBearing = Math.atan2(from.y - to.y, from.x - to.x) * 180 / Math.PI;
     const relativeAngle = ((incomingBearing - target.heading) % 360 + 540) % 360 - 180;
-    const broadside = Math.sin(relativeAngle * Math.PI / 180) ** 2;
+    const aspectRadians = Math.abs(relativeAngle) * Math.PI / 180;
+    const broadside = Math.sin(aspectRadians) ** 2;
+    const bowQuarter = Math.max(0, Math.sin(2 * aspectRadians));
+    const sternQuarter = Math.max(0, -Math.sin(2 * aspectRadians));
     const sizeAdvantage = Math.max(0, (SIZE_RANK[attacker.code] || 3) - (SIZE_RANK[target.code] || 3));
     const sizeDisadvantage = Math.max(0, (SIZE_RANK[target.code] || 3) - (SIZE_RANK[attacker.code] || 3));
     const distance = hexDistance(attacker, target);
-    const missChance = attacker.accuracyProfile === "north-carolina"
+    const rangeMissChance = attacker.accuracyProfile === "north-carolina"
       ? northCarolinaMissChance(attacker, target, distance)
       : Math.min(0.4, Math.max(0.12, 0.17 + 0.18 * distance / attacker.gunRange - 0.02 * ((SIZE_RANK[target.code] || 3) - 3)));
-    const ricochetChance = broadside >= 0.98 ? 0 : Math.max(0.03, 0.32 - 0.075 * sizeAdvantage) * (1 - broadside);
+    const missChance = Math.min(attacker.accuracyProfile === "north-carolina" && distance <= attacker.concealmentRange ? 0.33 : 0.95,
+      rangeMissChance + 0.09 * sternQuarter);
+    const ricochetChance = broadside >= 0.98 ? 0 : Math.min(0.55,
+      Math.max(0.03, 0.32 - 0.075 * sizeAdvantage) * (1 - broadside) +
+      0.13 * bowQuarter * Math.max(0.35, 1 - 0.18 * sizeAdvantage));
     const nonPenChance = Math.min(0.26, 0.08 + 0.1 * (1 - broadside) + 0.025 * sizeDisadvantage);
-    const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 : 0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside);
+    const closeRangeProgress = Math.max(0, (attacker.concealmentRange / 2 - distance) / Math.max(1, attacker.concealmentRange / 2));
+    const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 :
+      0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside) +
+      closeRangeProgress * (0.1 * broadside + 0.025 * sizeAdvantage * (1 - broadside));
     const overPenChance = Math.min(0.28, 0.15 + 0.04 * sizeAdvantage);
     const shells = Array.from({ length: attacker.shellCount }, () => {
       if (Math.random() < missChance) return { outcome: "miss", damage: 0 };
@@ -998,24 +1008,36 @@
       totalDamage: 0, damageDealt: 0
     };
     shipType.lastSalvo = salvo;
-    const flash = createEffect("muzzle-flash", origin);
-    flash.animate([
-      { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
-      { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
-      { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
-    ], { duration: 420, easing: "ease-out" }).finished.finally(() => flash.remove());
-
-    const shots = Array.from({ length: shipType.shellCount }, (_, index) => (async () => {
-      await wait(index * 65);
-      const shell = createEffect("volley-shell", origin);
-      shell.style.marginTop = `${(index - (shipType.shellCount - 1) / 2) * 3}px`;
-      const animation = shell.animate([
-        { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
-        { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
-      ], { duration: 520, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
-      await animation.finished;
-      shell.remove();
-    })());
+    const groups = shipType.salvoPattern || [shipType.shellCount];
+    const shots = [];
+    groups.forEach((groupSize, groupIndex) => {
+      const groupStart = shipType.salvoPattern ? groupIndex * 700 : 0;
+      shots.push((async () => {
+        await wait(groupStart);
+        const flash = createEffect("muzzle-flash", origin);
+        await flash.animate([
+          { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
+          { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
+          { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
+        ], { duration: 420, easing: "ease-out" }).finished;
+        flash.remove();
+      })());
+      for (let index = 0; index < groupSize; index += 1) {
+        const launchDelay = groupStart + index * (shipType.salvoPattern ? 45 : 65);
+        const offset = (index - (groupSize - 1) / 2) * 5;
+        shots.push((async () => {
+          await wait(launchDelay);
+          const shell = createEffect("volley-shell", origin);
+          shell.style.marginTop = `${offset}px`;
+          const animation = shell.animate([
+            { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
+            { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
+          ], { duration: 520, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
+          await animation.finished;
+          shell.remove();
+        })());
+      }
+    });
     await Promise.all(shots);
 
     const hit = salvo.shells.some((shell) => shell.outcome !== "miss");
