@@ -1,42 +1,44 @@
 (function () {
   "use strict";
 
-  const COLUMNS = 16;
-  const ROWS = 9;
+  const COLUMNS = 20;
+  const ROWS = 12;
   const HEX_WIDTH = 128;
   const HEX_HEIGHT = 112;
   const COLUMN_STEP = 96;
   const MAP_WIDTH = (COLUMNS - 1) * COLUMN_STEP + HEX_WIDTH;
   const MAP_HEIGHT = ROWS * HEX_HEIGHT + HEX_HEIGHT / 2;
-  const MIN_SCALE = 0.6;
-  const MAX_SCALE = 2;
-  const SCALE_STEP = 0.2;
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 2.2;
+  const SCALE_STEP = 0.1;
+  const UNIT_LINE_Y = HEX_HEIGHT * 6;
 
   const shipTypes = [
-    { code: "SS", label: "Submarine", column: 3, row: 0, group: "submarine" },
-    { code: "SSV", label: "Aviation submarine", column: 4, row: 1, group: "submarine" },
-    { code: "DD", label: "Destroyer", column: 8, row: 0, group: "escort" },
-    { code: "DE", label: "Destroyer escort", column: 10, row: 1, group: "escort" },
-    { code: "CL", label: "Light cruiser", column: 2, row: 3, group: "cruiser" },
-    { code: "CA", label: "Heavy cruiser", column: 3, row: 4, group: "cruiser" },
-    { code: "CB", label: "Large cruiser", column: 9, row: 3, group: "capital" },
-    { code: "BC", label: "Battlecruiser", column: 11, row: 4, group: "capital" },
-    { code: "BB", label: "Battleship", column: 4, row: 6, group: "capital" },
-    { code: "BBV", label: "Aviation battleship", column: 8, row: 6, group: "capital" },
-    { code: "CV", label: "Aircraft carrier", column: 13, row: 4, group: "aviation" },
-    { code: "CVL", label: "Light aircraft carrier", column: 12, row: 5, group: "aviation" },
-    { code: "CVE", label: "Escort aircraft carrier", column: 14, row: 6, group: "aviation" },
-    { code: "BM", label: "Monitor", column: 3, row: 7, group: "coastal" },
-    { code: "AR", label: "Repair ship", column: 7, row: 7, group: "support" },
-    { code: "AE", label: "Ammunition ship", column: 9, row: 8, group: "support" }
+    { code: "SS", label: "Submarine", column: 2, row: 5, group: "submarine" },
+    { code: "SSV", label: "Aviation submarine", column: 3, row: 5, group: "submarine" },
+    { code: "DD", label: "Destroyer", column: 4, row: 5, group: "escort" },
+    { code: "DE", label: "Destroyer escort", column: 5, row: 5, group: "escort" },
+    { code: "CL", label: "Light cruiser", column: 6, row: 5, group: "cruiser" },
+    { code: "CA", label: "Heavy cruiser", column: 7, row: 5, group: "cruiser" },
+    { code: "CB", label: "Large cruiser", column: 8, row: 5, group: "cruiser" },
+    { code: "BC", label: "Battlecruiser", column: 9, row: 5, group: "capital" },
+    { code: "BB", label: "Battleship", column: 10, row: 5, group: "capital" },
+    { code: "BBV", label: "Aviation battleship", column: 11, row: 5, group: "capital" },
+    { code: "CV", label: "Aircraft carrier", column: 12, row: 5, group: "aviation" },
+    { code: "CVL", label: "Light aircraft carrier", column: 13, row: 5, group: "aviation" },
+    { code: "CVE", label: "Escort aircraft carrier", column: 14, row: 5, group: "aviation" },
+    { code: "BM", label: "Monitor", column: 15, row: 5, group: "coastal" },
+    { code: "AR", label: "Repair ship", column: 16, row: 5, group: "support" }
   ];
 
   const landCells = new Set([
-    "0,0", "0,1", "0,2", "1,0", "1,1", "1,2", "2,0", "2,1",
-    "5,3", "5,4", "6,3", "6,4", "6,5", "7,4", "7,5",
-    "12,0", "12,1", "13,0", "13,1", "14,0", "14,1", "14,2", "15,0", "15,1", "15,2",
-    "0,7", "0,8", "1,7", "1,8", "2,8",
-    "10,7", "10,8", "11,7", "11,8", "12,7", "12,8", "13,8"
+    "0,0", "0,1", "0,2", "0,3", "1,0", "1,1", "1,2", "1,3", "2,0", "2,1", "3,0",
+    "6,1", "6,2", "7,1", "7,2", "7,3", "8,2", "8,3", "9,2",
+    "16,0", "16,1", "17,0", "17,1", "17,2", "18,0", "18,1", "18,2", "18,3", "19,0", "19,1", "19,2", "19,3",
+    "0,8", "0,9", "0,10", "0,11", "1,9", "1,10", "1,11", "2,10", "2,11", "3,11",
+    "5,8", "5,9", "6,8", "6,9", "6,10", "7,9", "7,10",
+    "11,8", "11,9", "12,7", "12,8", "12,9", "13,8", "13,9", "13,10",
+    "17,8", "17,9", "18,8", "18,9", "18,10", "18,11", "19,8", "19,9", "19,10", "19,11"
   ]);
 
   const groupColors = {
@@ -61,26 +63,32 @@
   let dragState = null;
 
   function renderIcon(code) {
+    const submarine = '<polygon points="5,18 18,13 69,13 92,24 69,35 18,35 5,30 0,24"/><rect x="39" y="9" width="18" height="30" rx="4"/>';
+    const destroyer = '<polygon points="8,8 91,24 8,40"/>';
+    const cruiser = '<polygon points="8,8 43,8 28,40 8,40"/><polygon points="51,8 66,8 91,24 66,40 38,40"/>';
+    const battleship = '<polygon points="8,8 37,8 22,40 8,40"/><polygon points="45,8 58,8 42,40 28,40"/><polygon points="67,8 91,24 67,40 49,40"/>';
+    const carrier = '<rect x="8" y="8" width="47" height="14"/><rect x="8" y="27" width="47" height="13"/><polygon points="61,8 73,8 92,24 73,40 61,40"/>';
+    const monitor = '<polygon points="7,14 21,8 68,8 92,24 68,40 21,40 7,34"/><rect x="27" y="16" width="26" height="16" rx="8"/>';
+    const repairShip = '<rect x="7" y="8" width="30" height="14"/><rect x="7" y="27" width="30" height="13"/><polygon points="43,8 66,8 92,24 66,40 43,40 52,24"/>';
     const shapes = {
-      SS: '<path d="M7 22h42l8-5-8-5H20l-7 4H7z"/><path d="M29 12V8h7v4M34 8V5"/>',
-      SSV: '<path d="M6 23h43l9-5-9-5H18l-7 4H6z"/><path d="M27 13V8h9v5M31 8l-9-4h25l-10 4"/>',
-      DD: '<path d="M4 25h49l8-7H15L8 21H4z"/><path d="M21 18v-6h8v6M37 18v-9h7v9M48 18v-5h6v5"/>',
-      DE: '<path d="M8 25h42l8-6H18l-6 3H8z"/><path d="M24 19v-6h7v6M38 19v-7h6v7"/>',
-      CL: '<path d="M3 26h53l6-7H12l-6 4H3z"/><circle cx="20" cy="17" r="4"/><circle cx="45" cy="17" r="4"/><path d="M28 19V9h9v10M32 9V5"/>',
-      CA: '<path d="M2 27h55l6-8H10l-6 4H2z"/><path d="M14 19l5-6 5 6M43 19l5-6 5 6M28 19V7h10v12M33 7V3"/>',
-      CB: '<path d="M1 28h57l5-9H8l-6 5H1z"/><path d="M11 19l6-7 6 7M45 19l6-7 6 7M26 19V6h13v13M31 6V2h4v4"/>',
-      BC: '<path d="M1 28h58l4-9H7l-6 5z"/><path d="M9 19l7-8 7 8M45 19l7-8 7 8M25 19V5h15v14M31 5V1h4v4"/>',
-      BB: '<path d="M1 29h58l4-10H7l-6 5z"/><path d="M8 19l7-9 8 9M42 19l8-9 8 9M24 19V5h17v14M29 5V1h7v4"/><path d="M12 10h6M47 10h6"/>',
-      BBV: '<path d="M1 29h58l4-10H7l-6 5z"/><path d="M8 19l7-9 8 9M24 19V5h11v14M29 5V1"/><path d="M37 9h22v7H37zM40 12h15"/>',
-      CV: '<path d="M3 8h51l8 10-8 10H3L1 18z"/><path d="M10 18h43M16 13l30 10M48 8v7h8"/>',
-      CVL: '<path d="M7 9h45l7 9-7 9H7L4 18z"/><path d="M12 18h37M18 13l25 10M46 9v7h7"/>',
-      CVE: '<path d="M9 10h41l7 8-7 8H9l-4-8z"/><path d="M13 18h34M19 14l22 8M44 10v6h7"/>',
-      BM: '<path d="M8 27h43l6-8H5z"/><circle cx="31" cy="17" r="10"/><path d="M24 17h14M31 7V3"/>',
-      AR: '<path d="M5 27h50l6-8H10z"/><path d="M25 19V8h14v11M32 10v7M28.5 13.5h7"/>',
-      AE: '<path d="M5 27h50l6-8H10z"/><path d="M32 6l10 10-10 10-10-10zM32 10v12M26 16h12"/>'
+      SS: submarine,
+      SSV: submarine,
+      DD: destroyer,
+      DE: destroyer,
+      CL: cruiser,
+      CA: cruiser,
+      CB: cruiser,
+      BC: battleship,
+      BB: battleship,
+      BBV: battleship,
+      CV: carrier,
+      CVL: carrier,
+      CVE: carrier,
+      BM: monitor,
+      AR: repairShip
     };
 
-    return `<svg viewBox="0 0 64 34" aria-hidden="true" focusable="false">${shapes[code]}</svg>`;
+    return `<svg viewBox="0 0 96 48" aria-hidden="true" focusable="false">${shapes[code]}</svg>`;
   }
 
   function renderMap() {
@@ -108,7 +116,7 @@
       marker.dataset.shipType = shipType.code;
       marker.style.setProperty("--unit-color", groupColors[shipType.group]);
       marker.style.left = `${shipType.column * COLUMN_STEP + HEX_WIDTH / 2}px`;
-      marker.style.top = `${shipType.row * HEX_HEIGHT + (shipType.column % 2 ? HEX_HEIGHT / 2 : 0) + HEX_HEIGHT / 2}px`;
+      marker.style.top = `${UNIT_LINE_Y}px`;
       marker.setAttribute("aria-label", `${shipType.code}: ${shipType.label}`);
       marker.innerHTML = `<span class="map-unit-icon">${renderIcon(shipType.code)}</span><span class="map-unit-code">${shipType.code}</span>`;
       marker.addEventListener("click", () => selectUnit(marker, shipType));
@@ -166,7 +174,6 @@
   zoomReset.addEventListener("click", resetView);
 
   viewport.addEventListener("wheel", (event) => {
-    if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
     setScale(scale + (event.deltaY < 0 ? SCALE_STEP : -SCALE_STEP));
   }, { passive: false });

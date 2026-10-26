@@ -1732,7 +1732,8 @@ p {
 
 /* Tactical hex map */
 .combat-map-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background:
     linear-gradient(rgba(132, 174, 207, 0.025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(132, 174, 207, 0.025) 1px, transparent 1px),
@@ -1742,25 +1743,55 @@ p {
 }
 
 .combat-map-shell {
-  position: relative;
+  position: fixed;
   z-index: 1;
-  width: min(1720px, calc(100% - 64px));
-  margin: 0 auto;
-  padding: 54px 0 74px;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.combat-map-header {
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  right: 32px;
+  left: 32px;
+  width: auto;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  background: linear-gradient(180deg, rgba(3, 13, 23, 0.96), rgba(3, 13, 23, 0));
+}
+
+.combat-map-page .site-footer {
+  display: none;
 }
 
 .combat-map-heading {
+  position: absolute;
+  z-index: 12;
+  top: 100px;
+  right: 32px;
+  left: 32px;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 40px;
-  margin-bottom: 34px;
+  pointer-events: none;
+}
+
+.combat-map-heading > div:first-child {
+  max-width: 640px;
+  padding: 18px 20px;
+  border: 1px solid rgba(154, 183, 207, 0.24);
+  background: rgba(3, 13, 23, 0.84);
+  backdrop-filter: blur(8px);
 }
 
 .combat-map-heading h1 {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-family: var(--serif);
-  font-size: clamp(56px, 7vw, 98px);
+  font-size: clamp(42px, 5vw, 66px);
   font-weight: 400;
   letter-spacing: -0.045em;
   line-height: 0.94;
@@ -1778,6 +1809,7 @@ p {
   display: flex;
   align-items: stretch;
   flex: 0 0 auto;
+  pointer-events: auto;
 }
 
 .map-controls button,
@@ -1838,8 +1870,10 @@ p {
 }
 
 .tactical-board {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  border: 1px solid rgba(154, 183, 207, 0.28);
+  border: 0;
   background: rgba(3, 13, 23, 0.94);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
 }
@@ -1857,10 +1891,17 @@ p {
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
+  backdrop-filter: blur(8px);
 }
 
 .map-status-strip {
-  border-bottom: 1px solid var(--line);
+  position: absolute;
+  z-index: 12;
+  bottom: 28px;
+  left: 32px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: rgba(3, 13, 23, 0.88);
 }
 
 .map-status-strip > span {
@@ -1875,7 +1916,8 @@ p {
 
 .hex-map-viewport {
   position: relative;
-  height: clamp(540px, 66vh, 720px);
+  width: 100%;
+  height: 100%;
   overflow: auto;
   background:
     radial-gradient(circle at center, rgba(35, 85, 111, 0.14), transparent 62%),
@@ -2021,13 +2063,11 @@ p {
 }
 
 .map-unit-icon svg path,
+.map-unit-icon svg polygon,
+.map-unit-icon svg rect,
 .map-unit-icon svg circle {
-  fill: rgba(4, 20, 32, 0.78);
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
+  fill: var(--ink);
+  stroke: none;
 }
 
 .map-unit-code {
@@ -2037,7 +2077,13 @@ p {
 }
 
 .map-footer-strip {
-  border-top: 1px solid var(--line);
+  position: absolute;
+  z-index: 12;
+  right: 32px;
+  bottom: 28px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: rgba(3, 13, 23, 0.88);
   color: var(--faint);
 }
 
@@ -2081,8 +2127,7 @@ p {
   }
 
   .lobby-shell,
-  .section-shell,
-  .combat-map-shell {
+  .section-shell {
     width: min(100% - 40px, 640px);
   }
 
@@ -2156,19 +2201,41 @@ p {
   }
 
   .combat-map-shell {
-    padding-top: 36px;
+    width: 100%;
+    padding: 0;
+  }
+
+  .combat-map-header {
+    right: 16px;
+    left: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
   }
 
   .combat-map-heading {
+    top: 82px;
+    right: 14px;
+    left: 14px;
     display: block;
   }
 
+  .combat-map-heading > div:first-child {
+    max-width: 390px;
+    padding: 13px 15px;
+  }
+
+  .combat-map-heading .eyebrow,
+  .combat-map-heading > div:first-child > p:last-child {
+    display: none;
+  }
+
   .combat-map-heading h1 {
-    font-size: 58px;
+    margin: 0;
+    font-size: 40px;
   }
 
   .map-controls {
-    margin-top: 28px;
+    margin-top: 10px;
   }
 
   .map-controls .map-reset {
@@ -2176,17 +2243,28 @@ p {
   }
 
   .hex-map-viewport {
-    height: 560px;
+    width: 100%;
+    height: 100%;
   }
 
   .map-status-strip,
   .map-footer-strip {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 9px;
+    right: 14px;
+    left: 14px;
+    min-height: 40px;
+    padding: 10px 12px;
   }
 
-  .map-footer-strip > span:last-child {
+  .map-status-strip {
+    bottom: 66px;
+  }
+
+  .map-footer-strip {
+    bottom: 14px;
+  }
+
+  .map-footer-strip > span:first-of-type,
+  .terrain-legend {
     display: none;
   }
 }

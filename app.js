@@ -16,8 +16,7 @@
     { value: "CVL", label: "Light aircraft carrier" },
     { value: "CVE", label: "Escort aircraft carrier" },
     { value: "BM", label: "Monitor" },
-    { value: "AR", label: "Repair ship" },
-    { value: "AE", label: "Ammunition ship" }
+    { value: "AR", label: "Repair ship" }
   ];
   const RARITIES = ["C", "U", "R", "SR", "SSR", "UR"];
 
@@ -54,7 +53,7 @@
     link.dataset.characterId = character.id;
     link.dataset.shipType = character.typeCode || "";
     link.dataset.rarity = character.rarity || "";
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-11`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-12`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
@@ -222,7 +221,7 @@
       : "切换副图";
 
     roster.querySelectorAll(".character-card").forEach((link) => {
-      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-11`;
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-12`;
     });
   });
 })();
