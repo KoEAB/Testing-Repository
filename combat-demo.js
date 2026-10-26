@@ -161,7 +161,8 @@
   concealmentOutline.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
   concealmentOutline.setAttribute("class", "concealment-outline");
   concealmentOutline.innerHTML = '<polygon fill="none" stroke="white" stroke-width="3" stroke-dasharray="12 9" />';
-  concealmentOutline.hidden = true;
+  concealmentOutline.setAttribute("hidden", "");
+  concealmentOutline.style.display = "none";
   let scale = 1;
   let dragState = null;
   let ignoreNextTileClick = false;
@@ -317,7 +318,8 @@
 
   function updateConcealmentOutline(ship) {
     if (!ship || ship.health <= 0) {
-      concealmentOutline.hidden = true;
+      concealmentOutline.setAttribute("hidden", "");
+      concealmentOutline.style.display = "none";
       return;
     }
     const { x, y } = cellCenter(ship.column, ship.row);
@@ -328,7 +330,8 @@
       [x, y - vertical], [x + horizontal, y - vertical / 2], [x + horizontal, y + vertical / 2],
       [x, y + vertical], [x - horizontal, y + vertical / 2], [x - horizontal, y - vertical / 2]
     ].map((point) => point.join(",")).join(" "));
-    concealmentOutline.hidden = false;
+    concealmentOutline.removeAttribute("hidden");
+    concealmentOutline.style.display = "";
   }
 
   function updateDetection() {
