@@ -352,10 +352,8 @@ p {
 }
 
 .card-content {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: start;
+  position: relative;
+  display: block;
   min-height: 92px;
   padding: 15px 13px 17px;
 }
@@ -368,6 +366,7 @@ p {
 }
 
 .card-content h2 {
+  padding-right: 18px;
   margin-bottom: 6px;
   font-family: var(--serif);
   font-size: clamp(16px, 1.35vw, 21px);
@@ -429,6 +428,9 @@ p {
 }
 
 .card-arrow {
+  position: absolute;
+  top: 15px;
+  right: 13px;
   color: var(--faint);
   transition:
     color 180ms ease,
