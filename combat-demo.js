@@ -855,8 +855,8 @@
   }
 
   function targetIsFriendly(key, attacker) {
-    const target = unitAt(key, attacker?.id);
-    return Boolean(target && attacker && target.team === attacker.team);
+    return Boolean(attacker && shipTypes.some((target) => target.id !== attacker.id && target.health > 0 &&
+      target.team === attacker.team && cellKey(target.column, target.row) === key));
   }
 
   function applyDamage(target, amount, attacker) {
@@ -876,6 +876,7 @@
   }
 
   async function animateVolley(shipType, targetKey) {
+    if (targetIsFriendly(targetKey, shipType)) return;
     const origin = cellCenter(shipType.column, shipType.row);
     const target = parseCellKey(targetKey);
     const destination = cellCenter(target.column, target.row);
@@ -945,6 +946,7 @@
   }
 
   async function animateTorpedoAttack(shipType, targetKey) {
+    if (targetIsFriendly(targetKey, shipType)) return;
     const origin = cellCenter(shipType.column, shipType.row);
     const targetCell = parseCellKey(targetKey);
     const destination = cellCenter(targetCell.column, targetCell.row);
@@ -1012,6 +1014,8 @@
     }
     if (placementOrder) {
       placeUnit(key);
+    } else if ((mode === "attack" || mode === "torpedo") && selectedUnit && targetIsFriendly(key, selectedUnit)) {
+      return;
     } else if (mode === "attack" && attackCells.has(key)) {
       fireVolley(key);
     } else if (mode === "torpedo" && attackCells.has(key)) {
