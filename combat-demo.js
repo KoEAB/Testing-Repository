@@ -17,6 +17,14 @@
   const TURN_DURATION = 260;
   const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
   const TORPEDO_CODES = new Set(["SS", "SSV", "DD", "DE"]);
+  const WRECK_CLASSIFICATION = {
+    SS: "Subs", SSV: "Subs",
+    DD: "Light", DE: "Light",
+    CL: "Med", CA: "Med", AR: "Med", BM: "Med", CVE: "Med", CVL: "Med",
+    BB: "Heavy", CB: "Heavy", BBV: "Heavy", CV: "Heavy",
+    BC: "Heavy"
+  };
+  const WRECK_TURNS = { Subs: 0, Light: 1, Med: 2, Heavy: 3 };
   const UNIT_STATS = {
     SS: { health: 70, torpedo: 110 }, SSV: { health: 80, torpedo: 100 },
     DD: { health: 100, gun: 35, torpedo: 85 }, DE: { health: 110, gun: 30, torpedo: 75 },
@@ -67,6 +75,9 @@
       torpedoDamage: stats.torpedo || 0,
       angleWhenFiring: null,
       broadsideWhenFiring: null,
+      sunkTurn: null,
+      wreckClassification: null,
+      wreckTurnsRemaining: null,
       actions: actionLayout(ship.code)
     };
   }
@@ -247,22 +258,49 @@
     if (!marker) return;
     const healthPercent = Math.max(0, shipType.health / shipType.maxHealth * 100);
     marker.querySelector(".unit-health i").style.width = `${healthPercent}%`;
-    marker.classList.toggle("is-destroyed", shipType.health <= 0);
+    const isSunk = shipType.health <= 0;
+    const isDeathMarker = isSunk && shipType.wreckTurnsRemaining === 0;
+    marker.classList.toggle("is-destroyed", isSunk);
+    marker.classList.toggle("is-wreck", isSunk && !isDeathMarker);
+    marker.classList.toggle("is-death-marker", isDeathMarker);
+    marker.querySelector(".unit-health").hidden = isSunk;
+    marker.querySelector(".unit-actions").hidden = isSunk;
+    if (isDeathMarker) marker.setAttribute("aria-label", `${shipType.team} death marker: ${shipType.label}, sunk at ${coordinateLabel(shipType.column, shipType.row)}`);
+    else if (isSunk) marker.setAttribute("aria-label", `${shipType.team} wreck: ${shipType.label}, sunk at ${coordinateLabel(shipType.column, shipType.row)}`);
+    else marker.setAttribute("aria-label", `${shipType.team} ${shipType.code}: ${shipType.label}, ${shipType.health} of ${shipType.maxHealth} health`);
     marker.querySelectorAll(".unit-actions i").forEach((segment) => {
       segment.classList.toggle("is-used", actionIsUsed(shipType, segment.dataset.action));
     });
-    marker.setAttribute("aria-label", `${shipType.team} ${shipType.code}: ${shipType.label}, ${shipType.health} of ${shipType.maxHealth} health`);
+    refreshDeathMarkerVisibility();
+  }
+
+  function refreshDeathMarkerVisibility() {
+    shipTypes.forEach((ship) => {
+      if (ship.health > 0 || ship.wreckTurnsRemaining !== 0) return;
+      const marker = unitElements.get(ship.id);
+      if (!marker) return;
+      const occupiedByLivingUnit = shipTypes.some((other) => other.health > 0 && cellKey(other.column, other.row) === cellKey(ship.column, ship.row));
+      marker.classList.toggle("is-obscured", occupiedByLivingUnit);
+    });
   }
 
   function renderDeveloperLists() {
     developerUnitLists.innerHTML = ["friendly", "enemy"].map((team) => {
-      const units = shipTypes.filter((ship) => ship.team === team);
+      const units = shipTypes.filter((ship) => ship.team === team && ship.health > 0);
+      const sunkUnits = shipTypes.filter((ship) => ship.team === team && ship.health <= 0);
       const rows = units.length ? units.map((ship) => `
         <div class="developer-unit-row">
           <span><strong>${ship.code}</strong>${coordinateLabel(ship.column, ship.row)} · ${ship.health}/${ship.maxHealth}</span>
           <button type="button" data-delete-unit="${ship.id}" aria-label="Delete ${ship.code}">×</button>
         </div>`).join("") : `<p class="developer-empty">No ${team} units</p>`;
-      return `<section><h3>${team}</h3>${rows}</section>`;
+      const sunkRows = sunkUnits.map((ship) => {
+        const status = ship.wreckTurnsRemaining > 0 ? `Wreck · ${ship.wreckTurnsRemaining} turn${ship.wreckTurnsRemaining === 1 ? "" : "s"}` : "Death marker";
+        return `<div class="developer-unit-row developer-sunk-row">
+          <button type="button" class="developer-sunk-select" data-inspect-sunk="${ship.id}"><strong>${ship.code}</strong>${coordinateLabel(ship.column, ship.row)} · ${status}</button>
+          <button type="button" data-delete-unit="${ship.id}" aria-label="Remove ${ship.code} record">×</button>
+        </div>`;
+      }).join("");
+      return `<section><h3>${team}</h3>${rows}${sunkRows ? `<h3 class="developer-sunk-heading">Sunk</h3>${sunkRows}` : ""}</section>`;
     }).join("");
   }
 
@@ -308,6 +346,7 @@
     unitElements.get(id)?.remove();
     unitElements.delete(id);
     shipTypes.splice(index, 1);
+    refreshDeathMarkerVisibility();
     renderDeveloperLists();
     if (placementOrder) showPlacementArea();
     else if (selectedUnit && mode === "move") showMovementArea(selectedUnit);
@@ -333,7 +372,7 @@
   }
 
   function occupiedCells(exceptId) {
-    return new Set(shipTypes.filter((ship) => ship.id !== exceptId).map((ship) => cellKey(ship.column, ship.row)));
+    return new Set(shipTypes.filter((ship) => ship.id !== exceptId && ship.health > 0).map((ship) => cellKey(ship.column, ship.row)));
   }
 
   function calculateReachable(shipType) {
@@ -499,7 +538,11 @@
 
   function handleUnitClick(event, marker, shipType) {
     event.stopPropagation();
-    if (isAnimating || shipType.health <= 0) return;
+    if (isAnimating) return;
+    if (shipType.health <= 0) {
+      if (marker.classList.contains("is-death-marker")) showSunkDetails(shipType);
+      return;
+    }
     const key = cellKey(shipType.column, shipType.row);
     if ((mode === "attack" || mode === "torpedo") && selectedUnit && selectedUnit.id !== shipType.id && attackCells.has(key)) {
       if (mode === "torpedo") fireTorpedoes(key);
@@ -523,6 +566,22 @@
     unitReadout.textContent = `${shipType.code} · ${shipType.label}`;
     showMovementArea(shipType);
     updateDetailPanel(shipType);
+  }
+
+  function showSunkDetails(shipType) {
+    deselectUnit();
+    const marker = unitElements.get(shipType.id);
+    marker?.classList.add("is-selected");
+    updateDetailPanel(shipType, `Sunk on turn ${shipType.sunkTurn}`);
+    detailMovement.textContent = "Sunk";
+    detailAttack.textContent = "Unavailable";
+    detailTorpedo.textContent = "Unavailable";
+    gunOrderButton.hidden = true;
+    torpedoOrderButton.hidden = true;
+    detailInstruction.textContent = shipType.wreckTurnsRemaining > 0
+      ? `Wreck remains for ${shipType.wreckTurnsRemaining} more turn${shipType.wreckTurnsRemaining === 1 ? "" : "s"}.`
+      : "Death marker · this ship was sunk here.";
+    unitReadout.textContent = `${shipType.team} ${shipType.code} · sunk at ${coordinateLabel(shipType.column, shipType.row)}`;
   }
 
   function beginAttackMode(event, marker, shipType) {
@@ -696,6 +755,7 @@
     shipType.row = targetCell.row;
     shipType.moved = true;
     refreshUnitDisplay(shipType);
+    refreshDeathMarkerVisibility();
     renderDeveloperLists();
     marker.classList.remove("is-moving");
     isAnimating = false;
@@ -715,12 +775,17 @@
   }
 
   function unitAt(key, exceptId) {
-    return shipTypes.find((ship) => ship.id !== exceptId && cellKey(ship.column, ship.row) === key);
+    return shipTypes.find((ship) => ship.id !== exceptId && ship.health > 0 && cellKey(ship.column, ship.row) === key);
   }
 
   function applyDamage(target, amount) {
-    if (!target || amount <= 0) return;
+    if (!target || target.health <= 0 || amount <= 0) return;
     target.health = Math.max(0, target.health - amount);
+    if (target.health === 0) {
+      target.sunkTurn = currentTurn;
+      target.wreckClassification = WRECK_CLASSIFICATION[target.code] || "Heavy";
+      target.wreckTurnsRemaining = WRECK_TURNS[target.wreckClassification];
+    }
     refreshUnitDisplay(target);
     renderDeveloperLists();
     if (selectedUnit?.id === target.id) {
@@ -868,10 +933,14 @@
   function advanceTurn() {
     if (isAnimating) return;
     shipTypes.forEach((ship) => {
-      ship.moved = false;
-      ship.attacked = false;
-      ship.torpedoed = false;
-      ship.airUsed = false;
+      if (ship.health > 0) {
+        ship.moved = false;
+        ship.attacked = false;
+        ship.torpedoed = false;
+        ship.airUsed = false;
+      } else if (ship.wreckTurnsRemaining > 0) {
+        ship.wreckTurnsRemaining -= 1;
+      }
       refreshUnitDisplay(ship);
     });
     renderDeveloperLists();
@@ -932,6 +1001,11 @@
   developerUnitLists.addEventListener("click", (event) => {
     const button = event.target.closest("[data-delete-unit]");
     if (button) deleteUnit(button.dataset.deleteUnit);
+    const sunkShip = event.target.closest("[data-inspect-sunk]");
+    if (sunkShip) {
+      const ship = shipTypes.find((entry) => entry.id === sunkShip.dataset.inspectSunk);
+      if (ship) showSunkDetails(ship);
+    }
   });
   viewport.addEventListener("contextmenu", (event) => event.preventDefault());
   viewport.addEventListener("wheel", (event) => {

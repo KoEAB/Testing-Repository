@@ -2093,6 +2093,27 @@ p {
 .developer-unit-row button:hover { color: #ef8377; }
 .developer-empty { color: var(--faint); font-size: 11px; }
 
+.developer-sunk-heading {
+  margin-top: 10px !important;
+  color: #aab3b9 !important;
+}
+
+.developer-unit-row .developer-sunk-select {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  height: 28px;
+  padding: 0;
+  color: var(--muted);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.developer-unit-row .developer-sunk-select:hover { color: var(--ink); }
+
 .map-status-strip,
 .map-footer-strip {
   display: flex;
@@ -2456,6 +2477,46 @@ p {
   filter: grayscale(1);
   opacity: 0.42;
 }
+
+.unit-health[hidden],
+.unit-actions[hidden] {
+  display: none;
+}
+
+.map-unit.is-wreck {
+  --unit-color: #aab3b4;
+  z-index: 4;
+  filter: none;
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.map-unit.team-enemy.is-wreck { --unit-color: #727d83; }
+.map-unit.is-wreck .map-unit-icon { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.75)); }
+
+.map-unit.is-death-marker {
+  --unit-color: #c1c7c5;
+  z-index: 3;
+  width: 64px;
+  height: 38px;
+  opacity: 0.82;
+}
+
+.map-unit.team-enemy.is-death-marker { --unit-color: #858d91; }
+
+.map-unit.is-death-marker .map-unit-icon svg path,
+.map-unit.is-death-marker .map-unit-icon svg polygon,
+.map-unit.is-death-marker .map-unit-icon svg rect,
+.map-unit.is-death-marker .map-unit-icon svg circle {
+  fill: var(--unit-color);
+  stroke: #03080c;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-unit.is-obscured { display: none; }
 
 .map-unit.is-moving {
   z-index: 8;
