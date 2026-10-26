@@ -1049,6 +1049,8 @@
       ignoreNextTileClick = false;
       return;
     }
+    const visibleEnemy = concealmentDemo ? shipTypes.find((ship) => ship.team === "enemy" && ship.health > 0 &&
+      cellKey(ship.column, ship.row) === key && !unitElements.get(ship.id)?.classList.contains("is-concealed-enemy")) : null;
     if (placementOrder) {
       placeUnit(key);
     } else if ((mode === "attack" || mode === "torpedo") && selectedUnit && targetIsFriendly(key, selectedUnit)) {
@@ -1059,6 +1061,9 @@
       fireTorpedoes(key);
     } else if (mode === "move" && reachableState?.distance.has(key)) {
       moveSelectedUnit(key);
+    } else if (visibleEnemy) {
+      if (inspectedEnemy?.id === visibleEnemy.id) deselectUnit();
+      else inspectEnemy(unitElements.get(visibleEnemy.id), visibleEnemy);
     } else if (selectedUnit && (mode === "move" || mode === "attack" || mode === "torpedo")) {
       deselectUnit();
     } else if (inspectedEnemy) {
