@@ -16,43 +16,37 @@
   const TORPEDO_RANGE = 4;
   const TURN_DURATION = 260;
   const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
-  const TORPEDO_CODES = new Set(["SS", "SSV", "DD"]);
+  const TORPEDO_CODES = new Set(["SS", "SSV", "DD", "DE"]);
   const UNIT_STATS = {
     SS: { health: 70, torpedo: 110 }, SSV: { health: 80, torpedo: 100 },
-    DD: { health: 100, gun: 35, torpedo: 85 }, DE: { health: 110, gun: 30 },
+    DD: { health: 100, gun: 35, torpedo: 85 }, DE: { health: 110, gun: 30, torpedo: 75 },
     CL: { health: 180, gun: 45 }, CA: { health: 240, gun: 60 }, CB: { health: 320, gun: 75 },
     BC: { health: 380, gun: 85 }, BB: { health: 450, gun: 100 }, BBV: { health: 430, gun: 95 },
     CV: { health: 360, gun: 20 }, CVL: { health: 280 }, CVE: { health: 220 },
     BM: { health: 200, gun: 55 }, AR: { health: 180 }
   };
 
-  const shipTypes = [
-    { code: "SS", label: "Submarine", column: 18, row: 24, group: "submarine" },
-    { code: "SSV", label: "Aviation submarine", column: 19, row: 24, group: "submarine" },
-    { code: "DD", label: "Destroyer", column: 20, row: 24, group: "escort" },
-    { code: "DE", label: "Destroyer escort", column: 21, row: 24, group: "escort" },
-    { code: "CL", label: "Light cruiser", column: 22, row: 24, group: "cruiser" },
-    { code: "CA", label: "Heavy cruiser", column: 23, row: 24, group: "cruiser" },
-    { code: "CB", label: "Large cruiser", column: 24, row: 24, group: "cruiser" },
-    { code: "BC", label: "Battlecruiser", column: 25, row: 24, group: "capital" },
-    { code: "BB", label: "Battleship", column: 26, row: 24, group: "capital" },
-    { code: "BBV", label: "Aviation battleship", column: 27, row: 24, group: "capital" },
-    { code: "CV", label: "Aircraft carrier", column: 28, row: 24, group: "aviation" },
-    { code: "CVL", label: "Light aircraft carrier", column: 29, row: 24, group: "aviation" },
-    { code: "CVE", label: "Escort aircraft carrier", column: 30, row: 24, group: "aviation" },
-    { code: "BM", label: "Monitor", column: 31, row: 24, group: "coastal" },
-    { code: "AR", label: "Repair ship", column: 32, row: 24, group: "support" }
-  ].map((ship) => createUnitState(ship, ship.code, "friendly"));
-
-  let unitSequence = shipTypes.length;
-  const unitTemplates = new Map(shipTypes.map(({ code, label, group }) => [code, { code, label, group }]));
+  const unitTemplates = new Map([
+    ["SS", { label: "Submarine", group: "submarine" }], ["SSV", { label: "Aviation submarine", group: "submarine" }],
+    ["DD", { label: "Destroyer", group: "escort" }], ["DE", { label: "Destroyer escort", group: "escort" }],
+    ["CL", { label: "Light cruiser", group: "cruiser" }], ["CA", { label: "Heavy cruiser", group: "cruiser" }],
+    ["CB", { label: "Large cruiser", group: "cruiser" }], ["BC", { label: "Battlecruiser", group: "capital" }],
+    ["BB", { label: "Battleship", group: "capital" }], ["BBV", { label: "Aviation battleship", group: "capital" }],
+    ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
+    ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
+    ["AR", { label: "Repair ship", group: "support" }]
+  ].map(([code, details]) => [code, { code, ...details }]));
+  const shipTypes = [];
+  let unitSequence = 0;
 
   function actionLayout(code) {
-    if (code === "DD") return ["move", "gun", "torpedo"];
-    if (code === "SS" || code === "SSV") return ["move", "torpedo"];
+    if (code === "DD" || code === "DE") return ["move", "gun", "torpedo"];
+    if (code === "SS") return ["move", "torpedo"];
+    if (code === "SSV") return ["move", "torpedo", "air"];
     if (code === "CV") return ["move", "gun", "air"];
     if (code === "CVL" || code === "CVE") return ["move", "air"];
-    if (["CL", "CA", "CB", "BC", "BB", "BBV", "BM", "DE"].includes(code)) return ["move", "gun"];
+    if (code === "BBV") return ["move", "gun", "air"];
+    if (["CL", "CA", "CB", "BC", "BB", "BM"].includes(code)) return ["move", "gun"];
     return ["move"];
   }
 
@@ -71,6 +65,8 @@
       maxHealth: stats.health,
       gunDamage: stats.gun || 0,
       torpedoDamage: stats.torpedo || 0,
+      angleWhenFiring: null,
+      broadsideWhenFiring: null,
       actions: actionLayout(ship.code)
     };
   }
@@ -469,7 +465,9 @@
   function setHeadingBetween(shipType, from, to, options = {}) {
     const marker = unitElements.get(shipType.id);
     let heading = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
-    if (options.broadside) heading += 90;
+    if (options.broadside === "right") heading -= 90;
+    else if (options.broadside === "left") heading += 90;
+    else if (options.broadside === true) heading += 90;
     const current = Number(marker.dataset.heading || shipType.heading || 0);
     while (heading - current > 180) heading -= 360;
     while (heading - current < -180) heading += 360;
@@ -531,6 +529,17 @@
     event.preventDefault();
     event.stopPropagation();
     if (isAnimating || shipType.health <= 0) return;
+    const hasBothWeapons = ATTACK_CODES.has(shipType.code) && TORPEDO_CODES.has(shipType.code);
+    if (selectedUnit?.id === shipType.id && hasBothWeapons) {
+      if (mode === "attack") {
+        activateTorpedoMode();
+        return;
+      }
+      if (mode === "torpedo") {
+        activateGunMode();
+        return;
+      }
+    }
     if (!ATTACK_CODES.has(shipType.code) && TORPEDO_CODES.has(shipType.code)) {
       selectUnit(marker, shipType);
       activateTorpedoMode();
@@ -763,7 +772,15 @@
     const shipType = selectedUnit;
     shipType.attacked = true;
     refreshUnitDisplay(shipType);
-    setMarkerHeading(shipType, parseCellKey(targetKey), { broadside: true, commit: true });
+    const target = parseCellKey(targetKey);
+    const from = cellCenter(shipType.column, shipType.row);
+    const to = cellCenter(target.column, target.row);
+    const targetBearing = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+    const angleDifference = targetBearing - shipType.heading;
+    const relativeAngle = ((angleDifference % 360) + 540) % 360 - 180;
+    shipType.angleWhenFiring = relativeAngle;
+    shipType.broadsideWhenFiring = relativeAngle >= 0 ? "right" : "left";
+    setMarkerHeading(shipType, target, { broadside: shipType.broadsideWhenFiring, commit: true });
     clearTacticalHighlights();
     markSelectedOrigin(shipType);
     updateDetailPanel(shipType, "Firing volley");
@@ -948,7 +965,7 @@
   viewport.addEventListener("pointercancel", stopDragging);
   window.addEventListener("resize", () => setScale(scale, false));
 
-  developerType.innerHTML = [...new Map(shipTypes.map((ship) => [ship.code, ship])).values()]
+  developerType.innerHTML = [...unitTemplates.values()]
     .map((ship) => `<option value="${ship.code}">${ship.code} · ${ship.label}</option>`)
     .join("");
   renderMap();
