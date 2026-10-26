@@ -9,8 +9,8 @@
   --gold: #d7b568;
   --character-accent: var(--gold);
   --character-rgb: 229, 185, 111;
-  --serif: Georgia, "Times New Roman", serif;
-  --sans: Inter, Avenir, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Times New Roman", "Liberation Serif", "DejaVu Serif", serif;
+  --sans: "Arial Narrow", "Liberation Sans", "Helvetica Neue", Arial, sans-serif;
 }
 
 * {
@@ -176,11 +176,6 @@ p {
   font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 0.96;
-}
-
-.selection-intro h1 em {
-  color: var(--gold);
-  font-weight: 400;
 }
 
 .intro-copy {
@@ -1019,10 +1014,8 @@ blockquote {
   text-transform: uppercase;
 }
 
-.login-content h1 em {
+.login-content h1 span {
   display: block;
-  color: var(--gold);
-  font-weight: 400;
 }
 
 .start-button {
@@ -1140,11 +1133,6 @@ blockquote {
   font-weight: 400;
   letter-spacing: -0.04em;
   line-height: 0.95;
-}
-
-.lobby-title-block h1 em {
-  color: var(--gold);
-  font-weight: 400;
 }
 
 .lobby-title-block > p:last-child {

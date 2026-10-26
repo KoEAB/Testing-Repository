@@ -16,7 +16,8 @@
   characters.forEach((character, index) => {
     const link = document.createElement("a");
     link.className = `character-card${character.placeholder ? " empty-card" : ""}`;
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&v=navy-5`;
+    link.dataset.characterId = character.id;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-6`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
@@ -26,8 +27,12 @@
     link.setAttribute("aria-label", `Open the fleet record for ${character.name}, ${character.role}`);
 
     link.innerHTML = `
-      <div class="portrait-placeholder${character.image ? " has-art" : ""}">
-        ${renderPortraitLayer(character.image, `${character.name} primary portrait`, "portrait-primary")}
+      <div class="portrait-placeholder${character.defaultImage ? " has-art" : ""}">
+        ${renderPortraitLayer(
+          character.defaultImage,
+          `${character.name} default portrait`,
+          "portrait-primary"
+        )}
         ${renderPortraitLayer(
           character.alternateImage,
           `${character.name} alternate portrait`,
@@ -51,9 +56,14 @@
 
   alternateToggle.addEventListener("click", () => {
     const isAlternate = document.body.classList.toggle("show-alternate-portraits");
+    const portraitMode = isAlternate ? "alternate" : "default";
     alternateToggle.setAttribute("aria-pressed", String(isAlternate));
     alternateToggle.querySelector(".toggle-label").textContent = isAlternate
       ? "返回主图"
       : "切换副图";
+
+    roster.querySelectorAll(".character-card").forEach((link) => {
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-6`;
+    });
   });
 })();

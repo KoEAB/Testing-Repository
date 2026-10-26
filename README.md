@@ -18,7 +18,7 @@ Then open `http://localhost:8000`.
 
 ## Add warship images
 
-The current transparent character artwork is stored in `images/warships/` and mapped to each ship through the `image` field in `data.js`. Both image frames use the artwork's native 3:4 ratio and `object-fit: contain`, so the supplied PNGs are never cropped.
+The current transparent anime artwork is stored in `images/warships/` and mapped through each ship's `alternateImage` field in `data.js`. Future primary artwork belongs in `defaultImage`. Both image frames use the artwork's native 3:4 ratio and `object-fit: contain`, so supplied PNGs are never cropped.
 
 - Selection card: 3:4
 - Detail image: 3:4

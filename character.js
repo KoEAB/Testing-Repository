@@ -3,6 +3,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const requestedId = params.get("id");
+  const portraitMode = params.get("portrait") === "alternate" ? "alternate" : "default";
   const characters = window.CHARACTERS || [];
   const character = characters.find((entry) => entry.id === requestedId);
   const detail = document.querySelector("#character-detail");
@@ -14,7 +15,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="shipyard.html?v=navy-5">Return to Shipyard</a>
+        <a class="primary-button" href="shipyard.html?v=navy-6">Return to Shipyard</a>
       </section>
     `;
     return;
@@ -39,7 +40,7 @@
 
       <nav class="character-navigation empty-navigation" aria-label="Browse warships">
         ${renderAdjacentLink(character, -1, "上一项")}
-        <a class="all-characters" href="shipyard.html?v=navy-5">全部档案</a>
+        <a class="all-characters" href="shipyard.html?v=navy-6">全部档案</a>
         ${renderAdjacentLink(character, 1, "下一项")}
       </nav>
     `;
@@ -64,8 +65,11 @@
     .map((trait) => `<span class="trait">${trait}</span>`)
     .join("");
 
-  const artwork = character.image
-    ? `<img class="ship-art detail-ship-art" src="${character.image}" alt="${character.name} character artwork" />`
+  const selectedArtwork =
+    portraitMode === "alternate" ? character.alternateImage : character.defaultImage;
+
+  const artwork = selectedArtwork
+    ? `<img class="ship-art detail-ship-art" src="${selectedArtwork}" alt="${character.name} ${portraitMode} character artwork" />`
     : `<span class="detail-monogram" aria-hidden="true">${character.name
         .split(" ")
         .map((part) => part[0])
@@ -73,7 +77,7 @@
 
   detail.innerHTML = `
     <section class="detail-hero">
-      <div class="detail-portrait portrait-placeholder${character.image ? " has-art" : ""}">
+      <div class="detail-portrait portrait-placeholder${selectedArtwork ? " has-art" : ""}">
         <span class="portrait-corner portrait-corner-top" aria-hidden="true"></span>
         <span class="portrait-corner portrait-corner-bottom" aria-hidden="true"></span>
         ${artwork}
@@ -104,7 +108,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="shipyard.html?v=navy-5">All profiles</a>
+      <a class="all-characters" href="shipyard.html?v=navy-6">All profiles</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -117,7 +121,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&v=navy-5">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-6">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>
