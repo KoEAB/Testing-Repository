@@ -1,10 +1,10 @@
 # Naval Command warship selection
 
-A responsive, framework-free browser game shell with a title screen, Home Port lobby, section navigation, and a 48-slot Shipyard containing 42 historical warship records, six reserve slots, type-and-rarity filters, and switchable portraits.
+A responsive, framework-free browser game shell with a title screen, Home Port lobby, section navigation, a zoomable hex-map combat demo, and a 64-slot Shipyard containing 58 historical warship records, six reserve slots, type-and-rarity filters, and switchable portraits.
 
 ## Current flow
 
-`Title screen → Home Port → Campaign / Shipyard / Shop / Shipbuilding / Gear`
+`Title screen → Home Port → Combat / Shipyard / Shop / Shipbuilding / Gear`
 
 ## Run locally
 

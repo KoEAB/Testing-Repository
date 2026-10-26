@@ -54,7 +54,7 @@
     link.dataset.characterId = character.id;
     link.dataset.shipType = character.typeCode || "";
     link.dataset.rarity = character.rarity || "";
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-10`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-11`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
@@ -222,7 +222,7 @@
       : "切换副图";
 
     roster.querySelectorAll(".character-card").forEach((link) => {
-      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-10`;
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-11`;
     });
   });
 })();
