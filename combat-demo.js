@@ -180,8 +180,12 @@
 
   function positionMarker(marker, column, row) {
     const center = cellCenter(column, row);
-    marker.style.left = `${center.x}px`;
-    marker.style.top = `${center.y}px`;
+    positionMarkerAtPoint(marker, center);
+  }
+
+  function positionMarkerAtPoint(marker, point) {
+    marker.style.left = `${point.x}px`;
+    marker.style.top = `${point.y}px`;
   }
 
   function getNeighbors(column, row) {
@@ -296,9 +300,13 @@
   }
 
   function setMarkerHeading(shipType, targetCell, options = {}) {
-    const marker = unitElements.get(shipType.code);
     const from = cellCenter(shipType.column, shipType.row);
     const to = cellCenter(targetCell.column, targetCell.row);
+    return setHeadingBetween(shipType, from, to, options);
+  }
+
+  function setHeadingBetween(shipType, from, to, options = {}) {
+    const marker = unitElements.get(shipType.code);
     let heading = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
     if (options.broadside) heading += 90;
     const current = Number(marker.dataset.heading || shipType.heading || 0);
@@ -402,6 +410,49 @@
     return currentKey === reachableState.startKey ? path : [];
   }
 
+  function pointIntersectsLand(point, clearance = 18) {
+    for (const key of landCells) {
+      const land = parseCellKey(key);
+      const center = cellCenter(land.column, land.row);
+      const x = Math.abs(point.x - center.x);
+      const y = Math.abs(point.y - center.y);
+      if (y > HEX_HEIGHT / 2 + clearance) continue;
+      const slopedEdge = HEX_WIDTH / 2 + clearance - (HEX_WIDTH / 4 / (HEX_HEIGHT / 2)) * Math.max(0, y - clearance);
+      if (x <= slopedEdge) return true;
+    }
+    return false;
+  }
+
+  function lineCrossesLand(from, to) {
+    const distance = Math.hypot(to.x - from.x, to.y - from.y);
+    const samples = Math.max(2, Math.ceil(distance / 14));
+    for (let index = 1; index < samples; index += 1) {
+      const progress = index / samples;
+      if (pointIntersectsLand({
+        x: from.x + (to.x - from.x) * progress,
+        y: from.y + (to.y - from.y) * progress
+      })) return true;
+    }
+    return false;
+  }
+
+  function simplifyLandRoute(points) {
+    const simplified = [points[0]];
+    let currentIndex = 0;
+    while (currentIndex < points.length - 1) {
+      let nextIndex = currentIndex + 1;
+      for (let candidate = points.length - 1; candidate > currentIndex; candidate -= 1) {
+        if (!lineCrossesLand(points[currentIndex], points[candidate])) {
+          nextIndex = candidate;
+          break;
+        }
+      }
+      simplified.push(points[nextIndex]);
+      currentIndex = nextIndex;
+    }
+    return simplified;
+  }
+
   function wait(milliseconds) {
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
   }
@@ -415,27 +466,40 @@
     const shipType = selectedUnit;
     const marker = unitElements.get(shipType.code);
     const targetCell = parseCellKey(targetKey);
-    setMarkerHeading(shipType, targetCell, { commit: true });
+    const startPoint = cellCenter(shipType.column, shipType.row);
+    const targetPoint = cellCenter(targetCell.column, targetCell.row);
+    const landInWay = lineCrossesLand(startPoint, targetPoint);
+    const navigablePoints = [startPoint, ...path.map((key) => {
+      const cell = parseCellKey(key);
+      return cellCenter(cell.column, cell.row);
+    })];
+    const routePoints = landInWay ? simplifyLandRoute(navigablePoints) : [startPoint, targetPoint];
+    marker.dataset.lastRoute = landInWay ? "detour" : "direct";
+    marker.dataset.routeSegments = String(routePoints.length - 1);
     clearTacticalHighlights();
-    path.forEach((key) => tileElements.get(key)?.classList.add("is-route"));
+    if (landInWay) path.forEach((key) => tileElements.get(key)?.classList.add("is-route"));
     marker.classList.add("is-moving");
     updateDetailPanel(shipType, "Underway");
     unitReadout.textContent = `${shipType.code} · Underway`;
-    await wait(TURN_DURATION);
-
-    const cells = [{ column: shipType.column, row: shipType.row }, ...path.map(parseCellKey)];
-    const keyframes = cells.map((cell, index) => {
-      const center = cellCenter(cell.column, cell.row);
-      return { left: `${center.x}px`, top: `${center.y}px`, offset: index / (cells.length - 1) };
-    });
-    const movement = marker.animate(keyframes, {
-      duration: 520 + path.length * 170,
-      easing: "linear",
-      fill: "forwards"
-    });
-    await movement.finished;
+    for (let index = 1; index < routePoints.length; index += 1) {
+      const from = routePoints[index - 1];
+      const to = routePoints[index];
+      const previousHeading = Number(marker.dataset.heading || shipType.heading);
+      const nextHeading = setHeadingBetween(shipType, from, to, { commit: true });
+      if (Math.abs(nextHeading - previousHeading) > 1) await wait(TURN_DURATION);
+      const movement = marker.animate([
+        { left: `${from.x}px`, top: `${from.y}px` },
+        { left: `${to.x}px`, top: `${to.y}px` }
+      ], {
+        duration: Math.max(300, Math.hypot(to.x - from.x, to.y - from.y) * 2.1),
+        easing: "linear",
+        fill: "forwards"
+      });
+      await movement.finished;
+      positionMarkerAtPoint(marker, to);
+      movement.cancel();
+    }
     positionMarker(marker, targetCell.column, targetCell.row);
-    movement.cancel();
     shipType.column = targetCell.column;
     shipType.row = targetCell.row;
     shipType.moved = true;
