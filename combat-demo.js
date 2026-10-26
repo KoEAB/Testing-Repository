@@ -19,6 +19,8 @@
   const concealmentDemo = document.body.dataset.mode === "concealment";
   const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
   const TORPEDO_CODES = new Set(["SS", "SSV", "DD", "DE"]);
+  const SIZE_RANK = { SS: 1, SSV: 1, DD: 2, DE: 2, CL: 3, CA: 3, BM: 3, AR: 3, CVE: 3, CVL: 3, CB: 4, BC: 4, CV: 4, BB: 5, BBV: 5 };
+  const NO_CITADEL_CODES = new Set(["DD", "DE", "SS", "SSV"]);
   const WRECK_CLASSIFICATION = {
     SS: "Subs", SSV: "Subs",
     DD: "Light", DE: "Light",
@@ -45,7 +47,7 @@
     ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
     ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
     ["AR", { label: "Repair ship", group: "support" }],
-    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", gunRange: 23, concealmentRange: 15 }],
+    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, shellCount: 9, alphaDamage: 131, gunRange: 23, concealmentRange: 15 }],
     ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
     ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
   ].map(([code, details]) => [code, { code, ...details }]));
@@ -77,9 +79,13 @@
       attacked: false,
       torpedoed: false,
       airUsed: false,
-      health: stats.health,
-      maxHealth: stats.health,
+      health: ship.health ?? stats.health,
+      maxHealth: ship.health ?? stats.health,
       gunDamage: ship.gunDamage ?? stats.gun ?? 0,
+      shellType: "AP",
+      shellCount: ship.shellCount ?? (stats.gun ? 3 : 0),
+      alphaDamage: ship.alphaDamage ?? ship.gunDamage ?? stats.gun ?? 0,
+      lastSalvo: null,
       torpedoDamage: ship.torpedoDamage ?? stats.torpedo ?? 0,
       gunRange: ship.gunRange || ATTACK_RANGE,
       gunAttacksPerTurn: ship.gunAttacksPerTurn || 1,
@@ -140,6 +146,8 @@
   const detailConcealment = document.querySelector("#unit-detail-concealment");
   const detailMovement = document.querySelector("#unit-detail-movement");
   const detailAttack = document.querySelector("#unit-detail-attack");
+  const detailSalvo = document.querySelector("#unit-detail-salvo");
+  const detailLastSalvo = document.querySelector("#unit-detail-last-salvo");
   const detailTorpedo = document.querySelector("#unit-detail-torpedo");
   const detailStatus = document.querySelector("#unit-detail-status");
   const detailInstruction = document.querySelector("#unit-detail-instruction");
@@ -560,6 +568,8 @@
     detailAttack.textContent = canAttack
       ? (shotsRemaining > 0 ? `Ready · ${shipType.gunRange} tiles · ${shotsRemaining} shot${shotsRemaining === 1 ? "" : "s"}` : `Spent · ${shipType.gunRange} tiles`)
       : "Unavailable";
+    detailSalvo.textContent = canAttack ? `${shipType.shellType} · ${shipType.shellCount} shells · ${shipType.alphaDamage} alpha each` : "Unavailable";
+    detailLastSalvo.textContent = shipType.lastSalvo ? summarizeSalvo(shipType.lastSalvo) : "—";
     detailTorpedo.textContent = TORPEDO_CODES.has(shipType.code)
       ? (shipType.torpedoReloadRemaining > 0
         ? `Reloading · ${shipType.torpedoReloadRemaining} turn${shipType.torpedoReloadRemaining === 1 ? "" : "s"}`
@@ -899,8 +909,9 @@
   }
 
   function applyDamage(target, amount, attacker) {
-    if (!target || !attacker || target.team === attacker.team || target.health <= 0 || amount <= 0) return;
-    target.health = Math.max(0, target.health - amount);
+    if (!target || !attacker || target.team === attacker.team || target.health <= 0 || amount <= 0) return 0;
+    const damageDealt = Math.min(target.health, amount);
+    target.health -= damageDealt;
     if (target.health === 0) {
       target.sunkTurn = currentTurn;
       target.wreckClassification = WRECK_CLASSIFICATION[target.code] || "Heavy";
@@ -910,8 +921,55 @@
     updateDetection();
     renderDeveloperLists();
     if (selectedUnit?.id === target.id) {
-      updateDetailPanel(target, target.health > 0 ? `Hit for ${amount} damage` : "Unit destroyed");
+      updateDetailPanel(target, target.health > 0 ? `Hit for ${damageDealt} damage` : "Unit destroyed");
     }
+    return damageDealt;
+  }
+
+  function resolveApSalvo(attacker, target) {
+    const from = cellCenter(attacker.column, attacker.row);
+    const to = cellCenter(target.column, target.row);
+    const incomingBearing = Math.atan2(from.y - to.y, from.x - to.x) * 180 / Math.PI;
+    const relativeAngle = ((incomingBearing - target.heading) % 360 + 540) % 360 - 180;
+    const broadside = Math.sin(relativeAngle * Math.PI / 180) ** 2;
+    const sizeAdvantage = Math.max(0, (SIZE_RANK[attacker.code] || 3) - (SIZE_RANK[target.code] || 3));
+    const sizeDisadvantage = Math.max(0, (SIZE_RANK[target.code] || 3) - (SIZE_RANK[attacker.code] || 3));
+    const distance = hexDistance(attacker, target);
+    const missChance = Math.min(0.4, Math.max(0.12, 0.17 + 0.18 * distance / attacker.gunRange - 0.02 * ((SIZE_RANK[target.code] || 3) - 3)));
+    const ricochetChance = broadside >= 0.98 ? 0 : Math.max(0.03, 0.32 - 0.075 * sizeAdvantage) * (1 - broadside);
+    const nonPenChance = Math.min(0.26, 0.08 + 0.1 * (1 - broadside) + 0.025 * sizeDisadvantage);
+    const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 : 0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside);
+    const overPenChance = Math.min(0.28, 0.15 + 0.04 * sizeAdvantage);
+    const shells = Array.from({ length: attacker.shellCount }, () => {
+      if (Math.random() < missChance) return { outcome: "miss", damage: 0 };
+      const roll = Math.random();
+      if (roll < ricochetChance) return { outcome: "ricochet", damage: 0 };
+      if (roll < ricochetChance + nonPenChance) return { outcome: "non-penetration", damage: 0 };
+      if (roll < ricochetChance + nonPenChance + citadelChance) return { outcome: "citadel", damage: attacker.alphaDamage };
+      if (roll < ricochetChance + nonPenChance + citadelChance + overPenChance) return { outcome: "overpenetration", damage: Math.round(attacker.alphaDamage * 0.1) };
+      return { outcome: "penetration", damage: Math.round(attacker.alphaDamage / 3) };
+    });
+    return { shellType: "AP", targetId: target.id, impactAngle: relativeAngle, shells, totalDamage: shells.reduce((sum, shell) => sum + shell.damage, 0), damageDealt: 0 };
+  }
+
+  function summarizeSalvo(salvo) {
+    const counts = salvo.shells.reduce((totals, shell) => {
+      totals[shell.outcome] = (totals[shell.outcome] || 0) + 1;
+      return totals;
+    }, {});
+    const labels = { citadel: "citadel", penetration: "pen", overpenetration: "overpen", "non-penetration": "non-pen", ricochet: "ricochet", miss: "miss" };
+    const results = Object.entries(labels).filter(([outcome]) => counts[outcome]).map(([outcome, label]) => `${counts[outcome]} ${label}`);
+    return `${salvo.damageDealt ?? 0} damage · ${results.join(", ")}`;
+  }
+
+  function showDamagePopup(center, amount) {
+    const popup = createEffect("damage-popup", center);
+    popup.textContent = amount > 0 ? `−${amount}` : "0";
+    popup.animate([
+      { opacity: 0, transform: "translate(-50%, -50%) translateY(0) scale(.7)" },
+      { opacity: 1, transform: "translate(-50%, -50%) translateY(-18px) scale(1.1)", offset: 0.25 },
+      { opacity: 0, transform: "translate(-50%, -50%) translateY(-55px) scale(1)" }
+    ], { duration: 1050, easing: "ease-out" }).finished.finally(() => popup.remove());
   }
 
   async function animateVolley(shipType, targetKey) {
@@ -919,6 +977,13 @@
     const origin = cellCenter(shipType.column, shipType.row);
     const target = parseCellKey(targetKey);
     const destination = cellCenter(target.column, target.row);
+    const navalTarget = unitAt(targetKey, shipType.id);
+    const salvo = navalTarget ? resolveApSalvo(shipType, navalTarget) : {
+      shellType: "AP", targetId: null, impactAngle: null,
+      shells: Array.from({ length: shipType.shellCount }, () => ({ outcome: "miss", damage: 0 })),
+      totalDamage: 0, damageDealt: 0
+    };
+    shipType.lastSalvo = salvo;
     const flash = createEffect("muzzle-flash", origin);
     flash.animate([
       { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
@@ -926,28 +991,31 @@
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
     ], { duration: 420, easing: "ease-out" }).finished.finally(() => flash.remove());
 
-    const shots = [0, 110, 220].map(async (delay, index) => {
-      await wait(delay);
+    const shots = Array.from({ length: shipType.shellCount }, (_, index) => (async () => {
+      await wait(index * 65);
       const shell = createEffect("volley-shell", origin);
-      shell.style.marginTop = `${(index - 1) * 5}px`;
+      shell.style.marginTop = `${(index - (shipType.shellCount - 1) / 2) * 3}px`;
       const animation = shell.animate([
         { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
         { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
       ], { duration: 520, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
       await animation.finished;
       shell.remove();
-    });
+    })());
     await Promise.all(shots);
 
-    const navalTarget = unitAt(targetKey, shipType.id);
-    const impactClass = landCells.has(targetKey) || navalTarget ? "impact-explosion" : "impact-splash";
+    const hit = salvo.shells.some((shell) => shell.outcome !== "miss");
+    const impactClass = landCells.has(targetKey) || (navalTarget && hit) ? "impact-explosion" : "impact-splash";
     const impact = createEffect(impactClass, destination);
     const impactAnimation = impact.animate([
       { opacity: 0, transform: "translate(-50%, -50%) scale(.15)" },
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
     ], { duration: 800, easing: "ease-out", fill: "forwards" });
-    if (navalTarget) applyDamage(navalTarget, shipType.gunDamage, shipType);
+    if (navalTarget && hit) {
+      salvo.damageDealt = applyDamage(navalTarget, salvo.totalDamage, shipType);
+      showDamagePopup(destination, salvo.damageDealt);
+    }
     await impactAnimation.finished;
     impact.remove();
   }
@@ -1009,7 +1077,7 @@
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
     ], { duration: 800, easing: "ease-out", fill: "forwards" });
-    if (navalTarget) applyDamage(navalTarget, shipType.torpedoDamage, shipType);
+    if (navalTarget) showDamagePopup(destination, applyDamage(navalTarget, shipType.torpedoDamage, shipType));
     await impactAnimation.finished;
     impact.remove();
   }

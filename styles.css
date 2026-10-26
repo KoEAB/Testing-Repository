@@ -2563,6 +2563,16 @@ p {
   transform: translate(-50%, -50%);
 }
 
+.damage-popup {
+  z-index: 14;
+  color: #fff2c2;
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 800;
+  text-shadow: 0 2px 3px #071018, 0 0 10px rgba(246, 105, 76, 0.9);
+  white-space: nowrap;
+}
+
 .volley-shell {
   width: 13px;
   height: 4px;
