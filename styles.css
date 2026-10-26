@@ -2456,10 +2456,10 @@ p {
 
 .unit-health {
   position: absolute;
-  right: 8px;
-  bottom: -6px;
-  left: 8px;
-  height: 5px;
+  right: 9px;
+  bottom: 7px;
+  left: 9px;
+  height: 8px;
   overflow: hidden;
   border: 1px solid rgba(3, 13, 23, 0.9);
   background: rgba(2, 10, 17, 0.78);
@@ -2480,11 +2480,11 @@ p {
 
 .unit-actions {
   position: absolute;
-  right: 8px;
-  bottom: -12px;
-  left: 8px;
+  right: 9px;
+  bottom: -2px;
+  left: 9px;
   display: flex;
-  height: 5px;
+  height: 8px;
   overflow: hidden;
   border: 1px solid rgba(3, 13, 23, 0.9);
   background: rgba(2, 10, 17, 0.78);
@@ -2624,6 +2624,36 @@ p {
   background: rgba(3, 13, 23, 0.88);
   color: var(--faint);
 }
+
+.combat-skills {
+  position: absolute;
+  z-index: 18;
+  right: 50%;
+  bottom: 84px;
+  transform: translateX(50%);
+  pointer-events: none;
+}
+
+.combat-skills button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--gold);
+  background: rgba(3, 13, 23, 0.94);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.combat-skills button[disabled] { cursor: default; opacity: 0.5; }
+.combat-skills button.is-active { background: #70433c; }
+.combat-skills button:hover:not(:disabled),
+.combat-skills button:focus-visible { border-color: #fff; outline: none; }
+.combat-skills kbd { margin-left: 12px; color: var(--gold); font: inherit; }
 
 .unit-detail-panel {
   position: absolute;
@@ -2964,12 +2994,14 @@ p {
   }
 
   .map-status-strip {
-    bottom: 66px;
+    display: none;
   }
 
   .map-footer-strip {
     bottom: 14px;
   }
+
+  .combat-skills { bottom: 65px; }
 
   .unit-detail-panel {
     right: 14px;

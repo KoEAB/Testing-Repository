@@ -156,6 +156,7 @@
   const turnNumber = document.querySelector("#turn-number");
   const gunOrderButton = document.querySelector("#gun-order");
   const torpedoOrderButton = document.querySelector("#torpedo-order");
+  const fireRemainingButton = document.querySelector("#fire-remaining-salvos");
   const developerPanel = document.querySelector("#developer-panel");
   const developerPanelToggle = document.querySelector("#developer-panel-toggle");
   const developerTeam = document.querySelector("#developer-team");
@@ -528,10 +529,10 @@
     });
   }
 
-  function showAttackArea(shipType) {
+  function showAttackArea(shipType, useRemaining = false) {
     clearTacticalHighlights();
     reachableState = null;
-    mode = "attack";
+    mode = useRemaining ? "salvo-skill" : "attack";
     markSelectedOrigin(shipType);
     attackCells = calculateRadius(shipType, shipType.gunRange);
     attackCells.forEach((key) => {
@@ -579,13 +580,22 @@
     gunOrderButton.disabled = shotsRemaining <= 0;
     torpedoOrderButton.hidden = !TORPEDO_CODES.has(shipType.code);
     torpedoOrderButton.disabled = shipType.torpedoed || shipType.torpedoReloadRemaining > 0;
+    refreshSkillButton();
     detailStatus.textContent = status;
-    detailInstruction.textContent = mode === "attack"
-      ? "Select a red hex to fire the ship's guns."
+    detailInstruction.textContent = mode === "attack" || mode === "salvo-skill"
+      ? (mode === "salvo-skill" ? "Select an enemy in red range to fire every remaining salvo at it." : "Select a red hex to fire the ship's guns.")
       : mode === "torpedo"
         ? "Select a cyan hex to launch torpedoes."
         : "Hover to preview facing. Left-click to move; right-click to set facing.";
     detailPanel.hidden = false;
+  }
+
+  function refreshSkillButton() {
+    const ready = selectedUnit && selectedUnit.health > 0 && ATTACK_CODES.has(selectedUnit.code) &&
+      selectedUnit.gunAttacksRemaining > 0 && !(concealmentDemo && selectedUnit.team === "enemy") && !isAnimating;
+    fireRemainingButton.disabled = !ready;
+    fireRemainingButton.classList.toggle("is-active", ready && mode === "salvo-skill");
+    fireRemainingButton.setAttribute("aria-pressed", String(Boolean(ready && mode === "salvo-skill")));
   }
 
   function setMarkerHeading(shipType, targetCell, options = {}) {
@@ -637,12 +647,12 @@
       return;
     }
     const key = cellKey(shipType.column, shipType.row);
-    if ((mode === "attack" || mode === "torpedo") && selectedUnit && shipType.team !== selectedUnit.team && selectedUnit.id !== shipType.id && attackCells.has(key)) {
+    if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && shipType.team !== selectedUnit.team && selectedUnit.id !== shipType.id && attackCells.has(key)) {
       if (mode === "torpedo") fireTorpedoes(key);
-      else fireVolley(key);
+      else fireVolley(key, mode === "salvo-skill");
       return;
     }
-    if ((mode === "attack" || mode === "torpedo") && selectedUnit && shipType.team === selectedUnit.team) return;
+    if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && shipType.team === selectedUnit.team) return;
     if (concealmentDemo && shipType.team === "enemy") {
       if (inspectedEnemy?.id === shipType.id) deselectUnit();
       else inspectEnemy(marker, shipType);
@@ -677,6 +687,7 @@
     updateDetailPanel(shipType, "Enemy contact");
     gunOrderButton.hidden = true;
     torpedoOrderButton.hidden = true;
+    refreshSkillButton();
     detailInstruction.textContent = "Dashed ranges: white concealment, red guns, cyan torpedoes when equipped.";
     unitReadout.textContent = `${shipType.code} · ${shipType.label} · Enemy contact`;
   }
@@ -691,6 +702,7 @@
     detailTorpedo.textContent = "Unavailable";
     gunOrderButton.hidden = true;
     torpedoOrderButton.hidden = true;
+    refreshSkillButton();
     detailInstruction.textContent = shipType.wreckTurnsRemaining > 0
       ? `Wreck remains for ${shipType.wreckTurnsRemaining} more turn${shipType.wreckTurnsRemaining === 1 ? "" : "s"}.`
       : "Death marker · this ship was sunk here.";
@@ -706,41 +718,18 @@
       else inspectEnemy(marker, shipType);
       return;
     }
-    const hasBothWeapons = ATTACK_CODES.has(shipType.code) && TORPEDO_CODES.has(shipType.code);
-    if (selectedUnit?.id === shipType.id && hasBothWeapons) {
-      if (mode === "attack") {
-        activateTorpedoMode();
-        return;
-      }
-      if (mode === "torpedo") {
-        activateGunMode();
-        return;
-      }
-    }
-    if (!ATTACK_CODES.has(shipType.code) && TORPEDO_CODES.has(shipType.code)) {
-      selectUnit(marker, shipType);
+    const sameShip = selectedUnit?.id === shipType.id;
+    const previousMode = sameShip ? mode : null;
+    if (!sameShip) selectUnit(marker, shipType);
+    const gunsReady = ATTACK_CODES.has(shipType.code) && shipType.gunAttacksRemaining > 0;
+    const torpedoesReady = TORPEDO_CODES.has(shipType.code) && !shipType.torpedoed && shipType.torpedoReloadRemaining <= 0;
+    if (torpedoesReady && (!gunsReady || previousMode === "attack" || previousMode === "salvo-skill")) {
       activateTorpedoMode();
-      return;
+    } else if (gunsReady) {
+      activateGunMode();
+    } else {
+      updateDetailPanel(shipType, "No ranged attacks available this turn");
     }
-    if (!ATTACK_CODES.has(shipType.code)) {
-      selectUnit(marker, shipType);
-      updateDetailPanel(shipType, "No ranged armament");
-      return;
-    }
-    restoreCommittedFacing();
-    map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
-    selectedUnit = shipType;
-    inspectedEnemy = null;
-    marker.classList.add("is-selected");
-    updateConcealmentOutline(shipType);
-    if (shipType.gunAttacksRemaining <= 0) {
-      showMovementArea(shipType);
-      updateDetailPanel(shipType, "Attack already used this turn");
-      return;
-    }
-    showAttackArea(shipType);
-    unitReadout.textContent = `${shipType.code} · Attack range`;
-    updateDetailPanel(shipType, "Select firing target");
   }
 
   function activateGunMode() {
@@ -757,6 +746,14 @@
     updateDetailPanel(selectedUnit, "Select torpedo target");
   }
 
+  function activateFireRemainingSkill() {
+    if (!selectedUnit || selectedUnit.health <= 0 || selectedUnit.gunAttacksRemaining <= 0 ||
+        !ATTACK_CODES.has(selectedUnit.code) || (concealmentDemo && selectedUnit.team === "enemy") || isAnimating) return;
+    showAttackArea(selectedUnit, true);
+    unitReadout.textContent = `${selectedUnit.code} · Fire remaining salvos`;
+    updateDetailPanel(selectedUnit, `Fire ${selectedUnit.gunAttacksRemaining} remaining salvo${selectedUnit.gunAttacksRemaining === 1 ? "" : "s"}`);
+  }
+
   function deselectUnit() {
     if (isAnimating) return;
     placementOrder = null;
@@ -767,6 +764,7 @@
     reachableState = null;
     attackCells.clear();
     mode = null;
+    refreshSkillButton();
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     clearTacticalHighlights();
     detailPanel.hidden = true;
@@ -1056,14 +1054,14 @@
     impact.remove();
   }
 
-  async function fireVolley(targetKey) {
+  async function fireVolley(targetKey, useRemaining = false) {
     if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
+    const initialTarget = unitAt(targetKey, selectedUnit.id);
+    if (useRemaining && (!initialTarget || initialTarget.team === selectedUnit.team)) return;
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
-    shipType.gunAttacksRemaining -= 1;
-    shipType.attacked = shipType.gunAttacksRemaining <= 0;
-    refreshUnitDisplay(shipType);
+    refreshSkillButton();
     const target = parseCellKey(targetKey);
     const from = cellCenter(shipType.column, shipType.row);
     const to = cellCenter(target.column, target.row);
@@ -1075,17 +1073,25 @@
     setMarkerHeading(shipType, target, { broadside: shipType.broadsideWhenFiring, commit: true });
     clearTacticalHighlights();
     markSelectedOrigin(shipType);
-    updateDetailPanel(shipType, "Firing volley");
-    unitReadout.textContent = `${shipType.code} · Firing volley`;
     await wait(TURN_DURATION);
-    await animateVolley(shipType, targetKey);
+    const salvoCount = useRemaining ? shipType.gunAttacksRemaining : 1;
+    for (let index = 0; index < salvoCount; index += 1) {
+      if (useRemaining && (initialTarget.health <= 0 || unitAt(targetKey, shipType.id)?.id !== initialTarget.id)) break;
+      shipType.gunAttacksRemaining -= 1;
+      shipType.attacked = shipType.gunAttacksRemaining <= 0;
+      refreshUnitDisplay(shipType);
+      updateDetailPanel(shipType, useRemaining ? `Firing salvo ${index + 1} of ${salvoCount}` : "Firing volley");
+      unitReadout.textContent = `${shipType.code} · Salvo ${index + 1} of ${salvoCount}`;
+      await animateVolley(shipType, targetKey);
+      if (useRemaining && index + 1 < salvoCount && initialTarget.health > 0) await wait(180);
+    }
     renderDeveloperLists();
     isAnimating = false;
-    updateDetailPanel(shipType, "Volley complete");
-    unitReadout.textContent = `${shipType.code} · Volley complete`;
     if (shipType.gunAttacksRemaining > 0) showAttackArea(shipType);
     else if (!shipType.moved) showMovementArea(shipType);
     else markSelectedOrigin(shipType);
+    updateDetailPanel(shipType, useRemaining ? "Salvo sequence complete" : "Volley complete");
+    unitReadout.textContent = `${shipType.code} · ${useRemaining ? "Salvo sequence" : "Volley"} complete`;
   }
 
   async function animateTorpedoAttack(shipType, targetKey) {
@@ -1159,8 +1165,10 @@
       cellKey(ship.column, ship.row) === key && !unitElements.get(ship.id)?.classList.contains("is-concealed-enemy")) : null;
     if (placementOrder) {
       placeUnit(key);
-    } else if ((mode === "attack" || mode === "torpedo") && selectedUnit && targetIsFriendly(key, selectedUnit)) {
+    } else if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && targetIsFriendly(key, selectedUnit)) {
       return;
+    } else if (mode === "salvo-skill" && attackCells.has(key)) {
+      fireVolley(key, true);
     } else if (mode === "attack" && attackCells.has(key)) {
       fireVolley(key);
     } else if (mode === "torpedo" && attackCells.has(key)) {
@@ -1170,7 +1178,7 @@
     } else if (visibleEnemy) {
       if (inspectedEnemy?.id === visibleEnemy.id) deselectUnit();
       else inspectEnemy(unitElements.get(visibleEnemy.id), visibleEnemy);
-    } else if (selectedUnit && (mode === "move" || mode === "attack" || mode === "torpedo")) {
+    } else if (selectedUnit && (mode === "move" || mode === "attack" || mode === "salvo-skill" || mode === "torpedo")) {
       deselectUnit();
     } else if (inspectedEnemy) {
       deselectUnit();
@@ -1246,6 +1254,13 @@
   nextTurnButton.addEventListener("click", advanceTurn);
   gunOrderButton.addEventListener("click", activateGunMode);
   torpedoOrderButton.addEventListener("click", activateTorpedoMode);
+  fireRemainingButton.addEventListener("click", activateFireRemainingSkill);
+  window.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() !== "e" || event.altKey || event.ctrlKey || event.metaKey || event.repeat ||
+        event.target.closest("input, select, textarea, [contenteditable]")) return;
+    event.preventDefault();
+    activateFireRemainingSkill();
+  });
   developerPanelToggle.addEventListener("click", () => {
     const collapsed = developerPanel.classList.toggle("is-collapsed");
     developerPanelToggle.setAttribute("aria-expanded", String(!collapsed));
