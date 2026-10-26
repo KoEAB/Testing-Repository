@@ -3,59 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Choose a legendary United States Navy aircraft carrier and open its fleet record."
-    />
-    <title>Naval Command — Choose Your Warship</title>
-    <link rel="icon" href="favicon.svg?v=navy-4" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-4" />
-    <script src="data.js?v=navy-4" defer></script>
-    <script src="app.js?v=navy-4" defer></script>
+    <meta name="description" content="Enter Naval Command." />
+    <title>Naval Command</title>
+    <link rel="icon" href="favicon.svg?v=navy-5" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-5" />
   </head>
-  <body class="selection-page">
-    <div class="ambient ambient-one" aria-hidden="true"></div>
-    <div class="ambient ambient-two" aria-hidden="true"></div>
+  <body class="login-page">
+    <div class="login-background-placeholder" aria-label="Background artwork placeholder">
+      <span>Background artwork placeholder</span>
+    </div>
 
-    <header class="site-header">
-      <a class="brand" href="index.html?v=navy-4" aria-label="Naval Command home">
-        <span class="brand-mark" aria-hidden="true">N</span>
-        <span>Naval Command</span>
+    <main class="login-content">
+      <div class="login-emblem" aria-hidden="true">N</div>
+      <h1>Naval <em>Command</em></h1>
+      <a class="start-button" href="lobby.html?v=navy-5">
+        <span>Click to start</span>
+        <span aria-hidden="true">→</span>
       </a>
-      <span class="chapter-label">Pacific Fleet · 1942</span>
-    </header>
-
-    <main class="selection-shell">
-      <section class="selection-intro" aria-labelledby="page-title">
-        <p class="eyebrow">Assemble the task force</p>
-        <h1 id="page-title">Choose your <em>warship.</em></h1>
-        <p class="intro-copy">
-          Twenty-four fleet records await assignment. Choose a profile to open
-          its archive entry.
-        </p>
-      </section>
-
-      <section aria-label="Warship roster">
-        <div class="roster" id="character-roster"></div>
-      </section>
-
-      <p class="selection-hint">
-        <span class="hint-icon" aria-hidden="true">↗</span>
-        Select a profile to open its record
-      </p>
-
-      <div class="selection-controls">
-        <button class="alternate-toggle" id="alternate-toggle" type="button" aria-pressed="false">
-          <span class="toggle-symbol" aria-hidden="true">◈</span>
-          <span class="toggle-label">切换副图</span>
-        </button>
-      </div>
     </main>
 
-    <footer class="site-footer">
-      <span>24 fleet records</span>
-      <span class="footer-rule" aria-hidden="true"></span>
-      <span>The Pacific awaits</span>
+    <footer class="login-footer">
+      <span>Prototype build</span>
+      <span>Background image pending</span>
     </footer>
   </body>
 </html>

@@ -1,6 +1,10 @@
 # Naval Command warship selection
 
-A responsive, framework-free 24-slot warship selection screen with individual fleet-record views and switchable primary/alternate portraits.
+A responsive, framework-free browser game shell with a title screen, Home Port lobby, section navigation, and a 24-slot Shipyard with individual fleet records and switchable portraits.
+
+## Current flow
+
+`Title screen → Home Port → Campaign / Shipyard / Shop / Shipbuilding / Gear`
 
 ## Run locally
 

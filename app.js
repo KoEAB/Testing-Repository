@@ -16,7 +16,7 @@
   characters.forEach((character, index) => {
     const link = document.createElement("a");
     link.className = `character-card${character.placeholder ? " empty-card" : ""}`;
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&v=navy-4`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&v=navy-5`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
