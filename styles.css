@@ -2413,6 +2413,9 @@ p {
 .combat-map-page[data-mode="concealment"] .developer-panel,
 .combat-map-page[data-mode="concealment"] .map-unit.is-concealed-enemy { display: none; }
 
+.combat-map-page[data-mode="concealment"] .map-unit.team-enemy .unit-actions,
+.combat-map-page[data-mode="concealment"] .map-unit.team-enemy .unit-detection-dot { display: none; }
+
 .map-unit:hover,
 .map-unit:focus-visible,
 .map-unit.is-selected {

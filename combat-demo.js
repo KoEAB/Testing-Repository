@@ -160,13 +160,16 @@
   const concealmentOutline = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   concealmentOutline.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
   concealmentOutline.setAttribute("class", "concealment-outline");
-  concealmentOutline.innerHTML = '<polygon fill="none" stroke="white" stroke-width="3" stroke-dasharray="12 9" />';
+  concealmentOutline.innerHTML = '<polygon data-range="concealment" fill="none" stroke="white" stroke-width="3" stroke-dasharray="12 9" />' +
+    '<polygon data-range="gun" fill="none" stroke="#ef6c63" stroke-width="3" stroke-dasharray="12 9" />' +
+    '<polygon data-range="torpedo" fill="none" stroke="#57dce8" stroke-width="3" stroke-dasharray="12 9" />';
   concealmentOutline.setAttribute("hidden", "");
   concealmentOutline.style.display = "none";
   let scale = 1;
   let dragState = null;
   let ignoreNextTileClick = false;
   let selectedUnit = null;
+  let inspectedEnemy = null;
   let reachableState = null;
   let attackCells = new Set();
   let mode = null;
@@ -316,20 +319,29 @@
     return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
   }
 
-  function updateConcealmentOutline(ship) {
+  function updateConcealmentOutline(ship, showWeapons = false) {
     if (!ship || ship.health <= 0) {
       concealmentOutline.setAttribute("hidden", "");
       concealmentOutline.style.display = "none";
       return;
     }
     const { x, y } = cellCenter(ship.column, ship.row);
-    const radius = ship.concealmentRange;
-    const horizontal = radius * COLUMN_STEP + HEX_WIDTH / 2;
-    const vertical = radius * HEX_HEIGHT + HEX_HEIGHT / 2;
-    concealmentOutline.querySelector("polygon").setAttribute("points", [
-      [x, y - vertical], [x + horizontal, y - vertical / 2], [x + horizontal, y + vertical / 2],
-      [x, y + vertical], [x - horizontal, y + vertical / 2], [x - horizontal, y - vertical / 2]
-    ].map((point) => point.join(",")).join(" "));
+    const ranges = {
+      concealment: ship.concealmentRange,
+      gun: showWeapons && ATTACK_CODES.has(ship.code) ? ship.gunRange : 0,
+      torpedo: showWeapons && TORPEDO_CODES.has(ship.code) ? ship.torpedoRange : 0
+    };
+    Object.entries(ranges).forEach(([name, radius]) => {
+      const outline = concealmentOutline.querySelector(`[data-range="${name}"]`);
+      outline.style.display = radius ? "" : "none";
+      if (!radius) return;
+      const horizontal = radius * COLUMN_STEP + HEX_WIDTH / 2;
+      const vertical = radius * HEX_HEIGHT + HEX_HEIGHT / 2;
+      outline.setAttribute("points", [
+        [x, y - vertical], [x + horizontal, y - vertical / 2], [x + horizontal, y + vertical / 2],
+        [x, y + vertical], [x - horizontal, y + vertical / 2], [x - horizontal, y - vertical / 2]
+      ].map((point) => point.join(",")).join(" "));
+    });
     concealmentOutline.removeAttribute("hidden");
     concealmentOutline.style.display = "";
   }
@@ -621,7 +633,11 @@
       return;
     }
     if ((mode === "attack" || mode === "torpedo") && selectedUnit && shipType.team === selectedUnit.team) return;
-    if (concealmentDemo && shipType.team === "enemy") return;
+    if (concealmentDemo && shipType.team === "enemy") {
+      if (inspectedEnemy?.id === shipType.id) deselectUnit();
+      else inspectEnemy(marker, shipType);
+      return;
+    }
     if (selectedUnit?.id === shipType.id) {
       deselectUnit();
       return;
@@ -640,6 +656,18 @@
     unitReadout.textContent = `${shipType.code} · ${shipType.label}`;
     showMovementArea(shipType);
     updateDetailPanel(shipType);
+  }
+
+  function inspectEnemy(marker, shipType) {
+    deselectUnit();
+    inspectedEnemy = shipType;
+    marker.classList.add("is-selected");
+    updateConcealmentOutline(shipType, true);
+    updateDetailPanel(shipType, "Enemy contact");
+    gunOrderButton.hidden = true;
+    torpedoOrderButton.hidden = true;
+    detailInstruction.textContent = "Dashed ranges: white concealment, red guns, cyan torpedoes when equipped.";
+    unitReadout.textContent = `${shipType.code} · ${shipType.label} · Enemy contact`;
   }
 
   function showSunkDetails(shipType) {
@@ -661,7 +689,12 @@
   function beginAttackMode(event, marker, shipType) {
     event.preventDefault();
     event.stopPropagation();
-    if (isAnimating || shipType.health <= 0 || (concealmentDemo && shipType.team === "enemy")) return;
+    if (isAnimating || shipType.health <= 0) return;
+    if (concealmentDemo && shipType.team === "enemy") {
+      if (inspectedEnemy?.id === shipType.id) deselectUnit();
+      else inspectEnemy(marker, shipType);
+      return;
+    }
     const hasBothWeapons = ATTACK_CODES.has(shipType.code) && TORPEDO_CODES.has(shipType.code);
     if (selectedUnit?.id === shipType.id && hasBothWeapons) {
       if (mode === "attack") {
@@ -717,6 +750,7 @@
     placementOrder = null;
     restoreCommittedFacing();
     selectedUnit = null;
+    inspectedEnemy = null;
     updateConcealmentOutline(null);
     reachableState = null;
     attackCells.clear();
@@ -1026,6 +1060,8 @@
     } else if (mode === "move" && reachableState?.distance.has(key)) {
       moveSelectedUnit(key);
     } else if (selectedUnit && (mode === "move" || mode === "attack" || mode === "torpedo")) {
+      deselectUnit();
+    } else if (inspectedEnemy) {
       deselectUnit();
     }
   }
