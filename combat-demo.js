@@ -619,7 +619,7 @@
     }
     if ((mode === "attack" || mode === "torpedo") && selectedUnit && shipType.team === selectedUnit.team) return;
     if (concealmentDemo && shipType.team === "enemy") return;
-    if (selectedUnit?.id === shipType.id && mode === "move") {
+    if (selectedUnit?.id === shipType.id) {
       deselectUnit();
       return;
     }
