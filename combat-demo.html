@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Interactive Naval Command combat demonstration map." />
     <title>Combat Demo — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-12" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-12" />
-    <script src="combat-demo.js?v=navy-12" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-13" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-13" />
+    <script src="combat-demo.js?v=navy-13" defer></script>
   </head>
   <body class="combat-map-page">
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
     <header class="site-header combat-map-header">
-      <a class="brand" href="lobby.html?v=navy-12" aria-label="Naval Command Home Port">
+      <a class="brand" href="lobby.html?v=navy-13" aria-label="Naval Command Home Port">
         <span class="brand-mark" aria-hidden="true">N</span>
         <span>Naval Command</span>
       </a>
-      <a class="back-link" href="campaign.html?v=navy-12">
+      <a class="back-link" href="campaign.html?v=navy-13">
         <span aria-hidden="true">←</span> Combat
       </a>
     </header>
@@ -28,7 +28,7 @@
         <div>
           <p class="eyebrow">Training operation · Sector 01</p>
           <h1 id="combat-demo-title">Combat demo</h1>
-          <p>Inspect the hexagonal operations area and the complete ship-type symbol set.</p>
+          <p>Command the formation across a 50 × 50 hexagonal operations area.</p>
         </div>
 
         <div class="map-controls" aria-label="Map zoom controls">
@@ -61,16 +61,34 @@
             <span><i class="terrain-swatch sea-swatch" aria-hidden="true"></i>Sea</span>
             <span><i class="terrain-swatch land-swatch" aria-hidden="true"></i>Land</span>
           </div>
-          <span>15 naval classification symbols deployed</span>
+          <span>50 × 50 sector · 15 naval symbols deployed</span>
           <span>Drag to pan · Mouse wheel to zoom</span>
         </div>
+
+        <aside class="unit-detail-panel" id="unit-detail-panel" aria-live="polite" hidden>
+          <div class="unit-detail-heading">
+            <p>Selected unit</p>
+            <button id="unit-detail-close" type="button" aria-label="Close ship details">×</button>
+          </div>
+          <div class="unit-detail-title">
+            <span id="unit-detail-code">—</span>
+            <h2 id="unit-detail-name">No ship selected</h2>
+          </div>
+          <dl>
+            <div><dt>Category</dt><dd id="unit-detail-category">—</dd></div>
+            <div><dt>Position</dt><dd id="unit-detail-position">—</dd></div>
+            <div><dt>Movement</dt><dd>5 hexes</dd></div>
+            <div><dt>Status</dt><dd id="unit-detail-status">Ready</dd></div>
+          </dl>
+          <p>Select a highlighted sea tile to issue a movement order.</p>
+        </aside>
       </section>
     </main>
 
     <footer class="site-footer">
       <span>Combat prototype</span>
       <span class="footer-rule" aria-hidden="true"></span>
-      <a href="index.html?v=navy-12">Return to title</a>
+      <a href="index.html?v=navy-13">Return to title</a>
     </footer>
   </body>
 </html>
