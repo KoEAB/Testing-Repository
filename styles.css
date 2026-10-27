@@ -2762,7 +2762,7 @@ p {
 .combat-skills .ammo-button kbd {
   position: absolute;
   right: 2px;
-  bottom: 2px;
+  top: 2px;
   margin: 0;
   padding: 2px 3px;
   background: #000;
