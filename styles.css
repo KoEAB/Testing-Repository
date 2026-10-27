@@ -2679,6 +2679,7 @@ p {
 }
 
 .impact-explosion,
+.impact-he-explosion,
 .impact-splash {
   width: 86px;
   height: 86px;
@@ -2688,6 +2689,11 @@ p {
 .impact-explosion {
   background: radial-gradient(circle, #fff5bd 0 8%, #ffca54 9% 24%, #d95e35 34%, rgba(96, 36, 28, 0.72) 48%, transparent 72%);
   box-shadow: 0 0 30px rgba(244, 131, 59, 0.74);
+}
+
+.impact-he-explosion {
+  background: radial-gradient(circle, #fff7ce 0 7%, #ff7b3f 10% 27%, #e52b28 39%, rgba(119, 24, 37, 0.78) 54%, transparent 76%);
+  box-shadow: 0 0 36px rgba(245, 49, 53, 0.95), 0 0 12px #ffbb57;
 }
 
 .impact-splash {
@@ -2714,6 +2720,9 @@ p {
   bottom: 28px;
   transform: translateX(50%);
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .combat-skills button {
@@ -2736,6 +2745,22 @@ p {
 .combat-skills button:hover:not(:disabled),
 .combat-skills button:focus-visible { border-color: #fff; outline: none; }
 .combat-skills kbd { margin-left: 12px; color: var(--gold); font: inherit; }
+
+.combat-skills .ammo-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-color: #70879a;
+}
+
+.combat-skills .ammo-button.is-loaded { border-color: #fff; box-shadow: 0 0 0 2px var(--gold) inset; }
+.combat-skills .ammo-button kbd { position: absolute; right: 4px; bottom: 2px; margin: 0; font-size: 10px; line-height: 1; }
+.ammo-symbol { display: block; width: 17px; height: 27px; }
+.ammo-symbol-ap { background: #b7c5d2; clip-path: polygon(50% 0, 85% 30%, 85% 100%, 15% 100%, 15% 30%); }
+.ammo-symbol-he { background: #ef7049; clip-path: polygon(50% 0, 65% 25%, 88% 16%, 77% 45%, 100% 55%, 74% 66%, 80% 100%, 50% 79%, 20% 100%, 26% 66%, 0 55%, 23% 45%, 12% 16%, 35% 25%); }
 
 .unit-detail-panel {
   position: absolute;

@@ -25,6 +25,7 @@
   const TORPEDO_CODES = new Set(["SS", "SSV", "DD", "DE"]);
   const SIZE_RANK = { SS: 1, SSV: 1, DD: 2, DE: 2, CL: 3, CA: 3, BM: 3, AR: 3, CVE: 3, CVL: 3, CB: 4, BC: 4, CV: 4, BB: 5, BBV: 5 };
   const NO_CITADEL_CODES = new Set(["DD", "DE", "SS", "SSV"]);
+  const MAIN_GUN_CALIBER_MM = { DD: 127, DE: 127, CL: 152, CA: 203, CB: 305, BC: 356, BB: 406, BBV: 356, BM: 305, CV: 127 };
   const WRECK_CLASSIFICATION = {
     SS: "Subs", SSV: "Subs",
     DD: "Light", DE: "Light",
@@ -88,6 +89,10 @@
       speedKnots: ship.speedKnots ?? null,
       movementRange: ship.movementRange ?? MOVE_RANGE,
       apShellVelocity: ship.apShellVelocity ?? null,
+      heShellVelocity: ship.heShellVelocity ?? ship.apShellVelocity ?? null,
+      heAlphaDamage: ship.heAlphaDamage ?? Math.round((ship.alphaDamage ?? ship.gunDamage ?? stats.gun ?? 0) * 0.6),
+      mainGunCaliberMm: ship.mainGunCaliberMm ?? MAIN_GUN_CALIBER_MM[ship.code] ?? null,
+      gunReloadPending: false,
       gunDamage: ship.gunDamage ?? stats.gun ?? 0,
       shellType: "AP",
       shellCount: ship.shellCount ?? (stats.gun ? 3 : 0),
@@ -155,6 +160,7 @@
   const detailConcealment = document.querySelector("#unit-detail-concealment");
   const detailMovement = document.querySelector("#unit-detail-movement");
   const detailAttack = document.querySelector("#unit-detail-attack");
+  const detailAmmo = document.querySelector("#unit-detail-ammo");
   const detailGunArcs = document.querySelector("#unit-detail-gun-arcs");
   const detailSalvo = document.querySelector("#unit-detail-salvo");
   const detailShellVelocity = document.querySelector("#unit-detail-shell-velocity");
@@ -173,6 +179,8 @@
   const gunOrderButton = document.querySelector("#gun-order");
   const torpedoOrderButton = document.querySelector("#torpedo-order");
   const fireRemainingButton = document.querySelector("#fire-remaining-salvos");
+  const apButton = document.querySelector("#load-ap-shells");
+  const heButton = document.querySelector("#load-he-shells");
   const developerPanel = document.querySelector("#developer-panel");
   const developerPanelToggle = document.querySelector("#developer-panel-toggle");
   const developerTeam = document.querySelector("#developer-team");
@@ -302,9 +310,22 @@
   function actionIsUsed(shipType, action) {
     if (shipType.health <= 0) return true;
     if (action === "move") return shipType.moved;
-    if (action === "gun") return shipType.gunAttacksRemaining <= 0;
+    if (action === "gun") return shipType.gunAttacksRemaining <= 0 || shipType.gunReloadPending;
     if (action === "torpedo") return shipType.torpedoed;
     return shipType.airUsed;
+  }
+
+  function gunsReady(ship) {
+    return ship && ship.health > 0 && ATTACK_CODES.has(ship.code) &&
+      ship.gunAttacksRemaining > 0 && !ship.gunReloadPending;
+  }
+
+  function loadedAlpha(ship) {
+    return ship.shellType === "HE" ? ship.heAlphaDamage : ship.alphaDamage;
+  }
+
+  function loadedShellVelocity(ship) {
+    return ship.shellType === "HE" ? ship.heShellVelocity : ship.apShellVelocity;
   }
 
   function refreshUnitDisplay(shipType) {
@@ -649,12 +670,14 @@
     detailMovement.textContent = shipType.moved ? "Spent" : `Ready · ${shipType.movementRange} hexes`;
     const shotsRemaining = shipType.gunAttacksRemaining;
     detailAttack.textContent = canAttack
-      ? (shotsRemaining > 0 ? `Ready · ${shipType.gunRange} tiles · ${shotsRemaining} shot${shotsRemaining === 1 ? "" : "s"}` : `Spent · ${shipType.gunRange} tiles`)
+      ? (shipType.gunReloadPending ? `Reloading · ready next turn · ${shipType.gunRange} tiles`
+        : shotsRemaining > 0 ? `Ready · ${shipType.gunRange} tiles · ${shotsRemaining} shot${shotsRemaining === 1 ? "" : "s"}` : `Spent · ${shipType.gunRange} tiles`)
       : "Unavailable";
+    detailAmmo.textContent = canAttack ? `${shipType.shellType} loaded${shipType.gunReloadPending ? " · reloading" : ""}` : "Unavailable";
     detailGunArcs.textContent = shipType.forwardFiringAngle == null ? "Not specified"
       : `FFA ${shipType.forwardFiringAngle}° · BFA ${shipType.backwardFiringAngle}°`;
-    detailSalvo.textContent = canAttack ? `${shipType.shellType} · ${shipType.shellCount} shells · ${shipType.alphaDamage} alpha each` : "Unavailable";
-    detailShellVelocity.textContent = canAttack && shipType.apShellVelocity != null ? `${shipType.apShellVelocity} m/s` : "Not specified";
+    detailSalvo.textContent = canAttack ? `${shipType.shellType} · ${shipType.shellCount} shells · ${loadedAlpha(shipType)} alpha each` : "Unavailable";
+    detailShellVelocity.textContent = canAttack && loadedShellVelocity(shipType) != null ? `${loadedShellVelocity(shipType)} m/s` : "Not specified";
     detailLastSalvo.textContent = shipType.lastSalvo ? summarizeSalvo(shipType.lastSalvo) : "—";
     detailTorpedo.textContent = TORPEDO_CODES.has(shipType.code)
       ? (shipType.torpedoReloadRemaining > 0
@@ -662,7 +685,7 @@
         : shipType.torpedoed ? "Spent" : `Ready · ${shipType.torpedoRange} tiles`)
       : "Unavailable";
     gunOrderButton.hidden = !canAttack;
-    gunOrderButton.disabled = shotsRemaining <= 0;
+    gunOrderButton.disabled = !gunsReady(shipType);
     torpedoOrderButton.hidden = !TORPEDO_CODES.has(shipType.code);
     torpedoOrderButton.disabled = shipType.torpedoed || shipType.torpedoReloadRemaining > 0;
     refreshSkillButton();
@@ -678,11 +701,29 @@
   }
 
   function refreshSkillButton() {
-    const ready = selectedUnit && selectedUnit.health > 0 && ATTACK_CODES.has(selectedUnit.code) &&
-      selectedUnit.gunAttacksRemaining > 0 && !(concealmentDemo && selectedUnit.team === "enemy") && !isAnimating;
+    const canControl = selectedUnit && !(concealmentDemo && selectedUnit.team === "enemy") && !isAnimating;
+    const ready = canControl && gunsReady(selectedUnit);
     fireRemainingButton.disabled = !ready;
     fireRemainingButton.classList.toggle("is-active", ready && mode === "salvo-skill");
     fireRemainingButton.setAttribute("aria-pressed", String(Boolean(ready && mode === "salvo-skill")));
+    [apButton, heButton].forEach((button) => {
+      const available = canControl && selectedUnit.health > 0 && ATTACK_CODES.has(selectedUnit.code);
+      const current = available && selectedUnit.shellType === button.dataset.ammo;
+      button.disabled = !available;
+      button.classList.toggle("is-loaded", current);
+      button.setAttribute("aria-pressed", String(Boolean(current)));
+    });
+  }
+
+  function loadAmmunition(type) {
+    if (!selectedUnit || selectedUnit.health <= 0 || !ATTACK_CODES.has(selectedUnit.code) ||
+        (concealmentDemo && selectedUnit.team === "enemy") || isAnimating || selectedUnit.shellType === type) return;
+    selectedUnit.shellType = type;
+    selectedUnit.gunReloadPending = true;
+    showMovementArea(selectedUnit);
+    refreshUnitDisplay(selectedUnit);
+    updateDetailPanel(selectedUnit, `${type} selected · guns reload next turn`);
+    unitReadout.textContent = `${selectedUnit.code} · ${type} selected · reloading`;
   }
 
   function setMarkerHeading(shipType, targetCell, options = {}) {
@@ -730,7 +771,7 @@
 
   function queueAttackAim(targetKey, weapon, useRemaining = false) {
     if (!selectedUnit || isAnimating || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit)) return;
-    if (weapon === "gun" && (selectedUnit.gunAttacksRemaining <= 0 || !ATTACK_CODES.has(selectedUnit.code))) return;
+    if (weapon === "gun" && !gunsReady(selectedUnit)) return;
     if (weapon === "torpedo" && (selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code))) return;
     if (useRemaining && !unitAt(targetKey, selectedUnit.id)) return;
     showFacingArea(targetKey, weapon, useRemaining);
@@ -838,11 +879,11 @@
     const sameShip = selectedUnit?.id === shipType.id;
     const previousMode = sameShip ? mode : null;
     if (!sameShip) selectUnit(marker, shipType);
-    const gunsReady = ATTACK_CODES.has(shipType.code) && shipType.gunAttacksRemaining > 0;
+    const gunAvailable = gunsReady(shipType);
     const torpedoesReady = TORPEDO_CODES.has(shipType.code) && !shipType.torpedoed && shipType.torpedoReloadRemaining <= 0;
-    if (torpedoesReady && (!gunsReady || previousMode === "attack" || previousMode === "salvo-skill")) {
+    if (torpedoesReady && (!gunAvailable || previousMode === "attack" || previousMode === "salvo-skill")) {
       activateTorpedoMode();
-    } else if (gunsReady) {
+    } else if (gunAvailable) {
       activateGunMode();
     } else {
       updateDetailPanel(shipType, "No ranged attacks available this turn");
@@ -850,7 +891,7 @@
   }
 
   function activateGunMode() {
-    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !ATTACK_CODES.has(selectedUnit.code) || isAnimating) return;
+    if (!gunsReady(selectedUnit) || isAnimating) return;
     showAttackArea(selectedUnit);
     unitReadout.textContent = `${selectedUnit.code} · Gun range`;
     updateDetailPanel(selectedUnit, "Select firing target");
@@ -864,8 +905,7 @@
   }
 
   function activateFireRemainingSkill() {
-    if (!selectedUnit || selectedUnit.health <= 0 || selectedUnit.gunAttacksRemaining <= 0 ||
-        !ATTACK_CODES.has(selectedUnit.code) || (concealmentDemo && selectedUnit.team === "enemy") || isAnimating) return;
+    if (!gunsReady(selectedUnit) || (concealmentDemo && selectedUnit.team === "enemy") || isAnimating) return;
     showAttackArea(selectedUnit, true);
     unitReadout.textContent = `${selectedUnit.code} · Fire remaining salvos`;
     updateDetailPanel(selectedUnit, `Fire ${selectedUnit.gunAttacksRemaining} remaining salvo${selectedUnit.gunAttacksRemaining === 1 ? "" : "s"}`);
@@ -1054,9 +1094,10 @@
   }
 
   function shellVelocityMissAdjustment(attacker) {
-    if (attacker.apShellVelocity == null) return 0;
+    const velocity = loadedShellVelocity(attacker);
+    if (velocity == null) return 0;
     const velocityProgress = Math.max(0, Math.min(1,
-      (attacker.apShellVelocity - MIN_AP_SHELL_VELOCITY) / (MAX_AP_SHELL_VELOCITY - MIN_AP_SHELL_VELOCITY)));
+      (velocity - MIN_AP_SHELL_VELOCITY) / (MAX_AP_SHELL_VELOCITY - MIN_AP_SHELL_VELOCITY)));
     return -0.10 * velocityProgress;
   }
 
@@ -1094,6 +1135,7 @@
     const angleFromEnd = Math.min(Math.abs(relativeAngle), 180 - Math.abs(relativeAngle));
     const distance = hexDistance(attacker, target);
     const missChance = calculateMissChance(attacker, target, distance, sternQuarter);
+    const shellType = attacker.shellType;
     const ricochetChance = broadside >= 0.98 ? 0 : Math.min(0.55,
       Math.max(0.03, 0.32 - 0.075 * sizeAdvantage) * (1 - broadside) +
       0.13 * bowQuarter * Math.max(0.35, 1 - 0.18 * sizeAdvantage));
@@ -1105,17 +1147,25 @@
     const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 : citadelExposure * (
       0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside) +
       closeRangeProgress * (0.1 * broadside + 0.025 * sizeAdvantage * (1 - broadside)));
-    const overPenChance = Math.min(0.28, 0.15 + 0.04 * sizeAdvantage);
+    const destroyerTarget = target.code === "DD" || target.code === "DE";
+    const overPenThreshold = attacker.gunRange * 2 / 3;
+    const closeOverPenProgress = Math.max(0, (overPenThreshold - distance) / Math.max(1, overPenThreshold));
+    const overPenChance = Math.min(0.75, 0.15 + 0.04 * sizeAdvantage +
+      (destroyerTarget && attacker.mainGunCaliberMm >= 203 ? 0.5 * closeOverPenProgress : 0));
+    const heNonPenChance = Math.min(0.78, 0.26 + 0.24 * (1 - broadside) + 0.06 * sizeDisadvantage);
     const shells = Array.from({ length: shellCount }, () => {
       if (Math.random() < missChance) return { outcome: "miss", damage: 0 };
       const roll = Math.random();
+      if (shellType === "HE") return roll < heNonPenChance
+        ? { outcome: "non-penetration", damage: 0 }
+        : { outcome: "penetration", damage: Math.round(attacker.heAlphaDamage / 3) };
       if (roll < ricochetChance) return { outcome: "ricochet", damage: 0 };
       if (roll < ricochetChance + nonPenChance) return { outcome: "non-penetration", damage: 0 };
       if (roll < ricochetChance + nonPenChance + citadelChance) return { outcome: "citadel", damage: attacker.alphaDamage };
       if (roll < ricochetChance + nonPenChance + citadelChance + overPenChance) return { outcome: "overpenetration", damage: Math.round(attacker.alphaDamage * 0.1) };
       return { outcome: "penetration", damage: Math.round(attacker.alphaDamage / 3) };
     });
-    return { shellType: "AP", targetId: target.id, impactAngle: relativeAngle, shells, totalDamage: shells.reduce((sum, shell) => sum + shell.damage, 0), damageDealt: 0 };
+    return { shellType, targetId: target.id, impactAngle: relativeAngle, shells, totalDamage: shells.reduce((sum, shell) => sum + shell.damage, 0), damageDealt: 0 };
   }
 
   function summarizeSalvo(salvo) {
@@ -1146,9 +1196,9 @@
     const navalTarget = unitAt(targetKey, shipType.id);
     const groups = firingGroups || (shipType.salvoPattern || [shipType.shellCount]).map((shells, index) => ({ shells, index }));
     const shellCount = groups.reduce((sum, group) => sum + group.shells, 0);
-    const shellFlightMs = Math.max(250, 440 * MIN_AP_SHELL_VELOCITY / (shipType.apShellVelocity ?? MIN_AP_SHELL_VELOCITY));
+    const shellFlightMs = Math.max(250, 440 * MIN_AP_SHELL_VELOCITY / (loadedShellVelocity(shipType) ?? MIN_AP_SHELL_VELOCITY));
     const salvo = navalTarget ? resolveApSalvo(shipType, navalTarget, shellCount) : {
-      shellType: "AP", targetId: null, impactAngle: null,
+      shellType: shipType.shellType, targetId: null, impactAngle: null,
       shells: Array.from({ length: shellCount }, () => ({ outcome: "miss", damage: 0 })),
       totalDamage: 0, damageDealt: 0
     };
@@ -1187,7 +1237,8 @@
     await Promise.all(shots);
 
     const hit = salvo.shells.some((shell) => shell.outcome !== "miss");
-    const impactClass = landCells.has(targetKey) || (navalTarget && hit) ? "impact-explosion" : "impact-splash";
+    const impactClass = landCells.has(targetKey) || (navalTarget && hit)
+      ? (salvo.shellType === "HE" ? "impact-he-explosion" : "impact-explosion") : "impact-splash";
     const impact = createEffect(impactClass, destination);
     const impactAnimation = impact.animate([
       { opacity: 0, transform: "translate(-50%, -50%) scale(.15)" },
@@ -1203,7 +1254,7 @@
   }
 
   async function fireVolley(targetKey, useRemaining = false, firingGroups) {
-    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !firingGroups?.length || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
+    if (!gunsReady(selectedUnit) || !firingGroups?.length || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
     const initialTarget = unitAt(targetKey, selectedUnit.id);
     if (useRemaining && (!initialTarget || initialTarget.team === selectedUnit.team)) return;
     isAnimating = true;
@@ -1342,6 +1393,7 @@
         ship.moved = false;
         ship.attacked = false;
         ship.gunAttacksRemaining = ship.gunAttacksPerTurn;
+        ship.gunReloadPending = false;
         ship.airUsed = false;
         if (ship.torpedoReloadRemaining > 0) {
           ship.torpedoReloadRemaining -= 1;
@@ -1449,11 +1501,15 @@
   gunOrderButton.addEventListener("click", activateGunMode);
   torpedoOrderButton.addEventListener("click", activateTorpedoMode);
   fireRemainingButton.addEventListener("click", activateFireRemainingSkill);
+  apButton.addEventListener("click", () => loadAmmunition("AP"));
+  heButton.addEventListener("click", () => loadAmmunition("HE"));
   window.addEventListener("keydown", (event) => {
-    if (event.key.toLowerCase() !== "e" || event.altKey || event.ctrlKey || event.metaKey || event.repeat ||
+    if (!["e", "1", "2"].includes(event.key.toLowerCase()) || event.altKey || event.ctrlKey || event.metaKey || event.repeat ||
         event.target.closest("input, select, textarea, [contenteditable]")) return;
     event.preventDefault();
-    activateFireRemainingSkill();
+    if (event.key === "1") loadAmmunition("AP");
+    else if (event.key === "2") loadAmmunition("HE");
+    else activateFireRemainingSkill();
   });
   developerPanelToggle.addEventListener("click", () => {
     const collapsed = developerPanel.classList.toggle("is-collapsed");
