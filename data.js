@@ -12,7 +12,7 @@
     Pensacola: { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SR", weapon: "10 × 8-inch guns", accent: "#b79a63", rgb: "183, 154, 99" },
     Northampton: { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SR", weapon: "9 × 8-inch guns", accent: "#8da7b8", rgb: "141, 167, 184" },
     "New Orleans": { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SR", weapon: "9 × 8-inch guns", accent: "#718ea4", rgb: "113, 142, 164" },
-    "Des Moines": { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SSR", weapon: "9 × 8-inch automatic guns", accent: "#8299ae", rgb: "130, 153, 174" },
+    "Des Moines": { shipType: "Heavy cruiser", typeCode: "CA", rarity: "UR", weapon: "9 × 8-inch automatic guns", accent: "#8299ae", rgb: "130, 153, 174" },
     Atlanta: { shipType: "Light cruiser", typeCode: "CL", rarity: "SR", weapon: "16 × 5-inch dual-purpose guns", accent: "#79afbd", rgb: "121, 175, 189" },
     Brooklyn: { shipType: "Light cruiser", typeCode: "CL", rarity: "SR", weapon: "15 × 6-inch guns", accent: "#9a91a8", rgb: "154, 145, 168" },
     Omaha: { shipType: "Light cruiser", typeCode: "CL", rarity: "U", weapon: "12 × 6-inch guns", accent: "#7d94a6", rgb: "125, 148, 166" },
