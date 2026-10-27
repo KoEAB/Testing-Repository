@@ -1154,7 +1154,8 @@
     const closeOverPenProgress = Math.max(0, (overPenThreshold - distance) / Math.max(1, overPenThreshold));
     const overPenChance = Math.min(0.75, 0.15 + 0.04 * sizeAdvantage +
       (destroyerTarget && attacker.mainGunCaliberMm >= 203 ? 0.5 * closeOverPenProgress : 0));
-    const heNonPenChance = Math.min(0.78, 0.26 + 0.24 * (1 - broadside) + 0.06 * sizeDisadvantage);
+    const heNonPenChance = destroyerTarget ? 0 : Math.min(0.78,
+      0.26 + 0.24 * (1 - broadside) + 0.06 * sizeDisadvantage);
     const shells = Array.from({ length: shellCount }, () => {
       if (Math.random() < missChance) return { outcome: "miss", damage: 0 };
       const roll = Math.random();

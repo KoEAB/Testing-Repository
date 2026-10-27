@@ -217,6 +217,20 @@ p {
 .ship-search::placeholder { color: var(--muted); }
 .ship-search:focus { border-color: var(--gold); outline: none; }
 
+.shipyard-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.shipyard-quick-links a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.shipyard-quick-links a:hover,
+.shipyard-quick-links a:focus-visible { color: var(--gold); }
+
 .filter-toggle {
   display: inline-flex;
   flex: 0 0 auto;
