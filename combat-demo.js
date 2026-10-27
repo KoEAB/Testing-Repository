@@ -1191,7 +1191,7 @@
     ], { duration: 1050, easing: "ease-out" }).finished.finally(() => popup.remove());
   }
 
-  async function animateVolley(shipType, targetKey, firingGroups) {
+  async function animateVolley(shipType, targetKey, firingGroups, preparedSalvo = null) {
     if (targetIsFriendly(targetKey, shipType)) return;
     const origin = cellCenter(shipType.column, shipType.row);
     const target = parseCellKey(targetKey);
@@ -1200,11 +1200,11 @@
     const groups = firingGroups || (shipType.salvoPattern || [shipType.shellCount]).map((shells, index) => ({ shells, index }));
     const shellCount = groups.reduce((sum, group) => sum + group.shells, 0);
     const shellFlightMs = Math.max(250, 440 * MIN_AP_SHELL_VELOCITY / (loadedShellVelocity(shipType) ?? MIN_AP_SHELL_VELOCITY));
-    const salvo = navalTarget ? resolveApSalvo(shipType, navalTarget, shellCount) : {
+    const salvo = preparedSalvo || (navalTarget ? resolveApSalvo(shipType, navalTarget, shellCount) : {
       shellType: shipType.shellType, targetId: null, impactAngle: null,
       shells: Array.from({ length: shellCount }, () => ({ outcome: "miss", damage: 0 })),
       totalDamage: 0, damageDealt: 0
-    };
+    });
     shipType.lastSalvo = salvo;
     const shots = [];
     groups.forEach((group, groupIndex) => {
@@ -1277,23 +1277,23 @@
     await wait(TURN_DURATION);
     const salvoCount = useRemaining ? shipType.gunAttacksRemaining : 1;
     const volleys = [];
-    const inFlight = new Set();
+    const targetHealthAtStart = initialTarget?.health ?? 0;
+    let projectedDamage = 0;
     for (let index = 0; index < salvoCount; index += 1) {
-      // Keep salvos overlapping, but leave time to observe a sinking before launching more.
-      while (useRemaining && inFlight.size >= 3 && initialTarget.health > 0) {
-        await Promise.race(inFlight);
-      }
-      if (useRemaining && initialTarget.health <= 0) break;
+      // Shell results are determined at launch. Stop before another salvo if the ones
+      // already launched will sink the target, even while their animations are in flight.
+      if (useRemaining && (initialTarget.health <= 0 || projectedDamage >= targetHealthAtStart)) break;
+      const preparedSalvo = useRemaining
+        ? resolveApSalvo(shipType, initialTarget, firingGroups.reduce((sum, group) => sum + group.shells, 0))
+        : null;
+      if (preparedSalvo) projectedDamage += preparedSalvo.totalDamage;
       shipType.gunAttacksRemaining -= 1;
       shipType.attacked = shipType.gunAttacksRemaining <= 0;
       refreshUnitDisplay(shipType);
       updateDetailPanel(shipType, useRemaining ? `Firing salvo ${index + 1} of ${salvoCount}` : "Firing volley");
       unitReadout.textContent = `${shipType.code} · Salvo ${index + 1} of ${salvoCount}`;
-      const volley = animateVolley(shipType, targetKey, firingGroups);
-      volleys.push(volley);
-      inFlight.add(volley);
-      volley.then(() => inFlight.delete(volley), () => inFlight.delete(volley));
-      if (useRemaining && index + 1 < salvoCount) await wait(180);
+      volleys.push(animateVolley(shipType, targetKey, firingGroups, preparedSalvo));
+      if (useRemaining && index + 1 < salvoCount && projectedDamage < targetHealthAtStart) await wait(180);
     }
     await Promise.all(volleys);
     renderDeveloperLists();
