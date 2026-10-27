@@ -54,6 +54,8 @@
     ["AR", { label: "Repair ship", group: "support" }],
     ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", ...window.SHIP_COMBAT_DATA["USS North Carolina"] }],
     ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", ...window.SHIP_COMBAT_DATA["USS New Orleans"] }],
+    ["uss-helena", { code: "CL", label: "USS Helena", group: "cruiser", ...window.SHIP_COMBAT_DATA["USS Helena"] }],
+    ["uss-des-moines", { code: "CA", label: "USS Des Moines", group: "cruiser", ...window.SHIP_COMBAT_DATA["USS Des Moines"] }],
     ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", ...window.SHIP_COMBAT_DATA["USS Fletcher"] }]
   ].map(([code, details]) => [code, { code, ...details }]));
   const shipTypes = concealmentDemo ? [

@@ -12,6 +12,7 @@
     Pensacola: { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SR", weapon: "10 × 8-inch guns", accent: "#b79a63", rgb: "183, 154, 99" },
     Northampton: { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SR", weapon: "9 × 8-inch guns", accent: "#8da7b8", rgb: "141, 167, 184" },
     "New Orleans": { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SR", weapon: "9 × 8-inch guns", accent: "#718ea4", rgb: "113, 142, 164" },
+    "Des Moines": { shipType: "Heavy cruiser", typeCode: "CA", rarity: "SSR", weapon: "9 × 8-inch automatic guns", accent: "#8299ae", rgb: "130, 153, 174" },
     Atlanta: { shipType: "Light cruiser", typeCode: "CL", rarity: "SR", weapon: "16 × 5-inch dual-purpose guns", accent: "#79afbd", rgb: "121, 175, 189" },
     Brooklyn: { shipType: "Light cruiser", typeCode: "CL", rarity: "SR", weapon: "15 × 6-inch guns", accent: "#9a91a8", rgb: "154, 145, 168" },
     Omaha: { shipType: "Light cruiser", typeCode: "CL", rarity: "U", weapon: "12 × 6-inch guns", accent: "#7d94a6", rgb: "125, 148, 166" },
@@ -238,6 +239,11 @@
       origin: "New York Navy Yard", affinity: "Pacific Theater"
     },
     {
+      name: "USS Des Moines", hullNumber: "CA-134", shipClass: "Des Moines",
+      description: "Commissioned in 1948, USS Des Moines was the lead ship of the U.S. Navy's final heavy-cruiser class. Her automatic 8-inch guns gave her an exceptional rate of fire; she served with the Atlantic and Sixth Fleets but did not see combat.",
+      origin: "Fore River Shipyard", affinity: "Atlantic and Mediterranean"
+    },
+    {
       name: "USS Omaha", hullNumber: "CL-4", shipClass: "Omaha", rarity: "R",
       description: "Lead ship of America's first postwar scout-cruiser class, USS Omaha served mainly on Atlantic and South Atlantic patrols. Her boarding party captured the German blockade runner Odenwald before American entry into the war.",
       origin: "Todd Dry Dock", affinity: "Atlantic Theater"
@@ -373,7 +379,7 @@
     { accent: "#7e8797", rgb: "126, 135, 151" }
   ];
 
-  placeholderNames.forEach((name, index) => {
+  placeholderNames.slice(0, Math.max(0, 64 - ships.length)).forEach((name, index) => {
     const number = ships.length + index + 1;
     const color = placeholderPalette[index % placeholderPalette.length];
     window.CHARACTERS.push({
