@@ -1057,6 +1057,7 @@
     const sternQuarter = Math.max(0, -Math.sin(2 * aspectRadians));
     const sizeAdvantage = Math.max(0, (SIZE_RANK[attacker.code] || 3) - (SIZE_RANK[target.code] || 3));
     const sizeDisadvantage = Math.max(0, (SIZE_RANK[target.code] || 3) - (SIZE_RANK[attacker.code] || 3));
+    const angleFromEnd = Math.min(Math.abs(relativeAngle), 180 - Math.abs(relativeAngle));
     const distance = hexDistance(attacker, target);
     const rangeMissChance = attacker.accuracyProfile === "north-carolina"
       ? northCarolinaMissChance(attacker, target, distance)
@@ -1068,9 +1069,12 @@
       0.13 * bowQuarter * Math.max(0.35, 1 - 0.18 * sizeAdvantage));
     const nonPenChance = Math.min(0.26, 0.08 + 0.1 * (1 - broadside) + 0.025 * sizeDisadvantage);
     const closeRangeProgress = Math.max(0, (attacker.concealmentRange / 2 - distance) / Math.max(1, attacker.concealmentRange / 2));
-    const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 :
+    const minimumCitadelAngle = sizeAdvantage > 0 ? 45 : 65;
+    const citadelExposure = angleFromEnd < minimumCitadelAngle ? 0 :
+      0.08 + 0.92 * (angleFromEnd - minimumCitadelAngle) / (90 - minimumCitadelAngle);
+    const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 : citadelExposure * (
       0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside) +
-      closeRangeProgress * (0.1 * broadside + 0.025 * sizeAdvantage * (1 - broadside));
+      closeRangeProgress * (0.1 * broadside + 0.025 * sizeAdvantage * (1 - broadside)));
     const overPenChance = Math.min(0.28, 0.15 + 0.04 * sizeAdvantage);
     const shells = Array.from({ length: shellCount }, () => {
       if (Math.random() < missChance) return { outcome: "miss", damage: 0 };

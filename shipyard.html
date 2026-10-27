@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Browse the Naval Command ship profile registry." />
     <title>Shipyard — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-17" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-17" />
-    <script src="data.js?v=navy-17" defer></script>
-    <script src="app.js?v=navy-17" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-39" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-39" />
+    <script src="data.js?v=navy-39" defer></script>
+    <script src="app.js?v=navy-39" defer></script>
   </head>
   <body class="selection-page">
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
     <header class="site-header">
-      <a class="brand" href="lobby.html?v=navy-17" aria-label="Return to Home Port">
+      <a class="brand" href="lobby.html?v=navy-39" aria-label="Return to Home Port">
         <span class="brand-mark" aria-hidden="true">N</span>
         <span>Naval Command</span>
       </a>
-      <a class="back-link" href="lobby.html?v=navy-17">
+      <a class="back-link" href="lobby.html?v=navy-39">
         <span aria-hidden="true">←</span> Home Port
       </a>
     </header>
@@ -30,17 +30,20 @@
         <h1 id="page-title">Ship profiles.</h1>
         <div class="selection-tools">
           <p class="intro-copy">Select a profile to view its details.</p>
-          <button
-            class="filter-toggle"
-            id="filter-toggle"
-            type="button"
-            aria-expanded="false"
-            aria-controls="filter-panel"
-          >
-            <span class="filter-toggle-symbol" aria-hidden="true">≡</span>
-            <span>Filter ships</span>
-            <span class="filter-active-count" id="filter-active-count">0</span>
-          </button>
+          <div class="selection-actions">
+            <input class="ship-search" id="ship-search" type="search" placeholder="Search ships by name" aria-label="Search ships by name" autocomplete="off" />
+            <button
+              class="filter-toggle"
+              id="filter-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="filter-panel"
+            >
+              <span class="filter-toggle-symbol" aria-hidden="true">≡</span>
+              <span>Filter ships</span>
+              <span class="filter-active-count" id="filter-active-count">0</span>
+            </button>
+          </div>
         </div>
 
         <div class="filter-panel" id="filter-panel" hidden>
@@ -48,7 +51,7 @@
             <div>
               <p class="filter-kicker">Roster filters</p>
               <p class="filter-result-count" id="filter-result-count" aria-live="polite">
-                58 warships available
+                Warships available
               </p>
             </div>
             <button class="filter-clear" id="filter-clear" type="button" disabled>Clear all</button>
@@ -70,9 +73,9 @@
       <section class="roster-section" aria-label="Warship roster">
         <div class="roster" id="character-roster"></div>
         <div class="filter-empty" id="filter-empty" hidden>
-          <strong>No ships match these filters.</strong>
-          <span>Choose another combination or clear the current selection.</span>
-          <button id="filter-empty-clear" type="button">Clear filters</button>
+          <strong>No ships match your search or filters.</strong>
+          <span>Try another name or clear the current selection.</span>
+          <button id="filter-empty-clear" type="button">Clear search and filters</button>
         </div>
       </section>
 
@@ -90,7 +93,7 @@
     </main>
 
     <footer class="site-footer">
-      <span>58 warship records</span>
+      <span id="roster-total">Warship records</span>
       <span class="footer-rule" aria-hidden="true"></span>
       <span>Registry view</span>
     </footer>

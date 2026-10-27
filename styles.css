@@ -187,15 +187,35 @@ p {
 }
 
 .selection-tools {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
+  display: block;
 }
 
 .selection-tools .intro-copy {
   margin-bottom: 0;
 }
+
+.selection-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ship-search {
+  min-width: 0;
+  width: 188px;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid rgba(154, 183, 207, 0.34);
+  border-radius: 0;
+  background: rgba(8, 24, 39, 0.88);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 12px;
+}
+
+.ship-search::placeholder { color: var(--muted); }
+.ship-search:focus { border-color: var(--gold); outline: none; }
 
 .filter-toggle {
   display: inline-flex;
@@ -935,6 +955,43 @@ p {
   display: grid;
 }
 
+.combat-stats-section {
+  margin-top: 72px;
+  padding-top: 42px;
+  border-top: 1px solid var(--line);
+}
+
+.combat-stats-section .section-label { margin-bottom: 24px; }
+
+.combat-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.combat-stats-grid > div {
+  min-height: 98px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  background: rgba(8, 24, 39, 0.72);
+}
+
+.combat-stats-grid dt {
+  margin-bottom: 10px;
+  color: var(--faint);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.combat-stats-grid dd {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 22px;
+}
+
 .ability {
   display: grid;
   grid-template-columns: 42px 1fr;
@@ -1116,10 +1173,13 @@ p {
     display: block;
   }
 
+  .selection-actions { margin-top: 18px; }
+
+  .ship-search { flex: 1; width: auto; }
+
   .filter-toggle {
-    width: 100%;
     justify-content: center;
-    margin-top: 18px;
+    margin-top: 0;
   }
 
   .filter-panel {
@@ -1173,6 +1233,8 @@ p {
     margin-top: 72px;
   }
 
+  .combat-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
   .character-navigation {
     grid-template-columns: 1fr 1fr;
   }
@@ -1185,6 +1247,9 @@ p {
 }
 
 @media (max-width: 480px) {
+  .selection-actions { flex-direction: column; }
+  .ship-search, .selection-actions .filter-toggle { width: 100%; }
+
   .roster {
     grid-template-columns: 1fr;
   }

@@ -18,7 +18,8 @@
     Porter: { shipType: "Destroyer", typeCode: "DD", rarity: "C", weapon: "8 × 5-inch guns", accent: "#7794a8", rgb: "119, 148, 168" },
     Benham: { shipType: "Destroyer", typeCode: "DD", rarity: "U", weapon: "4 × 5-inch guns", accent: "#829bab", rgb: "130, 155, 171" },
     Sims: { shipType: "Destroyer", typeCode: "DD", rarity: "R", weapon: "5 × 5-inch guns", accent: "#7395ad", rgb: "115, 149, 173" },
-    Benson: { shipType: "Destroyer", typeCode: "DD", rarity: "U", weapon: "5 × 5-inch guns", accent: "#8196a6", rgb: "129, 150, 166" }
+    Benson: { shipType: "Destroyer", typeCode: "DD", rarity: "U", weapon: "5 × 5-inch guns", accent: "#8196a6", rgb: "129, 150, 166" },
+    Fletcher: { shipType: "Destroyer", typeCode: "DD", rarity: "SSR", weapon: "5 × 5-inch guns", accent: "#799bac", rgb: "121, 155, 172" }
   };
 
   const ships = [
@@ -315,8 +316,29 @@
       name: "USS Madison", hullNumber: "DD-425", shipClass: "Benson", rarity: "U",
       description: "USS Madison protected convoys and supported amphibious operations from Operation Torch through the Mediterranean campaigns before later Pacific service. She earned five battle stars.",
       origin: "Boston Navy Yard", affinity: "Atlantic and Pacific"
+    },
+    {
+      name: "USS Fletcher", hullNumber: "DD-445", shipClass: "Fletcher", rarity: "SSR",
+      description: "Lead ship of the Fletcher-class destroyers, USS Fletcher entered Pacific service in 1942. She fought through the Solomon Islands and later campaigns, earning fifteen battle stars during World War II.",
+      origin: "Federal Shipbuilding", affinity: "Pacific Theater"
     }
   ];
+
+  const combatProfiles = {
+    "USS North Carolina": {
+      hp: 660, speedKnots: 27.5, movementRange: 5, concealmentRange: 15,
+      gunRange: 23, salvosPerTurn: 1, shellsPerSalvo: 9, apAlpha: 131, ffa: 32, bfa: 31
+    },
+    "USS New Orleans": {
+      hp: 350, speedKnots: 32.5, movementRange: 5, concealmentRange: 12,
+      gunRange: 16, salvosPerTurn: 2, shellsPerSalvo: 9, apAlpha: 46, ffa: 34, bfa: 30
+    },
+    "USS Fletcher": {
+      hp: 170, speedKnots: 36.5, movementRange: 5, concealmentRange: 7,
+      gunRange: 13, salvosPerTurn: 4, shellsPerSalvo: 5, apAlpha: 21, ffa: 30, bfa: 38,
+      torpedoRange: 10, torpedoDamage: 85, torpedoReloadTurns: 3
+    }
+  };
 
   function createAbilities(shipType) {
     const category = shipType.toLowerCase();
@@ -353,6 +375,7 @@
       weapon: profile.weapon,
       traits: ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
       abilities: createAbilities(profile.shipType),
+      combatStats: combatProfiles[ship.name] || null,
       accent: ship.accent || profile.accent,
       rgb: ship.rgb || profile.rgb
     };

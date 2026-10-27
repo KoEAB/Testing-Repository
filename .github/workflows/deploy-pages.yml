@@ -44,29 +44,29 @@ jobs:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-38" --output /tmp/published-index.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-38" --output /tmp/published-lobby.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipyard.html?v=navy-17" --output /tmp/published-shipyard.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-38" --output /tmp/published-campaign.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.html?v=navy-38" --output /tmp/published-combat-demo.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.js?v=navy-38" --output /tmp/published-combat-demo.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/concealment-demo.html?v=navy-38" --output /tmp/published-concealment-demo.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shop.html?v=navy-17" --output /tmp/published-shop.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipbuilding.html?v=navy-17" --output /tmp/published-shipbuilding.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/gear.html?v=navy-17" --output /tmp/published-gear.html \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-17" --output /tmp/published-data.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/app.js?v=navy-17" --output /tmp/published-app.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/character.js?v=navy-17" --output /tmp/published-character.js \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/enterprise-shipyard-icon.png?v=navy-17" --output /tmp/enterprise.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/lexington-shipyard-icon.png?v=navy-17" --output /tmp/lexington.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-17" --output /tmp/hornet.png \
-              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-17" --output /tmp/yorktown.png \
+            if curl --fail --silent --show-error --location "$SITE_URL?v=navy-39" --output /tmp/published-index.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/lobby.html?v=navy-39" --output /tmp/published-lobby.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipyard.html?v=navy-39" --output /tmp/published-shipyard.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/campaign.html?v=navy-39" --output /tmp/published-campaign.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.html?v=navy-39" --output /tmp/published-combat-demo.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/combat-demo.js?v=navy-39" --output /tmp/published-combat-demo.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/concealment-demo.html?v=navy-39" --output /tmp/published-concealment-demo.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shop.html?v=navy-39" --output /tmp/published-shop.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/shipbuilding.html?v=navy-39" --output /tmp/published-shipbuilding.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/gear.html?v=navy-39" --output /tmp/published-gear.html \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/data.js?v=navy-39" --output /tmp/published-data.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/app.js?v=navy-39" --output /tmp/published-app.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/character.js?v=navy-39" --output /tmp/published-character.js \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/enterprise-shipyard-icon.png?v=navy-39" --output /tmp/enterprise.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/lexington-shipyard-icon.png?v=navy-39" --output /tmp/lexington.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/hornet-shipyard-icon.png?v=navy-39" --output /tmp/hornet.png \
+              && curl --fail --silent --show-error --location "${SITE_URL%/}/images/warships/yorktown-shipyard-icon.png?v=navy-39" --output /tmp/yorktown.png \
               && grep --fixed-strings --quiet "Click to start" /tmp/published-index.html \
-              && grep --fixed-strings --quiet 'href="lobby.html?v=navy-38"' /tmp/published-index.html \
-              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-38"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="lobby.html?v=navy-39"' /tmp/published-index.html \
+              && grep --fixed-strings --quiet 'href="campaign.html?v=navy-39"' /tmp/published-lobby.html \
               && grep --fixed-strings --quiet '<strong>Combat</strong>' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="combat-demo.html?v=navy-38"' /tmp/published-campaign.html \
-              && grep --fixed-strings --quiet 'href="concealment-demo.html?v=navy-38"' /tmp/published-campaign.html \
+              && grep --fixed-strings --quiet 'href="combat-demo.html?v=navy-39"' /tmp/published-campaign.html \
+              && grep --fixed-strings --quiet 'href="concealment-demo.html?v=navy-39"' /tmp/published-campaign.html \
               && grep --fixed-strings --quiet 'data-mode="concealment"' /tmp/published-concealment-demo.html \
               && grep --fixed-strings --quiet 'DEFAULT_CONCEALMENT = 10' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'visibleToFriendly = ship.team !== "enemy" || ship.health <= 0 || detected' /tmp/published-combat-demo.js \
@@ -114,12 +114,13 @@ jobs:
               && grep --fixed-strings --quiet 'id="turn-number"' /tmp/published-combat-demo.html \
               && grep --fixed-strings --quiet 'CVE: carrier' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'function setScale' /tmp/published-combat-demo.js \
-              && grep --fixed-strings --quiet 'href="shipyard.html?v=navy-17"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="shop.html?v=navy-17"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="shipbuilding.html?v=navy-17"' /tmp/published-lobby.html \
-              && grep --fixed-strings --quiet 'href="gear.html?v=navy-17"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shipyard.html?v=navy-39"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shop.html?v=navy-39"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="shipbuilding.html?v=navy-39"' /tmp/published-lobby.html \
+              && grep --fixed-strings --quiet 'href="gear.html?v=navy-39"' /tmp/published-lobby.html \
               && grep --fixed-strings --quiet 'id="alternate-toggle"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet 'id="filter-toggle"' /tmp/published-shipyard.html \
+              && grep --fixed-strings --quiet 'id="ship-search"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet 'id="type-filters"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet 'id="rarity-filters"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet "Select a profile to view its details" /tmp/published-shipyard.html \
@@ -134,6 +135,10 @@ jobs:
               && grep --fixed-strings --quiet 'name: "USS Brooklyn"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'name: "USS Marblehead"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'name: "USS Madison"' /tmp/published-data.js \
+              && grep --fixed-strings --quiet 'name: "USS Fletcher"' /tmp/published-data.js \
+              && grep --fixed-strings --quiet 'combatStats: combatProfiles[ship.name]' /tmp/published-data.js \
+              && grep --fixed-strings --quiet 'combat-stats-section' /tmp/published-character.js \
+              && grep --fixed-strings --quiet 'const minimumCitadelAngle = sizeAdvantage > 0 ? 45 : 65' /tmp/published-combat-demo.js \
               && grep --fixed-strings --quiet 'shipClass: "Yorktown"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'hullNumber: "CV-6"' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'typeCode: "CV"' /tmp/published-data.js \
@@ -142,7 +147,7 @@ jobs:
               && grep --fixed-strings --quiet 'defaultImage: null' /tmp/published-data.js \
               && grep --fixed-strings --quiet 'alternateImage: "images/warships/enterprise-shipyard-icon.png"' /tmp/published-data.js \
               && grep --fixed-strings --quiet '"墨潮"' /tmp/published-data.js \
-              && grep --fixed-strings --quiet '58 warship records' /tmp/published-shipyard.html \
+              && grep --fixed-strings --quiet 'id="roster-total"' /tmp/published-shipyard.html \
               && grep --fixed-strings --quiet 'portrait=default' /tmp/published-app.js \
               && grep --fixed-strings --quiet 'show-alternate-portraits' /tmp/published-app.js \
               && grep --fixed-strings --quiet 'activeFilters' /tmp/published-app.js \

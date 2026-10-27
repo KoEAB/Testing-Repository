@@ -32,6 +32,8 @@
   const filterEmpty = document.querySelector("#filter-empty");
   const filterActiveCount = document.querySelector("#filter-active-count");
   const filterResultCount = document.querySelector("#filter-result-count");
+  const shipSearch = document.querySelector("#ship-search");
+  const rosterTotal = document.querySelector("#roster-total");
   const typeFilters = document.querySelector("#type-filters");
   const rarityFilters = document.querySelector("#rarity-filters");
   const activeFilters = {
@@ -53,7 +55,7 @@
     link.dataset.characterId = character.id;
     link.dataset.shipType = character.typeCode || "";
     link.dataset.rarity = character.rarity || "";
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-17`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-39`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
@@ -141,7 +143,8 @@
   }
 
   function applyFilters() {
-    const activeCount = activeFilters.types.size + activeFilters.rarities.size;
+    const query = shipSearch.value.trim().replace(/\s+/g, " ").toLowerCase();
+    const activeCount = activeFilters.types.size + activeFilters.rarities.size + Number(Boolean(query));
     const filtering = activeCount > 0;
     let visibleShips = 0;
 
@@ -151,8 +154,9 @@
         activeFilters.types.size === 0 || activeFilters.types.has(character.typeCode);
       const matchesRarity =
         activeFilters.rarities.size === 0 || activeFilters.rarities.has(character.rarity);
+      const matchesName = character.name.toLowerCase().includes(query);
       const matches = filtering
-        ? !character.placeholder && matchesType && matchesRarity
+        ? !character.placeholder && matchesType && matchesRarity && matchesName
         : true;
 
       link.hidden = !matches;
@@ -170,6 +174,7 @@
   }
 
   function clearFilters() {
+    shipSearch.value = "";
     activeFilters.types.clear();
     activeFilters.rarities.clear();
     document.querySelectorAll(".filter-chip.is-selected").forEach((button) => {
@@ -187,8 +192,10 @@
 
   renderFilterOptions(typeFilters, SHIP_TYPES, "types");
   renderFilterOptions(rarityFilters, RARITIES, "rarities");
+  rosterTotal.textContent = `${realCharacters.length} warship records`;
   applyFilters();
 
+  shipSearch.addEventListener("input", applyFilters);
   filterToggle.addEventListener("click", () => {
     setFilterPanel(filterPanel.hidden);
   });
@@ -221,7 +228,7 @@
       : "切换副图";
 
     roster.querySelectorAll(".character-card").forEach((link) => {
-      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-17`;
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-39`;
     });
   });
 })();
