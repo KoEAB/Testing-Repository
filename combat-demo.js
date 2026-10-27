@@ -17,6 +17,9 @@
   const TORPEDO_RANGE = 4;
   const TURN_DURATION = 300;
   const DEFAULT_CONCEALMENT = 10;
+  const MIN_AP_SHELL_VELOCITY = 701;
+  const MAX_AP_SHELL_VELOCITY = 914;
+  const DEFAULT_TARGET_SPEED_KNOTS = 29.5;
   const concealmentDemo = document.body.dataset.mode === "concealment";
   const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
   const TORPEDO_CODES = new Set(["SS", "SSV", "DD", "DE"]);
@@ -48,9 +51,9 @@
     ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
     ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
     ["AR", { label: "Repair ship", group: "support" }],
-    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, speedKnots: 27.5, shellCount: 9, salvoPattern: [3, 3, 3], turretPositions: ["forward", "forward", "aft"], forwardFiringAngle: 32, backwardFiringAngle: 31, alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
-    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", health: 350, speedKnots: 32.5, shellCount: 9, salvoPattern: [3, 3, 3], turretPositions: ["forward", "forward", "aft"], forwardFiringAngle: 34, backwardFiringAngle: 30, alphaDamage: 46, gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
-    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", health: 170, speedKnots: 36.5, shellCount: 5, salvoPattern: [1, 1, 1, 1, 1], turretPositions: ["forward", "forward", "aft", "aft", "aft"], forwardFiringAngle: 30, backwardFiringAngle: 38, salvoGroupGapMs: 75, alphaDamage: 21, gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
+    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", ...window.SHIP_COMBAT_DATA["USS North Carolina"] }],
+    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", ...window.SHIP_COMBAT_DATA["USS New Orleans"] }],
+    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", ...window.SHIP_COMBAT_DATA["USS Fletcher"] }]
   ].map(([code, details]) => [code, { code, ...details }]));
   const shipTypes = concealmentDemo ? [
     ["uss-fletcher", "friendly", 17, 24], ["uss-new-orleans", "friendly", 15, 25], ["uss-north-carolina", "friendly", 14, 18],
@@ -83,6 +86,8 @@
       health: ship.health ?? stats.health,
       maxHealth: ship.health ?? stats.health,
       speedKnots: ship.speedKnots ?? null,
+      movementRange: ship.movementRange ?? MOVE_RANGE,
+      apShellVelocity: ship.apShellVelocity ?? null,
       gunDamage: ship.gunDamage ?? stats.gun ?? 0,
       shellType: "AP",
       shellCount: ship.shellCount ?? (stats.gun ? 3 : 0),
@@ -152,6 +157,7 @@
   const detailAttack = document.querySelector("#unit-detail-attack");
   const detailGunArcs = document.querySelector("#unit-detail-gun-arcs");
   const detailSalvo = document.querySelector("#unit-detail-salvo");
+  const detailShellVelocity = document.querySelector("#unit-detail-shell-velocity");
   const detailLastSalvo = document.querySelector("#unit-detail-last-salvo");
   const detailTorpedo = document.querySelector("#unit-detail-torpedo");
   const detailStatus = document.querySelector("#unit-detail-status");
@@ -480,7 +486,7 @@
     while (queue.length) {
       const currentKey = queue.shift();
       const currentDistance = distance.get(currentKey);
-      if (currentDistance >= MOVE_RANGE) continue;
+      if (currentDistance >= shipType.movementRange) continue;
       const current = parseCellKey(currentKey);
       getNeighbors(current.column, current.row).forEach((neighbor) => {
         const neighborKey = cellKey(neighbor.column, neighbor.row);
@@ -640,7 +646,7 @@
     detailHealth.textContent = `${shipType.health} / ${shipType.maxHealth}`;
     detailSpeed.textContent = shipType.speedKnots == null ? "Not specified" : `${shipType.speedKnots} knots`;
     detailConcealment.textContent = `${shipType.concealmentRange} hexes · ${unitElements.get(shipType.id)?.classList.contains("is-detected") ? "Detected" : "Undetected"}`;
-    detailMovement.textContent = shipType.moved ? "Spent" : "Ready · 5 hexes";
+    detailMovement.textContent = shipType.moved ? "Spent" : `Ready · ${shipType.movementRange} hexes`;
     const shotsRemaining = shipType.gunAttacksRemaining;
     detailAttack.textContent = canAttack
       ? (shotsRemaining > 0 ? `Ready · ${shipType.gunRange} tiles · ${shotsRemaining} shot${shotsRemaining === 1 ? "" : "s"}` : `Spent · ${shipType.gunRange} tiles`)
@@ -648,6 +654,7 @@
     detailGunArcs.textContent = shipType.forwardFiringAngle == null ? "Not specified"
       : `FFA ${shipType.forwardFiringAngle}° · BFA ${shipType.backwardFiringAngle}°`;
     detailSalvo.textContent = canAttack ? `${shipType.shellType} · ${shipType.shellCount} shells · ${shipType.alphaDamage} alpha each` : "Unavailable";
+    detailShellVelocity.textContent = canAttack && shipType.apShellVelocity != null ? `${shipType.apShellVelocity} m/s` : "Not specified";
     detailLastSalvo.textContent = shipType.lastSalvo ? summarizeSalvo(shipType.lastSalvo) : "—";
     detailTorpedo.textContent = TORPEDO_CODES.has(shipType.code)
       ? (shipType.torpedoReloadRemaining > 0
@@ -1046,6 +1053,33 @@
     return missAtConcealment + (0.72 - missAtConcealment) * longRangeProgress;
   }
 
+  function shellVelocityMissAdjustment(attacker) {
+    if (attacker.apShellVelocity == null) return 0;
+    const velocityProgress = Math.max(0, Math.min(1,
+      (attacker.apShellVelocity - MIN_AP_SHELL_VELOCITY) / (MAX_AP_SHELL_VELOCITY - MIN_AP_SHELL_VELOCITY)));
+    return -0.10 * velocityProgress;
+  }
+
+  function targetSpeedMissAdjustment(target) {
+    if (target.speedKnots == null) return 0;
+    // 20.5–38.5 knots is the ordinary range. This smooth curve stays bounded above it.
+    const speedOffset = target.speedKnots - DEFAULT_TARGET_SPEED_KNOTS;
+    return 0.10 * speedOffset / (9 + Math.abs(speedOffset));
+  }
+
+  function calculateMissChance(attacker, target, distance, sternQuarter) {
+    const rangeMissChance = attacker.accuracyProfile === "north-carolina"
+      ? northCarolinaMissChance(attacker, target, distance)
+      : Math.min(0.4, Math.max(0.12, 0.17 + 0.18 * distance / attacker.gunRange - 0.02 * ((SIZE_RANK[target.code] || 3) - 3)));
+    let chance = rangeMissChance + 0.09 * sternQuarter +
+      shellVelocityMissAdjustment(attacker) + targetSpeedMissAdjustment(target);
+    if (attacker.accuracyProfile === "north-carolina") {
+      if (distance <= attacker.concealmentRange) chance = Math.min(chance, 0.33);
+      if (distance >= attacker.gunRange) chance = Math.max(chance, 0.67);
+    }
+    return Math.max(0.05, Math.min(0.90, chance));
+  }
+
   function resolveApSalvo(attacker, target, shellCount = attacker.shellCount) {
     const from = cellCenter(attacker.column, attacker.row);
     const to = cellCenter(target.column, target.row);
@@ -1059,11 +1093,7 @@
     const sizeDisadvantage = Math.max(0, (SIZE_RANK[target.code] || 3) - (SIZE_RANK[attacker.code] || 3));
     const angleFromEnd = Math.min(Math.abs(relativeAngle), 180 - Math.abs(relativeAngle));
     const distance = hexDistance(attacker, target);
-    const rangeMissChance = attacker.accuracyProfile === "north-carolina"
-      ? northCarolinaMissChance(attacker, target, distance)
-      : Math.min(0.4, Math.max(0.12, 0.17 + 0.18 * distance / attacker.gunRange - 0.02 * ((SIZE_RANK[target.code] || 3) - 3)));
-    const missChance = Math.min(attacker.accuracyProfile === "north-carolina" && distance <= attacker.concealmentRange ? 0.33 : 0.95,
-      rangeMissChance + 0.09 * sternQuarter);
+    const missChance = calculateMissChance(attacker, target, distance, sternQuarter);
     const ricochetChance = broadside >= 0.98 ? 0 : Math.min(0.55,
       Math.max(0.03, 0.32 - 0.075 * sizeAdvantage) * (1 - broadside) +
       0.13 * bowQuarter * Math.max(0.35, 1 - 0.18 * sizeAdvantage));
@@ -1116,6 +1146,7 @@
     const navalTarget = unitAt(targetKey, shipType.id);
     const groups = firingGroups || (shipType.salvoPattern || [shipType.shellCount]).map((shells, index) => ({ shells, index }));
     const shellCount = groups.reduce((sum, group) => sum + group.shells, 0);
+    const shellFlightMs = Math.max(250, 440 * MIN_AP_SHELL_VELOCITY / (shipType.apShellVelocity ?? MIN_AP_SHELL_VELOCITY));
     const salvo = navalTarget ? resolveApSalvo(shipType, navalTarget, shellCount) : {
       shellType: "AP", targetId: null, impactAngle: null,
       shells: Array.from({ length: shellCount }, () => ({ outcome: "miss", damage: 0 })),
@@ -1147,7 +1178,7 @@
           const animation = shell.animate([
             { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
             { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
-          ], { duration: 440, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
+          ], { duration: shellFlightMs, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
           await animation.finished;
           shell.remove();
         })());

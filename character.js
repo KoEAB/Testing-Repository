@@ -15,7 +15,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="shipyard.html?v=navy-39">Return to Shipyard</a>
+        <a class="primary-button" href="shipyard.html?v=navy-40">Return to Shipyard</a>
       </section>
     `;
     return;
@@ -40,7 +40,7 @@
 
       <nav class="character-navigation empty-navigation" aria-label="Browse warships">
         ${renderAdjacentLink(character, -1, "上一项")}
-        <a class="all-characters" href="shipyard.html?v=navy-39">全部档案</a>
+        <a class="all-characters" href="shipyard.html?v=navy-40">全部档案</a>
         ${renderAdjacentLink(character, 1, "下一项")}
       </nav>
     `;
@@ -71,19 +71,20 @@
       <p class="section-label">Combat statistics</p>
       <dl class="combat-stats-grid">
         ${[
-          ["HP", combatStats.hp], ["Speed", `${combatStats.speedKnots} knots`],
+          ["HP", combatStats.health], ["Speed", `${combatStats.speedKnots} knots`],
           ["Movement", `${combatStats.movementRange} hexes / turn`],
           ["Concealment", `${combatStats.concealmentRange} hexes`],
           ["Gun range", `${combatStats.gunRange} hexes`],
-          ["Salvos / turn", combatStats.salvosPerTurn],
-          ["Shells / salvo", combatStats.shellsPerSalvo],
-          ["AP alpha / shell", combatStats.apAlpha],
-          ["Forward firing angle", `${combatStats.ffa}°`],
-          ["Backward firing angle", `${combatStats.bfa}°`],
+          ["Salvos / turn", combatStats.gunAttacksPerTurn],
+          ["Shells / salvo", combatStats.shellCount],
+          ["AP alpha / shell", combatStats.alphaDamage],
+          ["AP shell velocity", `${combatStats.apShellVelocity} m/s`],
+          ["Forward firing angle", `${combatStats.forwardFiringAngle}°`],
+          ["Backward firing angle", `${combatStats.backwardFiringAngle}°`],
           ...(combatStats.torpedoRange == null ? [] : [
             ["Torpedo range", `${combatStats.torpedoRange} hexes`],
             ["Torpedo damage", combatStats.torpedoDamage],
-            ["Torpedo reload", `${combatStats.torpedoReloadTurns} turns`]
+            ["Torpedo reload", `${combatStats.torpedoReloadDuration} turns`]
           ])
         ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("")}
       </dl>
@@ -134,7 +135,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="shipyard.html?v=navy-39">All profiles</a>
+      <a class="all-characters" href="shipyard.html?v=navy-40">All profiles</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -147,7 +148,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-39">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-40">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>

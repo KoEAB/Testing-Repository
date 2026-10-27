@@ -324,22 +324,6 @@
     }
   ];
 
-  const combatProfiles = {
-    "USS North Carolina": {
-      hp: 660, speedKnots: 27.5, movementRange: 5, concealmentRange: 15,
-      gunRange: 23, salvosPerTurn: 1, shellsPerSalvo: 9, apAlpha: 131, ffa: 32, bfa: 31
-    },
-    "USS New Orleans": {
-      hp: 350, speedKnots: 32.5, movementRange: 5, concealmentRange: 12,
-      gunRange: 16, salvosPerTurn: 2, shellsPerSalvo: 9, apAlpha: 46, ffa: 34, bfa: 30
-    },
-    "USS Fletcher": {
-      hp: 170, speedKnots: 36.5, movementRange: 5, concealmentRange: 7,
-      gunRange: 13, salvosPerTurn: 4, shellsPerSalvo: 5, apAlpha: 21, ffa: 30, bfa: 38,
-      torpedoRange: 10, torpedoDamage: 85, torpedoReloadTurns: 3
-    }
-  };
-
   function createAbilities(shipType) {
     const category = shipType.toLowerCase();
     return [
@@ -375,7 +359,7 @@
       weapon: profile.weapon,
       traits: ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
       abilities: createAbilities(profile.shipType),
-      combatStats: combatProfiles[ship.name] || null,
+      combatStats: window.SHIP_COMBAT_DATA?.[ship.name] || null,
       accent: ship.accent || profile.accent,
       rgb: ship.rgb || profile.rgb
     };
