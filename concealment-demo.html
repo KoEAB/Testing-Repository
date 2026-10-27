@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Locate concealed enemy ships on the tactical map." />
     <title>Concealment Demo — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-41" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-41" />
-    <script src="ship-combat-data.js?v=navy-41" defer></script>
-    <script src="combat-demo.js?v=navy-41" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-42" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-42" />
+    <script src="ship-combat-data.js?v=navy-42" defer></script>
+    <script src="combat-demo.js?v=navy-42" defer></script>
   </head>
   <body class="combat-map-page" data-mode="concealment">
     <main class="combat-map-shell">
       <section class="tactical-board" aria-label="Interactive combat map">
         <div class="combat-turn-hud">
-          <a href="campaign.html?v=navy-41"><span aria-hidden="true">←</span> Exit combat</a>
+          <a href="campaign.html?v=navy-42"><span aria-hidden="true">←</span> Exit combat</a>
           <div class="turn-counter">Turn <strong id="turn-number">1</strong></div>
           <button id="next-turn" type="button">Next turn <span aria-hidden="true">→</span></button>
         </div>
@@ -60,8 +60,8 @@
         </div>
 
         <div class="combat-skills" aria-label="Ship skills">
-          <button id="load-ap-shells" data-ammo="AP" class="ammo-button" type="button" aria-label="Load AP shells" aria-keyshortcuts="1" aria-pressed="false" title="Load AP shells (1)" disabled><span class="ammo-symbol ammo-symbol-ap" aria-hidden="true"></span><kbd>1</kbd></button>
-          <button id="load-he-shells" data-ammo="HE" class="ammo-button" type="button" aria-label="Load HE shells" aria-keyshortcuts="2" aria-pressed="false" title="Load HE shells (2)" disabled><span class="ammo-symbol ammo-symbol-he" aria-hidden="true"></span><kbd>2</kbd></button>
+          <button id="load-ap-shells" data-ammo="AP" class="ammo-button" type="button" aria-label="Load AP shells" aria-keyshortcuts="1" aria-pressed="false" title="Load AP shells (1)" disabled><img src="images/ammo/ap.png" alt="" /><kbd>1</kbd></button>
+          <button id="load-he-shells" data-ammo="HE" class="ammo-button" type="button" aria-label="Load HE shells" aria-keyshortcuts="2" aria-pressed="false" title="Load HE shells (2)" disabled><img src="images/ammo/he.png" alt="" /><kbd>2</kbd></button>
           <button id="fire-remaining-salvos" type="button" aria-keyshortcuts="E" aria-pressed="false" disabled title="Select a ship with guns, then choose a hostile target">
             Fire remaining salvos <kbd>E</kbd>
           </button>

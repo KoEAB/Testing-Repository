@@ -15,7 +15,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="shipyard.html?v=navy-41">Return to Shipyard</a>
+        <a class="primary-button" href="shipyard.html?v=navy-42">Return to Shipyard</a>
       </section>
     `;
     return;
@@ -40,7 +40,7 @@
 
       <nav class="character-navigation empty-navigation" aria-label="Browse warships">
         ${renderAdjacentLink(character, -1, "上一项")}
-        <a class="all-characters" href="shipyard.html?v=navy-41">全部档案</a>
+        <a class="all-characters" href="shipyard.html?v=navy-42">全部档案</a>
         ${renderAdjacentLink(character, 1, "下一项")}
       </nav>
     `;
@@ -138,7 +138,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="shipyard.html?v=navy-41">All profiles</a>
+      <a class="all-characters" href="shipyard.html?v=navy-42">All profiles</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -151,7 +151,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-41">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-42">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>
