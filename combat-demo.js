@@ -1277,13 +1277,22 @@
     await wait(TURN_DURATION);
     const salvoCount = useRemaining ? shipType.gunAttacksRemaining : 1;
     const volleys = [];
+    const inFlight = new Set();
     for (let index = 0; index < salvoCount; index += 1) {
+      // Keep salvos overlapping, but leave time to observe a sinking before launching more.
+      while (useRemaining && inFlight.size >= 3 && initialTarget.health > 0) {
+        await Promise.race(inFlight);
+      }
+      if (useRemaining && initialTarget.health <= 0) break;
       shipType.gunAttacksRemaining -= 1;
       shipType.attacked = shipType.gunAttacksRemaining <= 0;
       refreshUnitDisplay(shipType);
       updateDetailPanel(shipType, useRemaining ? `Firing salvo ${index + 1} of ${salvoCount}` : "Firing volley");
       unitReadout.textContent = `${shipType.code} · Salvo ${index + 1} of ${salvoCount}`;
-      volleys.push(animateVolley(shipType, targetKey, firingGroups));
+      const volley = animateVolley(shipType, targetKey, firingGroups);
+      volleys.push(volley);
+      inFlight.add(volley);
+      volley.then(() => inFlight.delete(volley), () => inFlight.delete(volley));
       if (useRemaining && index + 1 < salvoCount) await wait(180);
     }
     await Promise.all(volleys);
@@ -1292,8 +1301,12 @@
     if (shipType.gunAttacksRemaining > 0) showAttackArea(shipType);
     else if (!shipType.moved) showMovementArea(shipType);
     else markSelectedOrigin(shipType);
-    updateDetailPanel(shipType, useRemaining ? "Salvo sequence complete" : "Volley complete");
-    unitReadout.textContent = `${shipType.code} · ${useRemaining ? "Salvo sequence" : "Volley"} complete`;
+    const remainingAfterSink = useRemaining && initialTarget.health <= 0 && shipType.gunAttacksRemaining > 0;
+    const status = remainingAfterSink
+      ? `Target sunk · ${shipType.gunAttacksRemaining} salvo${shipType.gunAttacksRemaining === 1 ? "" : "s"} ready this turn`
+      : useRemaining ? "Salvo sequence complete" : "Volley complete";
+    updateDetailPanel(shipType, status);
+    unitReadout.textContent = `${shipType.code} · ${status}`;
   }
 
   async function animateTorpedoAttack(shipType, targetKey) {
