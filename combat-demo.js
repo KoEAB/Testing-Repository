@@ -12,9 +12,10 @@
   const MAX_SCALE = 2.2;
   const SCALE_STEP = 0.1;
   const MOVE_RANGE = 5;
+  const AIM_RANGE = 3;
   const ATTACK_RANGE = 7;
   const TORPEDO_RANGE = 4;
-  const TURN_DURATION = 260;
+  const TURN_DURATION = 300;
   const DEFAULT_CONCEALMENT = 10;
   const concealmentDemo = document.body.dataset.mode === "concealment";
   const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
@@ -47,9 +48,9 @@
     ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
     ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
     ["AR", { label: "Repair ship", group: "support" }],
-    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, speedKnots: 27.5, shellCount: 9, salvoPattern: [3, 3, 3], alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
-    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", health: 350, speedKnots: 32.5, shellCount: 9, salvoPattern: [3, 3, 3], alphaDamage: 46, gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
-    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", health: 170, speedKnots: 36.5, shellCount: 5, salvoPattern: [1, 1, 1, 1, 1], salvoGroupGapMs: 75, alphaDamage: 21, gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
+    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", health: 660, speedKnots: 27.5, shellCount: 9, salvoPattern: [3, 3, 3], turretPositions: ["forward", "forward", "aft"], forwardFiringAngle: 32, backwardFiringAngle: 31, alphaDamage: 131, gunRange: 23, concealmentRange: 15, accuracyProfile: "north-carolina" }],
+    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", health: 350, speedKnots: 32.5, shellCount: 9, salvoPattern: [3, 3, 3], turretPositions: ["forward", "forward", "aft"], forwardFiringAngle: 34, backwardFiringAngle: 30, alphaDamage: 46, gunRange: 16, gunAttacksPerTurn: 2, concealmentRange: 12 }],
+    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", health: 170, speedKnots: 36.5, shellCount: 5, salvoPattern: [1, 1, 1, 1, 1], turretPositions: ["forward", "forward", "aft", "aft", "aft"], forwardFiringAngle: 30, backwardFiringAngle: 38, salvoGroupGapMs: 75, alphaDamage: 21, gunRange: 13, gunAttacksPerTurn: 4, torpedoRange: 10, torpedoReloadDuration: 3, concealmentRange: 7 }]
   ].map(([code, details]) => [code, { code, ...details }]));
   const shipTypes = concealmentDemo ? [
     ["uss-fletcher", "friendly", 17, 24], ["uss-new-orleans", "friendly", 15, 25], ["uss-north-carolina", "friendly", 14, 18],
@@ -149,11 +150,15 @@
   const detailConcealment = document.querySelector("#unit-detail-concealment");
   const detailMovement = document.querySelector("#unit-detail-movement");
   const detailAttack = document.querySelector("#unit-detail-attack");
+  const detailGunArcs = document.querySelector("#unit-detail-gun-arcs");
   const detailSalvo = document.querySelector("#unit-detail-salvo");
   const detailLastSalvo = document.querySelector("#unit-detail-last-salvo");
   const detailTorpedo = document.querySelector("#unit-detail-torpedo");
   const detailStatus = document.querySelector("#unit-detail-status");
   const detailInstruction = document.querySelector("#unit-detail-instruction");
+  const detailTurrets = document.querySelector("#unit-detail-turrets");
+  const detailTurretCount = document.querySelector("#unit-detail-turret-count");
+  const detailTurretCircles = document.querySelector("#unit-detail-turret-circles");
   const detailClose = document.querySelector("#unit-detail-close");
   const detailCollapse = document.querySelector("#unit-detail-collapse");
   const detailHeading = document.querySelector(".unit-detail-heading");
@@ -187,6 +192,7 @@
   let inspectedEnemy = null;
   let reachableState = null;
   let attackCells = new Set();
+  let aimState = null;
   let mode = null;
   let isAnimating = false;
   let currentTurn = 1;
@@ -508,9 +514,51 @@
     return new Set(distance.keys());
   }
 
+  function turretGroupsForHeading(shipType, targetKey, heading) {
+    const from = cellCenter(shipType.column, shipType.row);
+    const target = parseCellKey(targetKey);
+    const to = cellCenter(target.column, target.row);
+    const bearing = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+    const relativeAngle = ((bearing - heading + 540) % 360) - 180;
+    const offBow = Math.abs(relativeAngle);
+    const groups = shipType.salvoPattern || [shipType.shellCount];
+    return groups.map((shells, index) => {
+      const position = shipType.turretPositions?.[index] || "all-around";
+      // FFA is the bow blind sector for aft turrets; BFA is the stern blind sector for forward turrets.
+      const ready = position === "forward" ? offBow < 180 - shipType.backwardFiringAngle
+        : position === "aft" ? offBow > shipType.forwardFiringAngle : true;
+      return { index, shells, position, ready };
+    });
+  }
+
+  function updateTurretIndicators(heading = selectedUnit?.heading) {
+    if (!aimState || aimState.weapon !== "gun" || !selectedUnit) {
+      detailTurrets.hidden = true;
+      return;
+    }
+    const groups = turretGroupsForHeading(selectedUnit, aimState.targetKey, heading);
+    const readyShells = groups.reduce((sum, group) => sum + (group.ready ? group.shells : 0), 0);
+    detailTurretCount.textContent = `${readyShells} / ${selectedUnit.shellCount} shells`;
+    detailTurretCircles.replaceChildren(...groups.map((group) => {
+      const circle = document.createElement("span");
+      circle.className = `unit-turret-circle ${group.ready ? "is-ready" : "is-blocked"}`;
+      circle.title = `Turret ${group.index + 1} · ${group.position} · ${group.ready ? "on target" : "blocked"}`;
+      circle.setAttribute("role", "img");
+      circle.setAttribute("aria-label", circle.title);
+      return circle;
+    }));
+    detailTurrets.hidden = false;
+  }
+
+  function clearAimState() {
+    aimState = null;
+    detailTurrets.hidden = true;
+    restoreCommittedFacing();
+  }
+
   function clearTacticalHighlights() {
     tileElements.forEach((tile) => {
-      tile.classList.remove("is-reachable", "is-unit-selected", "is-route", "is-attackable", "is-torpedoable", "is-placement");
+      tile.classList.remove("is-reachable", "is-unit-selected", "is-route", "is-attackable", "is-torpedoable", "is-placement", "is-facing-option", "is-designated-target");
       delete tile.dataset.distance;
       tile.tabIndex = -1;
     });
@@ -521,6 +569,7 @@
   }
 
   function showMovementArea(shipType) {
+    clearAimState();
     clearTacticalHighlights();
     attackCells.clear();
     mode = "move";
@@ -536,6 +585,7 @@
   }
 
   function showAttackArea(shipType, useRemaining = false) {
+    clearAimState();
     clearTacticalHighlights();
     reachableState = null;
     mode = useRemaining ? "salvo-skill" : "attack";
@@ -549,6 +599,7 @@
   }
 
   function showTorpedoArea(shipType) {
+    clearAimState();
     clearTacticalHighlights();
     reachableState = null;
     mode = "torpedo";
@@ -559,6 +610,24 @@
       tile.classList.add("is-torpedoable");
       tile.tabIndex = 0;
     });
+  }
+
+  function showFacingArea(targetKey, weapon, useRemaining = false) {
+    clearTacticalHighlights();
+    mode = "aim";
+    aimState = { targetKey, weapon, useRemaining };
+    attackCells = calculateRadius(selectedUnit, AIM_RANGE);
+    markSelectedOrigin(selectedUnit);
+    attackCells.forEach((key) => {
+      const tile = tileElements.get(key);
+      tile.classList.add("is-facing-option");
+      tile.tabIndex = 0;
+    });
+    tileElements.get(targetKey)?.classList.add("is-designated-target");
+    updateTurretIndicators();
+    unitReadout.textContent = `${selectedUnit.code} · Choose a facing within ${AIM_RANGE} hexes`;
+    const target = parseCellKey(targetKey);
+    updateDetailPanel(selectedUnit, `Target ${coordinateLabel(target.column, target.row)} · Choose facing`);
   }
 
   function updateDetailPanel(shipType, status = "Awaiting orders") {
@@ -576,6 +645,8 @@
     detailAttack.textContent = canAttack
       ? (shotsRemaining > 0 ? `Ready · ${shipType.gunRange} tiles · ${shotsRemaining} shot${shotsRemaining === 1 ? "" : "s"}` : `Spent · ${shipType.gunRange} tiles`)
       : "Unavailable";
+    detailGunArcs.textContent = shipType.forwardFiringAngle == null ? "Not specified"
+      : `FFA ${shipType.forwardFiringAngle}° · BFA ${shipType.backwardFiringAngle}°`;
     detailSalvo.textContent = canAttack ? `${shipType.shellType} · ${shipType.shellCount} shells · ${shipType.alphaDamage} alpha each` : "Unavailable";
     detailLastSalvo.textContent = shipType.lastSalvo ? summarizeSalvo(shipType.lastSalvo) : "—";
     detailTorpedo.textContent = TORPEDO_CODES.has(shipType.code)
@@ -589,7 +660,9 @@
     torpedoOrderButton.disabled = shipType.torpedoed || shipType.torpedoReloadRemaining > 0;
     refreshSkillButton();
     detailStatus.textContent = status;
-    detailInstruction.textContent = mode === "attack" || mode === "salvo-skill"
+    detailInstruction.textContent = mode === "aim"
+      ? "Select a highlighted hex within 3 of this ship to set its heading, then fire at the chosen target. Hover to preview turret arcs."
+      : mode === "attack" || mode === "salvo-skill"
       ? (mode === "salvo-skill" ? "Select an enemy in red range to fire every remaining salvo at it." : "Select a red hex to fire the ship's guns.")
       : mode === "torpedo"
         ? "Select a cyan hex to launch torpedoes."
@@ -614,9 +687,6 @@
   function setHeadingBetween(shipType, from, to, options = {}) {
     const marker = unitElements.get(shipType.id);
     let heading = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
-    if (options.broadside === "right") heading -= 90;
-    else if (options.broadside === "left") heading += 90;
-    else if (options.broadside === true) heading += 90;
     const current = Number(marker.dataset.heading || shipType.heading || 0);
     while (heading - current > 180) heading -= 360;
     while (heading - current < -180) heading += 360;
@@ -631,11 +701,16 @@
     const marker = unitElements.get(selectedUnit.id);
     marker.dataset.heading = String(selectedUnit.heading);
     marker.style.setProperty("--heading", `${selectedUnit.heading}deg`);
+    if (mode === "aim") updateTurretIndicators(selectedUnit.heading);
   }
 
   function previewMovementFacing(key) {
-    if (mode !== "move" || !selectedUnit || isAnimating || !reachableState?.distance.has(key)) return;
-    setMarkerHeading(selectedUnit, parseCellKey(key));
+    if (!selectedUnit || isAnimating) return;
+    if (mode === "aim" && aimState && attackCells.has(key)) {
+      updateTurretIndicators(setMarkerHeading(selectedUnit, parseCellKey(key)));
+    } else if (mode === "move" && reachableState?.distance.has(key)) {
+      setMarkerHeading(selectedUnit, parseCellKey(key));
+    }
   }
 
   function handleTileRightClick(event, key) {
@@ -646,6 +721,30 @@
     updateDetailPanel(selectedUnit, `Facing ${coordinateLabel(target.column, target.row)}`);
   }
 
+  function queueAttackAim(targetKey, weapon, useRemaining = false) {
+    if (!selectedUnit || isAnimating || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit)) return;
+    if (weapon === "gun" && (selectedUnit.gunAttacksRemaining <= 0 || !ATTACK_CODES.has(selectedUnit.code))) return;
+    if (weapon === "torpedo" && (selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code))) return;
+    if (useRemaining && !unitAt(targetKey, selectedUnit.id)) return;
+    showFacingArea(targetKey, weapon, useRemaining);
+  }
+
+  function confirmFacing(key) {
+    if (mode !== "aim" || !aimState || !selectedUnit || isAnimating || !attackCells.has(key)) return;
+    const heading = setMarkerHeading(selectedUnit, parseCellKey(key));
+    const groups = aimState.weapon === "gun" ? turretGroupsForHeading(selectedUnit, aimState.targetKey, heading).filter((group) => group.ready) : [];
+    if (aimState.weapon === "gun" && !groups.length) {
+      updateDetailPanel(selectedUnit, "No turrets can bear from that heading");
+      return;
+    }
+    setMarkerHeading(selectedUnit, parseCellKey(key), { commit: true });
+    const order = aimState;
+    aimState = null;
+    detailTurrets.hidden = true;
+    if (order.weapon === "gun") fireVolley(order.targetKey, order.useRemaining, groups);
+    else fireTorpedoes(order.targetKey);
+  }
+
   function handleUnitClick(event, marker, shipType) {
     event.stopPropagation();
     if (isAnimating) return;
@@ -654,9 +753,13 @@
       return;
     }
     const key = cellKey(shipType.column, shipType.row);
+    if (mode === "aim") {
+      if (attackCells.has(key)) confirmFacing(key);
+      else deselectUnit();
+      return;
+    }
     if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && shipType.team !== selectedUnit.team && selectedUnit.id !== shipType.id && attackCells.has(key)) {
-      if (mode === "torpedo") fireTorpedoes(key);
-      else fireVolley(key, mode === "salvo-skill");
+      queueAttackAim(key, mode === "torpedo" ? "torpedo" : "gun", mode === "salvo-skill");
       return;
     }
     if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && shipType.team === selectedUnit.team) return;
@@ -675,7 +778,7 @@
   function selectUnit(marker, shipType) {
     if (isAnimating) return;
     placementOrder = null;
-    restoreCommittedFacing();
+    clearAimState();
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
     selectedUnit = shipType;
     inspectedEnemy = null;
@@ -764,7 +867,7 @@
   function deselectUnit() {
     if (isAnimating) return;
     placementOrder = null;
-    restoreCommittedFacing();
+    clearAimState();
     selectedUnit = null;
     inspectedEnemy = null;
     updateConcealmentOutline(null);
@@ -943,7 +1046,7 @@
     return missAtConcealment + (0.72 - missAtConcealment) * longRangeProgress;
   }
 
-  function resolveApSalvo(attacker, target) {
+  function resolveApSalvo(attacker, target, shellCount = attacker.shellCount) {
     const from = cellCenter(attacker.column, attacker.row);
     const to = cellCenter(target.column, target.row);
     const incomingBearing = Math.atan2(from.y - to.y, from.x - to.x) * 180 / Math.PI;
@@ -969,7 +1072,7 @@
       0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside) +
       closeRangeProgress * (0.1 * broadside + 0.025 * sizeAdvantage * (1 - broadside));
     const overPenChance = Math.min(0.28, 0.15 + 0.04 * sizeAdvantage);
-    const shells = Array.from({ length: attacker.shellCount }, () => {
+    const shells = Array.from({ length: shellCount }, () => {
       if (Math.random() < missChance) return { outcome: "miss", damage: 0 };
       const roll = Math.random();
       if (roll < ricochetChance) return { outcome: "ricochet", damage: 0 };
@@ -1001,21 +1104,23 @@
     ], { duration: 1050, easing: "ease-out" }).finished.finally(() => popup.remove());
   }
 
-  async function animateVolley(shipType, targetKey) {
+  async function animateVolley(shipType, targetKey, firingGroups) {
     if (targetIsFriendly(targetKey, shipType)) return;
     const origin = cellCenter(shipType.column, shipType.row);
     const target = parseCellKey(targetKey);
     const destination = cellCenter(target.column, target.row);
     const navalTarget = unitAt(targetKey, shipType.id);
-    const salvo = navalTarget ? resolveApSalvo(shipType, navalTarget) : {
+    const groups = firingGroups || (shipType.salvoPattern || [shipType.shellCount]).map((shells, index) => ({ shells, index }));
+    const shellCount = groups.reduce((sum, group) => sum + group.shells, 0);
+    const salvo = navalTarget ? resolveApSalvo(shipType, navalTarget, shellCount) : {
       shellType: "AP", targetId: null, impactAngle: null,
-      shells: Array.from({ length: shipType.shellCount }, () => ({ outcome: "miss", damage: 0 })),
+      shells: Array.from({ length: shellCount }, () => ({ outcome: "miss", damage: 0 })),
       totalDamage: 0, damageDealt: 0
     };
     shipType.lastSalvo = salvo;
-    const groups = shipType.salvoPattern || [shipType.shellCount];
     const shots = [];
-    groups.forEach((groupSize, groupIndex) => {
+    groups.forEach((group, groupIndex) => {
+      const groupSize = group.shells;
       const groupStart = groupIndex * (shipType.salvoGroupGapMs ?? 170);
       shots.push((async () => {
         await wait(groupStart);
@@ -1030,7 +1135,7 @@
       for (let index = 0; index < groupSize; index += 1) {
         const launchDelay = groupStart + index * 35;
         const offset = (index - (groupSize - 1) / 2) * 5 +
-          (groupSize === 1 ? (groupIndex - (groups.length - 1) / 2) * 3 : 0);
+          (groupSize === 1 ? (group.index - ((shipType.salvoPattern?.length || groups.length) - 1) / 2) * 3 : 0);
         shots.push((async () => {
           await wait(launchDelay);
           const shell = createEffect("volley-shell", origin);
@@ -1062,8 +1167,8 @@
     impact.remove();
   }
 
-  async function fireVolley(targetKey, useRemaining = false) {
-    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
+  async function fireVolley(targetKey, useRemaining = false, firingGroups) {
+    if (!selectedUnit || selectedUnit.gunAttacksRemaining <= 0 || !firingGroups?.length || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
     const initialTarget = unitAt(targetKey, selectedUnit.id);
     if (useRemaining && (!initialTarget || initialTarget.team === selectedUnit.team)) return;
     isAnimating = true;
@@ -1078,7 +1183,6 @@
     const relativeAngle = ((angleDifference % 360) + 540) % 360 - 180;
     shipType.angleWhenFiring = relativeAngle;
     shipType.broadsideWhenFiring = relativeAngle >= 0 ? "right" : "left";
-    setMarkerHeading(shipType, target, { broadside: shipType.broadsideWhenFiring, commit: true });
     clearTacticalHighlights();
     markSelectedOrigin(shipType);
     await wait(TURN_DURATION);
@@ -1090,7 +1194,7 @@
       refreshUnitDisplay(shipType);
       updateDetailPanel(shipType, useRemaining ? `Firing salvo ${index + 1} of ${salvoCount}` : "Firing volley");
       unitReadout.textContent = `${shipType.code} · Salvo ${index + 1} of ${salvoCount}`;
-      volleys.push(animateVolley(shipType, targetKey));
+      volleys.push(animateVolley(shipType, targetKey, firingGroups));
       if (useRemaining && index + 1 < salvoCount) await wait(180);
     }
     await Promise.all(volleys);
@@ -1134,7 +1238,7 @@
   }
 
   async function fireTorpedoes(targetKey) {
-    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
+    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
@@ -1146,11 +1250,8 @@
     const to = cellCenter(targetCell.column, targetCell.row);
     const bearing = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
     const difference = ((bearing - shipType.heading + 540) % 360) - 180;
-    const torpedoSide = difference >= 0 ? "right" : "left";
-    setMarkerHeading(shipType, targetCell, {
-      broadside: shipType.code === "DD" || shipType.code === "DE" ? torpedoSide : false,
-      commit: true
-    });
+    shipType.angleWhenFiring = difference;
+    shipType.broadsideWhenFiring = difference >= 0 ? "right" : "left";
     clearTacticalHighlights();
     markSelectedOrigin(shipType);
     updateDetailPanel(shipType, "Launching torpedoes");
@@ -1170,6 +1271,11 @@
       ignoreNextTileClick = false;
       return;
     }
+    if (mode === "aim") {
+      if (attackCells.has(key)) confirmFacing(key);
+      else deselectUnit();
+      return;
+    }
     const visibleEnemy = concealmentDemo ? shipTypes.find((ship) => ship.team === "enemy" && ship.health > 0 &&
       cellKey(ship.column, ship.row) === key && !unitElements.get(ship.id)?.classList.contains("is-concealed-enemy")) : null;
     if (placementOrder) {
@@ -1177,11 +1283,11 @@
     } else if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && targetIsFriendly(key, selectedUnit)) {
       return;
     } else if (mode === "salvo-skill" && attackCells.has(key)) {
-      fireVolley(key, true);
+      queueAttackAim(key, "gun", true);
     } else if (mode === "attack" && attackCells.has(key)) {
-      fireVolley(key);
+      queueAttackAim(key, "gun");
     } else if (mode === "torpedo" && attackCells.has(key)) {
-      fireTorpedoes(key);
+      queueAttackAim(key, "torpedo");
     } else if (mode === "move" && reachableState?.distance.has(key)) {
       moveSelectedUnit(key);
     } else if (visibleEnemy) {
