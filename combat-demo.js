@@ -10,10 +10,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-61",
-    hit: "images/sounds/hit.mp3?v=navy-61",
-    hit2: "images/sounds/hit-2.mp3?v=navy-61",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-61`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-62",
+    hit: "images/sounds/hit.mp3?v=navy-62",
+    hit2: "images/sounds/hit-2.mp3?v=navy-62",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-62",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-62`)
   };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -259,7 +260,7 @@
   let terrainMode = false;
   let terrainBrush = "land";
   const soundBank = new Map();
-  [SOUND_PATHS.enterMatch, SOUND_PATHS.hit, SOUND_PATHS.hit2, ...SOUND_PATHS.reloaded].forEach((path) => {
+  [SOUND_PATHS.enterMatch, SOUND_PATHS.hit, SOUND_PATHS.hit2, SOUND_PATHS.enemyDestroyed, ...SOUND_PATHS.reloaded].forEach((path) => {
     const audio = new Audio(path);
     audio.preload = "auto";
     soundBank.set(path, audio);
@@ -1191,10 +1192,15 @@
     }
   }
 
+  function gunRangeOpen() {
+    return mode === "attack" || mode === "salvo-skill" || (mode === "aim" && aimState?.weapon === "gun");
+  }
+
   function activateGunMode() {
     if (!gunsReady(selectedUnit) || isAnimating) return;
+    const enteringGunRange = !gunRangeOpen();
     showAttackArea(selectedUnit);
-    playRandomReloaded();
+    if (enteringGunRange) playRandomReloaded();
     unitReadout.textContent = `${selectedUnit.code} · Gun range`;
     updateDetailPanel(selectedUnit, "Select firing target");
   }
@@ -1208,8 +1214,9 @@
 
   function activateFireRemainingSkill() {
     if (!gunsReady(selectedUnit) || (concealmentDemo && selectedUnit.team === "enemy") || isAnimating) return;
+    const enteringGunRange = !gunRangeOpen();
     showAttackArea(selectedUnit, true);
-    playRandomReloaded();
+    if (enteringGunRange) playRandomReloaded();
     unitReadout.textContent = `${selectedUnit.code} · Fire remaining salvos`;
     updateDetailPanel(selectedUnit, `Fire ${selectedUnit.gunAttacksRemaining} remaining salvo${selectedUnit.gunAttacksRemaining === 1 ? "" : "s"}`);
   }
@@ -1617,9 +1624,12 @@
     const completedSalvos = await Promise.all(volleys);
     const totalDamage = completedSalvos.reduce((sum, salvo) => sum + salvo.damageDealt, 0);
     if (initialTarget && totalDamage > 0) {
-      const extensiveApDamage = completedSalvos.some((salvo) => salvo.shellType === "AP") &&
-        totalDamage >= Math.max(60, initialTarget.maxHealth * 0.18);
-      playEffect(extensiveApDamage ? SOUND_PATHS.hit2 : SOUND_PATHS.hit);
+      if (initialTarget.health <= 0) playEffect(SOUND_PATHS.enemyDestroyed);
+      else {
+        const extensiveApDamage = completedSalvos.some((salvo) => salvo.shellType === "AP") &&
+          totalDamage >= Math.max(60, initialTarget.maxHealth * 0.18);
+        playEffect(extensiveApDamage ? SOUND_PATHS.hit2 : SOUND_PATHS.hit);
+      }
     }
     renderDeveloperLists();
     isAnimating = false;
@@ -1659,10 +1669,12 @@
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
       { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
     ], { duration: 800, easing: "ease-out", fill: "forwards" });
-    if (navalTarget) showDamagePopup(destination, applyDamage(navalTarget, shipType.torpedoDamage, shipType));
+    const damageDealt = navalTarget ? applyDamage(navalTarget, shipType.torpedoDamage, shipType) : 0;
+    if (navalTarget) showDamagePopup(destination, damageDealt);
     else recordEvent(`${shipType.label}'s torpedoes splashed at ${coordinateLabel(targetCell.column, targetCell.row)}.`);
     await impactAnimation.finished;
     impact.remove();
+    return Boolean(navalTarget && damageDealt > 0 && navalTarget.health <= 0);
   }
 
   async function fireTorpedoes(targetKey) {
@@ -1691,7 +1703,8 @@
     unitReadout.textContent = `${shipType.code} · Launching torpedoes`;
     recordEvent(`${shipType.label} launched torpedoes at ${coordinateLabel(targetCell.column, targetCell.row)}.`);
     await wait(TURN_DURATION);
-    await animateTorpedoAttack(shipType, targetKey);
+    const targetDestroyed = await animateTorpedoAttack(shipType, targetKey);
+    if (targetDestroyed) playEffect(SOUND_PATHS.enemyDestroyed);
     renderDeveloperLists();
     isAnimating = false;
     updateDetailPanel(shipType, "Torpedo attack complete");
