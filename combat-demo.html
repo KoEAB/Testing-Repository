@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Interactive Naval Command combat demonstration map." />
     <title>Combat Demo — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-50" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-50" />
-    <script src="ship-combat-data.js?v=navy-50" defer></script>
-    <script src="combat-demo.js?v=navy-50" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-51" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-51" />
+    <script src="ship-combat-data.js?v=navy-51" defer></script>
+    <script src="combat-demo.js?v=navy-51" defer></script>
   </head>
   <body class="combat-map-page">
     <main class="combat-map-shell">
       <section class="tactical-board" aria-label="Interactive combat map">
         <div class="combat-turn-hud">
-          <a href="campaign.html?v=navy-50"><span aria-hidden="true">←</span> Exit combat</a>
+          <a href="campaign.html?v=navy-51"><span aria-hidden="true">←</span> Exit combat</a>
           <div class="turn-counter">Turn <strong id="turn-number">1</strong></div>
           <button id="next-turn" type="button">Next turn <span aria-hidden="true">→</span></button>
         </div>
@@ -32,6 +32,14 @@
                 <option value="two-brothers">Two Brothers · 42 × 42 km</option>
               </select>
             </label>
+            <div class="developer-setup-controls">
+              <button id="setup-mode-toggle" type="button" aria-pressed="false">Enter setting up mode</button>
+              <button id="setup-export" type="button" disabled>Generate layout code</button>
+              <textarea id="setup-code-output" aria-label="Generated layout code" readonly placeholder="Generated code appears here"></textarea>
+              <textarea id="setup-code-input" aria-label="Import layout code" placeholder="Paste a layout code here"></textarea>
+              <button id="setup-import" type="button">Import layout code</button>
+              <p id="setup-message" aria-live="polite">Setup mode lets you place units on any unoccupied hex.</p>
+            </div>
             <div class="developer-add-controls">
               <label>Side<select id="developer-team"><option value="friendly">Friendly</option><option value="enemy">Enemy</option></select></label>
               <label>Ship type<select id="developer-type"></select></label>

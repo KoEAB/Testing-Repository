@@ -179,6 +179,24 @@
         if (landSamples >= 2) landCells.add(cellKey(column, row));
       }
     }
+    if (activeMap === MAPS["two-brothers"]) {
+      // Fill isolated sampling holes inside the two central islands.
+      for (let pass = 0; pass < 2; pass += 1) {
+        const fill = [];
+        for (let column = 17; column <= 31; column += 1) {
+          if (column === 24) continue;
+          for (let row = 18; row <= 25; row += 1) {
+            const key = cellKey(column, row);
+            if (!landCells.has(key) && getNeighbors(column, row).filter((neighbor) => landCells.has(cellKey(neighbor.column, neighbor.row))).length >= 4) fill.push(key);
+          }
+        }
+        fill.forEach((key) => landCells.add(key));
+      }
+      for (let row = 16; row <= 28; row += 1) landCells.delete(cellKey(24, row));
+    }
+    if (activeMap === MAPS["northern-lights"]) {
+      for (let column = 41; column <= 50; column += 1) landCells.delete(cellKey(column, 23));
+    }
   }
 
   const viewport = document.querySelector("#hex-map-viewport");
@@ -228,6 +246,12 @@
   const developerAdd = document.querySelector("#developer-add");
   const developerInstruction = document.querySelector("#developer-instruction");
   const developerUnitLists = document.querySelector("#developer-unit-lists");
+  const setupToggle = document.querySelector("#setup-mode-toggle");
+  const setupExport = document.querySelector("#setup-export");
+  const setupImport = document.querySelector("#setup-import");
+  const setupCodeOutput = document.querySelector("#setup-code-output");
+  const setupCodeInput = document.querySelector("#setup-code-input");
+  const setupMessage = document.querySelector("#setup-message");
   const tileElements = new Map();
   const unitElements = new Map();
   const concealmentOutline = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -251,6 +275,7 @@
   let isAnimating = false;
   let currentTurn = 1;
   let placementOrder = null;
+  let setupMode = false;
 
   function cellKey(column, row) {
     return `${column},${row}`;
@@ -348,7 +373,7 @@
 
   async function changeMap(key, clearBoard = true) {
     const nextMap = MAPS[key];
-    if (!nextMap || isAnimating) return;
+    if (!nextMap || isAnimating) return false;
     if (mapSelector) mapSelector.disabled = true;
     let image;
     try {
@@ -359,11 +384,12 @@
         mapSelector.value = Object.keys(MAPS).find((mapKey) => MAPS[mapKey] === activeMap);
         mapSelector.disabled = false;
       }
-      return;
+      return false;
     }
     if (clearBoard) {
       deselectUnit();
       shipTypes.splice(0);
+      if (setupCodeOutput) setupCodeOutput.value = "";
       unitSequence = 0;
       currentTurn = 1;
       turnNumber.textContent = "1";
@@ -381,6 +407,7 @@
     mapSummary.textContent = `${nextMap.name} · ${nextMap.kilometers} × ${nextMap.kilometers} km · ${COLUMNS} × ${ROWS} hexes`;
     if (mapStatusName) mapStatusName.textContent = `${nextMap.name} online`;
     if (mapSelector) mapSelector.disabled = false;
+    return true;
   }
 
   function renderUnit(shipType) {
@@ -526,7 +553,7 @@
     clearTacticalHighlights();
     const occupied = occupiedCells(null);
     tileElements.forEach((tile, key) => {
-      if (!landCells.has(key) && !occupied.has(key)) tile.classList.add("is-placement");
+      if ((setupMode || !landCells.has(key)) && !occupied.has(key)) tile.classList.add("is-placement");
     });
   }
 
@@ -534,16 +561,17 @@
     if (isAnimating) return;
     deselectUnit();
     placementOrder = { team: developerTeam.value, code: developerType.value };
-    developerInstruction.textContent = `Select an empty sea hex for the ${placementOrder.team} ${placementOrder.code}.`;
+    developerInstruction.textContent = `Select an empty ${setupMode ? "hex" : "sea hex"} for the ${placementOrder.team} ${placementOrder.code}.`;
     showPlacementArea();
   }
 
   function placeUnit(key) {
-    if (!placementOrder || landCells.has(key) || occupiedCells(null).has(key)) return;
+    if (!placementOrder || (!setupMode && landCells.has(key)) || occupiedCells(null).has(key)) return;
     const template = unitTemplates.get(placementOrder.code);
     const cell = parseCellKey(key);
     const unit = createUnitState({
       ...template,
+      templateId: placementOrder.code,
       column: cell.column,
       row: cell.row
     }, `${placementOrder.team}-${template.code}-${++unitSequence}`, placementOrder.team);
@@ -554,6 +582,68 @@
     placementOrder = null;
     clearTacticalHighlights();
     renderDeveloperLists();
+  }
+
+  function setSetupMode(enabled) {
+    if (isAnimating || concealmentDemo) return;
+    deselectUnit();
+    setupMode = enabled;
+    setupToggle.textContent = enabled ? "Finish setting up" : "Enter setting up mode";
+    setupToggle.setAttribute("aria-pressed", String(enabled));
+    setupExport.disabled = !enabled;
+    nextTurnButton.disabled = enabled;
+    setupMessage.textContent = enabled
+      ? "Place either side on any unoccupied hex, then generate a layout code."
+      : "Setup mode lets you place units on any unoccupied hex.";
+  }
+
+  function exportSetup() {
+    if (!setupMode || isAnimating) return;
+    const key = Object.keys(MAPS).find((mapKey) => MAPS[mapKey] === activeMap);
+    const units = shipTypes.filter((ship) => ship.health > 0).map((ship) => ({
+      template: ship.templateId || ship.code, team: ship.team,
+      column: ship.column, row: ship.row, heading: ship.heading
+    }));
+    setupCodeOutput.value = `NC1:${btoa(JSON.stringify({ v: 1, map: key, units })).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+    setupMessage.textContent = `Layout code generated for ${units.length} units. Copy it to save this setup.`;
+  }
+
+  async function importSetup() {
+    if (isAnimating || concealmentDemo) return;
+    try {
+      const code = setupCodeInput.value.trim();
+      if (code.length > 20000 || !/^NC1:[A-Za-z0-9_-]+$/.test(code)) throw new Error("Invalid layout code.");
+      const encoded = code.slice(4).replace(/-/g, "+").replace(/_/g, "/");
+      const layout = JSON.parse(atob(encoded.padEnd(Math.ceil(encoded.length / 4) * 4, "=")));
+      const spec = MAPS[layout.map];
+      if (layout.v !== 1 || !spec || !Array.isArray(layout.units) || layout.units.length > 150) throw new Error("Unsupported map or layout.");
+      const positions = new Set();
+      for (const unit of layout.units) {
+        if (!unitTemplates.has(unit.template) || !["friendly", "enemy"].includes(unit.team) ||
+            !Number.isInteger(unit.column) || unit.column < 0 || unit.column >= spec.columns ||
+            !Number.isInteger(unit.row) || unit.row < 0 || unit.row >= spec.rows ||
+            !Number.isFinite(unit.heading)) throw new Error("Layout contains an invalid unit.");
+        const key = cellKey(unit.column, unit.row);
+        if (positions.has(key)) throw new Error("Layout contains overlapping units.");
+        positions.add(key);
+      }
+      if (!await changeMap(layout.map)) throw new Error("Map could not be loaded.");
+      mapSelector.value = layout.map;
+      for (const entry of layout.units) {
+        const template = unitTemplates.get(entry.template);
+        const unit = createUnitState({ ...template, templateId: entry.template, column: entry.column, row: entry.row },
+          `${entry.team}-${template.code}-${++unitSequence}`, entry.team);
+        unit.heading = entry.heading;
+        shipTypes.push(unit);
+        renderUnit(unit);
+      }
+      updateDetection();
+      renderDeveloperLists();
+      setSetupMode(true);
+      setupMessage.textContent = `Imported ${layout.units.length} units on ${spec.name}.`;
+    } catch (error) {
+      setupMessage.textContent = error.message;
+    }
   }
 
   function deleteUnit(id) {
@@ -712,7 +802,7 @@
     reachableState = null;
     mode = useRemaining ? "salvo-skill" : "attack";
     markSelectedOrigin(shipType);
-    attackCells = calculateRadius(shipType, shipType.gunRange);
+    attackCells = new Set([...calculateRadius(shipType, shipType.gunRange)].filter((key) => !lineOfFireBlocked(shipType, key)));
     attackCells.forEach((key) => {
       const tile = tileElements.get(key);
       tile.classList.add("is-attackable");
@@ -726,7 +816,7 @@
     reachableState = null;
     mode = "torpedo";
     markSelectedOrigin(shipType);
-    attackCells = calculateRadius(shipType, shipType.torpedoRange);
+    attackCells = new Set([...calculateRadius(shipType, shipType.torpedoRange)].filter((key) => !lineOfFireBlocked(shipType, key)));
     attackCells.forEach((key) => {
       const tile = tileElements.get(key);
       tile.classList.add("is-torpedoable");
@@ -866,10 +956,12 @@
 
   function queueAttackAim(targetKey, weapon, useRemaining = false) {
     if (!selectedUnit || isAnimating || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit)) return;
+    if (lineOfFireBlocked(selectedUnit, targetKey)) return;
     if (weapon === "gun" && !gunsReady(selectedUnit)) return;
     if (weapon === "torpedo" && (selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code))) return;
     if (useRemaining && !unitAt(targetKey, selectedUnit.id)) return;
-    showFacingArea(targetKey, weapon, useRemaining);
+    if (weapon === "torpedo") fireTorpedoes(targetKey);
+    else showFacingArea(targetKey, weapon, useRemaining);
   }
 
   function confirmFacing(key) {
@@ -890,6 +982,7 @@
 
   function handleUnitClick(event, marker, shipType) {
     event.stopPropagation();
+    if (setupMode) return;
     if (isAnimating) return;
     if (shipType.health <= 0) {
       if (marker.classList.contains("is-death-marker")) showSunkDetails(shipType);
@@ -965,6 +1058,7 @@
   function beginAttackMode(event, marker, shipType) {
     event.preventDefault();
     event.stopPropagation();
+    if (setupMode) return;
     if (isAnimating || shipType.health <= 0) return;
     if (concealmentDemo && shipType.team === "enemy") {
       if (inspectedEnemy?.id === shipType.id) deselectUnit();
@@ -1033,20 +1127,25 @@
     return currentKey === reachableState.startKey ? path : [];
   }
 
-  function pointIntersectsLand(point, clearance = 18) {
-    for (const key of landCells) {
-      const land = parseCellKey(key);
-      const center = cellCenter(land.column, land.row);
-      const x = Math.abs(point.x - center.x);
-      const y = Math.abs(point.y - center.y);
-      if (y > HEX_HEIGHT / 2 + clearance) continue;
-      const slopedEdge = HEX_WIDTH / 2 + clearance - (HEX_WIDTH / 4 / (HEX_HEIGHT / 2)) * Math.max(0, y - clearance);
-      if (x <= slopedEdge) return true;
+  function pointIntersectsLand(point, clearance = 18, ignoredKeys = null) {
+    const approximateColumn = Math.round((point.x - HEX_WIDTH / 2) / COLUMN_STEP);
+    for (let column = approximateColumn - 2; column <= approximateColumn + 2; column += 1) {
+      const approximateRow = Math.round((point.y - HEX_HEIGHT / 2 - (column % 2 ? HEX_HEIGHT / 2 : 0)) / HEX_HEIGHT);
+      for (let row = approximateRow - 2; row <= approximateRow + 2; row += 1) {
+        const key = cellKey(column, row);
+        if (!landCells.has(key) || ignoredKeys?.has(key)) continue;
+        const center = cellCenter(column, row);
+        const x = Math.abs(point.x - center.x);
+        const y = Math.abs(point.y - center.y);
+        if (y > HEX_HEIGHT / 2 + clearance) continue;
+        const slopedEdge = HEX_WIDTH / 2 + clearance - (HEX_WIDTH / 4 / (HEX_HEIGHT / 2)) * Math.max(0, y - clearance);
+        if (x <= slopedEdge) return true;
+      }
     }
     return false;
   }
 
-  function lineCrossesLand(from, to) {
+  function lineCrossesLand(from, to, clearance = 18, ignoredKeys = null) {
     const distance = Math.hypot(to.x - from.x, to.y - from.y);
     const samples = Math.max(2, Math.ceil(distance / 14));
     for (let index = 1; index < samples; index += 1) {
@@ -1054,9 +1153,15 @@
       if (pointIntersectsLand({
         x: from.x + (to.x - from.x) * progress,
         y: from.y + (to.y - from.y) * progress
-      })) return true;
+      }, clearance, ignoredKeys)) return true;
     }
     return false;
+  }
+
+  function lineOfFireBlocked(ship, targetKey) {
+    const target = parseCellKey(targetKey);
+    return lineCrossesLand(cellCenter(ship.column, ship.row), cellCenter(target.column, target.row), 0,
+      new Set([cellKey(ship.column, ship.row), targetKey]));
   }
 
   function simplifyLandRoute(points) {
@@ -1447,6 +1552,11 @@
     const difference = ((bearing - shipType.heading + 540) % 360) - 180;
     shipType.angleWhenFiring = difference;
     shipType.broadsideWhenFiring = difference >= 0 ? "right" : "left";
+    const broadsideHeading = bearing + (difference >= 0 ? -90 : 90);
+    const marker = unitElements.get(shipType.id);
+    marker.dataset.heading = String(broadsideHeading);
+    marker.style.setProperty("--heading", `${broadsideHeading}deg`);
+    shipType.heading = broadsideHeading;
     clearTacticalHighlights();
     markSelectedOrigin(shipType);
     updateDetailPanel(shipType, "Launching torpedoes");
@@ -1464,6 +1574,10 @@
   function handleTileClick(key) {
     if (ignoreNextTileClick) {
       ignoreNextTileClick = false;
+      return;
+    }
+    if (setupMode) {
+      if (placementOrder) placeUnit(key);
       return;
     }
     if (mode === "aim") {
@@ -1496,7 +1610,7 @@
   }
 
   function advanceTurn() {
-    if (isAnimating) return;
+    if (isAnimating || setupMode) return;
     shipTypes.forEach((ship) => {
       if (ship.health > 0) {
         ship.moved = false;
@@ -1625,6 +1739,9 @@
     const collapsed = developerPanel.classList.toggle("is-collapsed");
     developerPanelToggle.setAttribute("aria-expanded", String(!collapsed));
   });
+  setupToggle?.addEventListener("click", () => setSetupMode(!setupMode));
+  setupExport?.addEventListener("click", exportSetup);
+  setupImport?.addEventListener("click", importSetup);
   mapSelector?.addEventListener("change", () => changeMap(mapSelector.value));
   developerAdd.addEventListener("click", beginPlacement);
   developerUnitLists.addEventListener("click", (event) => {

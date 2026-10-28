@@ -2104,6 +2104,20 @@ p {
   font: 13px var(--sans);
 }
 
+.developer-setup-controls { display: grid; gap: 7px; margin-bottom: 12px; }
+.developer-setup-controls button,
+.developer-setup-controls textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #071827;
+  color: var(--ink);
+  font: 12px var(--sans);
+}
+.developer-setup-controls button { min-height: 34px; cursor: pointer; }
+.developer-setup-controls button:disabled { opacity: .5; cursor: default; }
+.developer-setup-controls textarea { min-height: 48px; padding: 8px; resize: vertical; }
+.developer-setup-controls p { margin: 2px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+
 .developer-add-controls {
   display: grid;
   grid-template-columns: 1fr 1.25fr;
@@ -2292,9 +2306,9 @@ p {
 }
 
 .hex-map.has-map-art { background-size: 100% 100%; background-repeat: no-repeat; }
-.hex-map.has-map-art .hex-cell { background: rgba(164, 189, 194, 0.11); }
+.hex-map.has-map-art .hex-cell { background: rgba(174, 203, 218, 0.48); }
 .hex-map.has-map-art .sea-hex::before { background: rgba(8, 23, 34, 0.16); }
-.hex-map.has-map-art .land-hex { background: color-mix(in srgb, var(--map-land-color) 55%, transparent); }
+.hex-map.has-map-art .land-hex { background: color-mix(in srgb, var(--map-land-color) 72%, rgba(230, 218, 170, 0.5)); }
 .hex-map.has-map-art .land-hex::before { background: color-mix(in srgb, var(--map-land-color) 20%, transparent); }
 
 .hex-cell {
