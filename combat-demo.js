@@ -17,9 +17,9 @@
   const COLUMN_STEP = 96;
   let MAP_WIDTH = (COLUMNS - 1) * COLUMN_STEP + HEX_WIDTH;
   let MAP_HEIGHT = ROWS * HEX_HEIGHT + HEX_HEIGHT / 2;
-  const MIN_SCALE = 0.1;
+  const MIN_FIT_RATIO = 0.9;
   const MAX_SCALE = 2.2;
-  const SCALE_STEP = 0.1;
+  const ZOOM_FACTOR = 1.08;
   const MOVE_RANGE = 5;
   const AIM_RANGE = 3;
   const ATTACK_RANGE = 7;
@@ -1661,27 +1661,30 @@
 
   function setScale(nextScale, preserveCenter = true) {
     const oldScale = scale;
-    const centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / oldScale;
-    const centerY = (viewport.scrollTop + viewport.clientHeight / 2) / oldScale;
-    scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round(nextScale * 100) / 100));
+    const centerX = (viewport.scrollLeft + viewport.clientWidth / 2 - (parseFloat(map.style.left) || 0)) / oldScale;
+    const centerY = (viewport.scrollTop + viewport.clientHeight / 2 - (parseFloat(map.style.top) || 0)) / oldScale;
+    const fitScale = Math.min(viewport.clientWidth / MAP_WIDTH, viewport.clientHeight / MAP_HEIGHT) * 0.96;
+    scale = Math.min(MAX_SCALE, Math.max(fitScale * MIN_FIT_RATIO, Math.round(nextScale * 10000) / 10000));
     const scaledWidth = MAP_WIDTH * scale;
     const scaledHeight = MAP_HEIGHT * scale;
     stage.style.width = `${Math.max(viewport.clientWidth, scaledWidth)}px`;
     stage.style.height = `${Math.max(viewport.clientHeight, scaledHeight)}px`;
-    map.style.left = `${Math.max(0, (viewport.clientWidth - scaledWidth) / 2)}px`;
-    map.style.top = `${Math.max(0, (viewport.clientHeight - scaledHeight) / 2)}px`;
+    const mapLeft = Math.max(0, (viewport.clientWidth - scaledWidth) / 2);
+    const mapTop = Math.max(0, (viewport.clientHeight - scaledHeight) / 2);
+    map.style.left = `${mapLeft}px`;
+    map.style.top = `${mapTop}px`;
     map.style.transform = `scale(${scale})`;
     if (preserveCenter) {
       requestAnimationFrame(() => {
-        viewport.scrollLeft = centerX * scale - viewport.clientWidth / 2;
-        viewport.scrollTop = centerY * scale - viewport.clientHeight / 2;
+        viewport.scrollLeft = centerX * scale + mapLeft - viewport.clientWidth / 2;
+        viewport.scrollTop = centerY * scale + mapTop - viewport.clientHeight / 2;
       });
     }
   }
 
   function resetView() {
     const fit = Math.min(viewport.clientWidth / MAP_WIDTH, viewport.clientHeight / MAP_HEIGHT) * 0.96;
-    setScale(Math.max(MIN_SCALE, fit), false);
+    setScale(fit, false);
     requestAnimationFrame(() => {
       viewport.scrollLeft = Math.max(0, (MAP_WIDTH * scale - viewport.clientWidth) / 2);
       viewport.scrollTop = Math.max(0, (MAP_HEIGHT * scale - viewport.clientHeight) / 2);
@@ -1796,11 +1799,13 @@
   viewport.addEventListener("contextmenu", (event) => event.preventDefault());
   viewport.addEventListener("wheel", (event) => {
     event.preventDefault();
-    setScale(scale + (event.deltaY < 0 ? SCALE_STEP : -SCALE_STEP));
+    const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1);
+    const notches = Math.max(-3, Math.min(3, pixels / 100));
+    setScale(scale * ZOOM_FACTOR ** -notches);
   }, { passive: false });
   viewport.addEventListener("keydown", (event) => {
-    if (event.key === "+" || event.key === "=") setScale(scale + SCALE_STEP);
-    else if (event.key === "-") setScale(scale - SCALE_STEP);
+    if (event.key === "+" || event.key === "=") setScale(scale * ZOOM_FACTOR);
+    else if (event.key === "-") setScale(scale / ZOOM_FACTOR);
     else if (event.key === "0") resetView();
     else if (event.key === "Escape") deselectUnit();
   });
