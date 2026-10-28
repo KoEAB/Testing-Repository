@@ -9,6 +9,12 @@
     "two-brothers": { name: "Two Brothers", kilometers: 42, columns: 49, rows: 42, land: "#4d4e3c", sea: "#163c3d" }
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
+  const SOUND_PATHS = {
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-61",
+    hit: "images/sounds/hit.mp3?v=navy-61",
+    hit2: "images/sounds/hit-2.mp3?v=navy-61",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-61`)
+  };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
   let ROWS = activeMap.rows;
@@ -252,6 +258,37 @@
   let setupMode = false;
   let terrainMode = false;
   let terrainBrush = "land";
+  const soundBank = new Map();
+  [SOUND_PATHS.enterMatch, SOUND_PATHS.hit, SOUND_PATHS.hit2, ...SOUND_PATHS.reloaded].forEach((path) => {
+    const audio = new Audio(path);
+    audio.preload = "auto";
+    soundBank.set(path, audio);
+  });
+  let enterMatchPlayed = false;
+  let enterMatchAttempting = false;
+
+  function playEffect(path) {
+    const audio = soundBank.get(path)?.cloneNode();
+    if (!audio) return;
+    audio.volume = 0.75;
+    audio.play()?.catch(() => {});
+  }
+
+  function playEnterMatch() {
+    if (enterMatchPlayed || enterMatchAttempting) return;
+    enterMatchAttempting = true;
+    const audio = soundBank.get(SOUND_PATHS.enterMatch);
+    audio.volume = 0.75;
+    audio.play().then(() => {
+      enterMatchPlayed = true;
+      window.removeEventListener("pointerdown", playEnterMatch, true);
+      window.removeEventListener("keydown", playEnterMatch, true);
+    }).catch(() => { enterMatchAttempting = false; });
+  }
+
+  function playRandomReloaded() {
+    playEffect(SOUND_PATHS.reloaded[Math.floor(Math.random() * SOUND_PATHS.reloaded.length)]);
+  }
 
   function recordEvent(message) {
     const item = document.createElement("li");
@@ -411,7 +448,8 @@
     marker.setAttribute("aria-label", `${shipType.team} ${shipType.code}: ${shipType.label}`);
     const actionSegments = shipType.actions.map((action) => `<i data-action="${action}"></i>`).join("");
     marker.innerHTML = `<span class="unit-name" aria-hidden="true"></span><span class="map-unit-icon">${renderIcon(shipType.code)}</span><span class="unit-detection-dot" aria-hidden="true"></span><span class="unit-health" aria-hidden="true"><i></i></span><span class="unit-actions" aria-hidden="true">${actionSegments}</span>`;
-    marker.querySelector(".unit-name").textContent = shipType.label;
+    const unitName = marker.querySelector(".unit-name");
+    unitName.textContent = shipType.label.replace(/^USS\s+/i, "");
     marker.addEventListener("click", (event) => handleUnitClick(event, marker, shipType));
     marker.addEventListener("contextmenu", (event) => beginAttackMode(event, marker, shipType));
     unitElements.set(shipType.id, marker);
@@ -1156,6 +1194,7 @@
   function activateGunMode() {
     if (!gunsReady(selectedUnit) || isAnimating) return;
     showAttackArea(selectedUnit);
+    playRandomReloaded();
     unitReadout.textContent = `${selectedUnit.code} · Gun range`;
     updateDetailPanel(selectedUnit, "Select firing target");
   }
@@ -1170,6 +1209,7 @@
   function activateFireRemainingSkill() {
     if (!gunsReady(selectedUnit) || (concealmentDemo && selectedUnit.team === "enemy") || isAnimating) return;
     showAttackArea(selectedUnit, true);
+    playRandomReloaded();
     unitReadout.textContent = `${selectedUnit.code} · Fire remaining salvos`;
     updateDetailPanel(selectedUnit, `Fire ${selectedUnit.gunAttacksRemaining} remaining salvo${selectedUnit.gunAttacksRemaining === 1 ? "" : "s"}`);
   }
@@ -1532,6 +1572,7 @@
     await impactAnimation.finished;
     impact.remove();
     recordEvent(`${shipType.label} salvo result: ${summarizeSalvo(salvo)}.`);
+    return salvo;
   }
 
   async function fireVolley(targetKey, useRemaining = false, firingGroups) {
@@ -1573,7 +1614,13 @@
       volleys.push(animateVolley(shipType, targetKey, firingGroups, preparedSalvo));
       if (useRemaining && index + 1 < salvoCount && projectedDamage < targetHealthAtStart) await wait(180);
     }
-    await Promise.all(volleys);
+    const completedSalvos = await Promise.all(volleys);
+    const totalDamage = completedSalvos.reduce((sum, salvo) => sum + salvo.damageDealt, 0);
+    if (initialTarget && totalDamage > 0) {
+      const extensiveApDamage = completedSalvos.some((salvo) => salvo.shellType === "AP") &&
+        totalDamage >= Math.max(60, initialTarget.maxHealth * 0.18);
+      playEffect(extensiveApDamage ? SOUND_PATHS.hit2 : SOUND_PATHS.hit);
+    }
     renderDeveloperLists();
     isAnimating = false;
     if (shipType.gunAttacksRemaining > 0) showAttackArea(shipType);
@@ -1758,8 +1805,11 @@
 
   function stopDragging(event) {
     if (!dragState) return;
+    if (dragState.frame) cancelAnimationFrame(dragState.frame);
     if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
     if (dragState.moved) {
+      viewport.scrollTo(dragState.scrollLeft + dragState.x - event.clientX,
+        dragState.scrollTop + dragState.y - event.clientY);
       ignoreNextTileClick = true;
       window.setTimeout(() => { ignoreNextTileClick = false; }, 0);
     }
@@ -1932,8 +1982,14 @@
       viewport.classList.add("is-dragging");
     }
     if (!dragState.moved) return;
-    viewport.scrollLeft = dragState.scrollLeft - deltaX;
-    viewport.scrollTop = dragState.scrollTop - deltaY;
+    dragState.latestX = event.clientX;
+    dragState.latestY = event.clientY;
+    if (!dragState.frame) dragState.frame = requestAnimationFrame(() => {
+      if (!dragState) return;
+      dragState.frame = 0;
+      viewport.scrollTo(dragState.scrollLeft + dragState.x - dragState.latestX,
+        dragState.scrollTop + dragState.y - dragState.latestY);
+    });
   });
   viewport.addEventListener("pointerup", stopDragging);
   viewport.addEventListener("pointercancel", stopDragging);
@@ -1951,4 +2007,7 @@
   } else {
     changeMap("northern-lights", false);
   }
+  window.addEventListener("pointerdown", playEnterMatch, true);
+  window.addEventListener("keydown", playEnterMatch, true);
+  playEnterMatch();
 })();

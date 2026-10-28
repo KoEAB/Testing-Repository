@@ -2340,14 +2340,13 @@ p {
 
 .hex-map-viewport.is-dragging {
   cursor: grabbing;
-  user-select: none;
 }
 
 .hex-map-viewport.is-terrain-editing .hex-cell { cursor: grab; }
-.hex-map-viewport.is-dragging .hex-cell { cursor: grabbing; }
 
 .hex-map-stage {
   position: relative;
+  user-select: none;
 }
 
 .hex-map {
@@ -2580,7 +2579,7 @@ p {
   -webkit-text-stroke: 0.5px #02080c;
   paint-order: stroke fill;
   text-shadow: 0 1px 1px #02080c;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(2, 1.5);
   pointer-events: none;
 }
 
