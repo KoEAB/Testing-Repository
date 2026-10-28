@@ -2323,10 +2323,11 @@ p {
 }
 
 .hex-map.has-map-art { background-size: 100% 100%; background-repeat: no-repeat; }
-.hex-map.has-map-art .hex-cell { background: rgba(174, 203, 218, 0.48); }
-.hex-map.has-map-art .sea-hex::before { background: rgba(8, 23, 34, 0.16); }
-.hex-map.has-map-art .land-hex { background: color-mix(in srgb, var(--map-land-color) 72%, rgba(230, 218, 170, 0.5)); }
-.hex-map.has-map-art .land-hex::before { background: color-mix(in srgb, var(--map-land-color) 20%, transparent); }
+.hex-map.has-map-art .hex-cell { background: rgba(126, 174, 196, 0.42); }
+.hex-map.has-map-art .hex-cell::before { inset: 2px; }
+.hex-map.has-map-art .sea-hex::before { background: rgba(6, 27, 40, 0.28); }
+.hex-map.has-map-art .land-hex { background: color-mix(in srgb, var(--map-land-color) 90%, rgba(214, 193, 130, 0.3)); }
+.hex-map.has-map-art .land-hex::before { background: color-mix(in srgb, var(--map-land-color) 76%, rgba(28, 40, 43, 0.24)); }
 .hex-map.has-map-art .terrain-edited-land::before { background: var(--map-land-color); }
 .hex-map.has-map-art .terrain-edited-sea::before { background: var(--map-sea-color); }
 .hex-map.has-map-art .terrain-edited-land,
