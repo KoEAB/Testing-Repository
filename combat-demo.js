@@ -350,7 +350,7 @@
         const key = cellKey(column, row);
         const terrain = landCells.has(key) ? "land" : "sea";
         const tile = document.createElement("button");
-        tile.className = `hex-cell ${terrain}-hex terrain-variant-${(column * 5 + row * 3) % 3}`;
+        tile.className = `hex-cell ${activeMap.image ? "map-art-cell " : ""}${terrain}-hex terrain-variant-${(column * 5 + row * 3) % 3}`;
         if (terrainEdits.get(Object.keys(MAPS).find((name) => MAPS[name] === activeMap))?.has(key)) {
           tile.classList.add(terrain === "land" ? "terrain-edited-land" : "terrain-edited-sea");
         }
@@ -625,17 +625,17 @@
     terrainMode = enabled;
     terrainEditToggle.setAttribute("aria-pressed", String(enabled));
     terrainEditToggle.textContent = enabled ? "Finish terrain editing" : "Edit land and sea";
-    viewport.style.cursor = enabled ? "crosshair" : "";
+    viewport.classList.toggle("is-terrain-editing", enabled);
     terrainEditMessage.textContent = enabled
-      ? `Painting ${terrainBrush}. Click or drag across hexes.`
-      : "Select Edit land and sea, then click or drag across hexes.";
+      ? `Painting ${terrainBrush}. Right-click or right-drag across hexes; left-drag to pan.`
+      : "Select Edit land and sea, then right-click or right-drag across hexes.";
   }
 
   function setTerrainBrush(brush) {
     terrainBrush = brush;
     terrainBrushLand.setAttribute("aria-pressed", String(brush === "land"));
     terrainBrushSea.setAttribute("aria-pressed", String(brush === "sea"));
-    if (terrainMode) terrainEditMessage.textContent = `Painting ${brush}. Click or drag across hexes.`;
+    if (terrainMode) terrainEditMessage.textContent = `Painting ${brush}. Right-click or right-drag across hexes; left-drag to pan.`;
   }
 
   function paintTerrain(key) {
@@ -1019,6 +1019,10 @@
 
   function handleTileRightClick(event, key) {
     event.preventDefault();
+    if (terrainMode) {
+      paintTerrain(key);
+      return;
+    }
     if (mode !== "move" || !selectedUnit || isAnimating || !reachableState?.distance.has(key)) return;
     const target = parseCellKey(key);
     setMarkerHeading(selectedUnit, target, { commit: true });
@@ -1053,7 +1057,7 @@
 
   function handleUnitClick(event, marker, shipType) {
     event.stopPropagation();
-    if (terrainMode) { paintTerrain(cellKey(shipType.column, shipType.row)); return; }
+    if (terrainMode) return;
     if (setupMode) return;
     if (isAnimating) return;
     if (shipType.health <= 0) {
@@ -1130,7 +1134,11 @@
   function beginAttackMode(event, marker, shipType) {
     event.preventDefault();
     event.stopPropagation();
-    if (setupMode || terrainMode) return;
+    if (terrainMode) {
+      paintTerrain(cellKey(shipType.column, shipType.row));
+      return;
+    }
+    if (setupMode) return;
     if (isAnimating || shipType.health <= 0) return;
     if (concealmentDemo && shipType.team === "enemy") {
       if (inspectedEnemy?.id === shipType.id) deselectUnit();
@@ -1648,10 +1656,7 @@
       ignoreNextTileClick = false;
       return;
     }
-    if (terrainMode) {
-      paintTerrain(key);
-      return;
-    }
+    if (terrainMode) return;
     if (setupMode) {
       if (placementOrder) placeUnit(key);
       return;
@@ -1833,7 +1838,7 @@
     }
   });
   map.addEventListener("pointerover", (event) => {
-    if (terrainMode && event.buttons === 1) paintTerrain(event.target.closest(".hex-cell")?.dataset.cell);
+    if (terrainMode && event.buttons === 2) paintTerrain(event.target.closest(".hex-cell")?.dataset.cell);
   });
   mapSelector?.addEventListener("change", () => changeMap(mapSelector.value));
   developerAdd.addEventListener("click", beginPlacement);
@@ -1858,7 +1863,7 @@
     else if (event.key === "Escape") deselectUnit();
   });
   viewport.addEventListener("pointerdown", (event) => {
-    if (terrainMode || event.button !== 0 || event.target.closest(".map-unit")) return;
+    if (event.button !== 0 || event.target.closest(".map-unit")) return;
     dragState = { x: event.clientX, y: event.clientY, scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop, moved: false };
   });
   viewport.addEventListener("pointermove", (event) => {

@@ -2305,6 +2305,9 @@ p {
   user-select: none;
 }
 
+.hex-map-viewport.is-terrain-editing .hex-cell { cursor: grab; }
+.hex-map-viewport.is-dragging .hex-cell { cursor: grabbing; }
+
 .hex-map-stage {
   position: relative;
 }
@@ -2323,15 +2326,6 @@ p {
 }
 
 .hex-map.has-map-art { background-size: 100% 100%; background-repeat: no-repeat; }
-.hex-map.has-map-art .hex-cell { background: rgba(126, 174, 196, 0.42); }
-.hex-map.has-map-art .hex-cell::before { inset: 2px; }
-.hex-map.has-map-art .sea-hex::before { background: rgba(6, 27, 40, 0.28); }
-.hex-map.has-map-art .land-hex { background: color-mix(in srgb, var(--map-land-color) 90%, rgba(214, 193, 130, 0.3)); }
-.hex-map.has-map-art .land-hex::before { background: color-mix(in srgb, var(--map-land-color) 76%, rgba(28, 40, 43, 0.24)); }
-.hex-map.has-map-art .terrain-edited-land::before { background: var(--map-land-color); }
-.hex-map.has-map-art .terrain-edited-sea::before { background: var(--map-sea-color); }
-.hex-map.has-map-art .terrain-edited-land,
-.hex-map.has-map-art .terrain-edited-sea { background: rgba(235, 216, 147, 0.78); }
 
 .hex-cell {
   position: absolute;
@@ -2374,6 +2368,19 @@ p {
 
 .land-hex.terrain-variant-1::before { background-color: #56664b; }
 .land-hex.terrain-variant-2::before { background-color: #485943; }
+
+/* Keep the source map's colors visible; draw only the hex grid over its artwork. */
+.map-art-cell {
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='112' viewBox='0 0 128 112'%3E%3Cpath d='M32 1H96L127 56L96 111H32L1 56Z' fill='none' stroke='%237da6b8' stroke-opacity='.68' stroke-width='1.5'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+.map-art-cell.sea-hex::before,
+.map-art-cell.land-hex::before {
+  background: transparent;
+}
+
+.map-art-cell.terrain-edited-land::before { background: var(--map-land-color); }
+.map-art-cell.terrain-edited-sea::before { background: var(--map-sea-color); }
 
 .hex-cell.is-reachable {
   z-index: 2;
