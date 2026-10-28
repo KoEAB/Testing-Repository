@@ -3,10 +3,10 @@
 
   const concealmentDemo = document.body.dataset.mode === "concealment";
   const MAPS = {
-    "northern-lights": { name: "Northern Lights", kilometers: 48, columns: 56, rows: 48, image: "images/maps/northern-lights.png", land: "#555b60", sea: "#050c1c" },
-    "northern-waters": { name: "Northern Waters", kilometers: 42, columns: 49, rows: 42, image: "images/maps/northern-waters.png", land: "#575b55", sea: "#092b31" },
-    trap: { name: "Trap", kilometers: 42, columns: 49, rows: 42, image: "images/maps/trap.png", land: "#72784a", sea: "#153e5a" },
-    "two-brothers": { name: "Two Brothers", kilometers: 42, columns: 49, rows: 42, image: "images/maps/two-brothers.png", land: "#666d51", sea: "#173c3b" }
+    "northern-lights": { name: "Northern Lights", kilometers: 48, columns: 56, rows: 48, land: "#3c424c", sea: "#010713" },
+    "northern-waters": { name: "Northern Waters", kilometers: 42, columns: 49, rows: 42, land: "#5d5a51", sea: "#06272e" },
+    trap: { name: "Trap", kilometers: 42, columns: 49, rows: 42, land: "#4c522c", sea: "#103c59" },
+    "two-brothers": { name: "Two Brothers", kilometers: 42, columns: 49, rows: 42, land: "#4d4e3c", sea: "#163c3d" }
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
@@ -160,63 +160,6 @@
     }
   }
 
-  function buildImageLand(image) {
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    context.drawImage(image, 0, 0);
-    const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height);
-    const sea = [data[0], data[1], data[2]];
-    const landPaletteSamples = [];
-    const samples = [[0, 0], [-0.22, 0], [0.22, 0], [0, -0.22], [0, 0.22], [-0.15, -0.15], [0.15, -0.15], [-0.15, 0.15], [0.15, 0.15]];
-    for (let column = 0; column < COLUMNS; column += 1) {
-      for (let row = 0; row < ROWS; row += 1) {
-        const center = cellCenter(column, row);
-        const landSamples = samples.filter(([dx, dy]) => {
-          const x = Math.max(0, Math.min(width - 1, Math.round((center.x + dx * HEX_WIDTH) / MAP_WIDTH * width)));
-          const y = Math.max(0, Math.min(height - 1, Math.round((center.y + dy * HEX_HEIGHT) / MAP_HEIGHT * height)));
-          const pixel = (y * width + x) * 4;
-          const difference = Math.abs(data[pixel] - sea[0]) + Math.abs(data[pixel + 1] - sea[1]) + Math.abs(data[pixel + 2] - sea[2]);
-          return difference > 65;
-        }).length;
-        if (landSamples >= 2) landCells.add(cellKey(column, row));
-        if (landSamples >= 5) {
-          const x = Math.max(0, Math.min(width - 1, Math.round(center.x / MAP_WIDTH * width)));
-          const y = Math.max(0, Math.min(height - 1, Math.round(center.y / MAP_HEIGHT * height)));
-          const pixel = (y * width + x) * 4;
-          landPaletteSamples.push([data[pixel], data[pixel + 1], data[pixel + 2]]);
-        }
-      }
-    }
-    // Match the transparent hex paints to the colors in this map's PNG.
-    activeMap.sea = `rgb(${sea.join(", ")})`;
-    if (landPaletteSamples.length >= 5) {
-      const medianLand = [0, 1, 2].map((channel) =>
-        landPaletteSamples.map((pixel) => pixel[channel]).sort((a, b) => a - b)[Math.floor(landPaletteSamples.length / 2)]);
-      activeMap.land = `rgb(${medianLand.join(", ")})`;
-    }
-    if (activeMap === MAPS["two-brothers"]) {
-      // Fill isolated sampling holes inside the two central islands.
-      for (let pass = 0; pass < 2; pass += 1) {
-        const fill = [];
-        for (let column = 17; column <= 31; column += 1) {
-          if (column === 24) continue;
-          for (let row = 18; row <= 25; row += 1) {
-            const key = cellKey(column, row);
-            if (!landCells.has(key) && getNeighbors(column, row).filter((neighbor) => landCells.has(cellKey(neighbor.column, neighbor.row))).length >= 4) fill.push(key);
-          }
-        }
-        fill.forEach((key) => landCells.add(key));
-      }
-      for (let row = 16; row <= 28; row += 1) landCells.delete(cellKey(24, row));
-    }
-    if (activeMap === MAPS["northern-lights"]) {
-      landCells.add(cellKey(32, 22));
-      for (let column = 41; column <= 50; column += 1) landCells.delete(cellKey(column, 23));
-    }
-  }
-
   const viewport = document.querySelector("#hex-map-viewport");
   const tacticalBoard = document.querySelector(".tactical-board");
   const stage = document.querySelector("#hex-map-stage");
@@ -354,9 +297,8 @@
     unitElements.clear();
     map.style.width = `${MAP_WIDTH}px`;
     map.style.height = `${MAP_HEIGHT}px`;
-    map.classList.toggle("has-map-art", Boolean(activeMap.image));
-    map.style.backgroundImage = activeMap.image ? `url("${activeMap.image}")` : "";
     map.style.setProperty("--map-land-color", activeMap.land);
+    map.style.setProperty("--map-sea-color", activeMap.sea);
     tacticalBoard.style.setProperty("--map-land-color", activeMap.land);
     tacticalBoard.style.setProperty("--map-sea-color", activeMap.sea);
     concealmentOutline.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
@@ -366,7 +308,7 @@
         const key = cellKey(column, row);
         const terrain = landCells.has(key) ? "land" : "sea";
         const tile = document.createElement("button");
-        tile.className = `hex-cell ${activeMap.image ? "map-art-cell " : ""}${terrain}-hex terrain-variant-${(column * 5 + row * 3) % 3}`;
+        tile.className = `hex-cell ${terrain}-hex terrain-variant-${(column * 5 + row * 3) % 3}`;
         if (paintedTerrainCells.get(mapKey)?.has(key)) tile.classList.add("terrain-painted");
         if (terrainEdits.get(mapKey)?.has(key)) {
           tile.classList.add(terrain === "land" ? "terrain-edited-land" : "terrain-edited-sea");
@@ -394,30 +336,11 @@
     renderDeveloperLists();
   }
 
-  function loadMapImage(path) {
-    return new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error(`Could not load ${path}`));
-      image.src = path;
-    });
-  }
-
-  async function changeMap(key, clearBoard = true) {
+  function changeMap(key, clearBoard = true) {
     const nextMap = MAPS[key];
     if (!nextMap || isAnimating) return false;
-    if (mapSelector) mapSelector.disabled = true;
-    let image;
-    try {
-      image = await loadMapImage(nextMap.image);
-    } catch (error) {
-      developerInstruction.textContent = `Map could not be loaded: ${nextMap.name}`;
-      if (mapSelector) {
-        mapSelector.value = Object.keys(MAPS).find((mapKey) => MAPS[mapKey] === activeMap);
-        mapSelector.disabled = false;
-      }
-      return false;
-    }
+    const landRows = window.NAVAL_MAP_TERRAIN?.[key];
+    if (!landRows || landRows.length !== nextMap.rows) return false;
     if (clearBoard) {
       deselectUnit();
       shipTypes.splice(0);
@@ -433,7 +356,7 @@
     MAP_WIDTH = (COLUMNS - 1) * COLUMN_STEP + HEX_WIDTH;
     MAP_HEIGHT = ROWS * HEX_HEIGHT + HEX_HEIGHT / 2;
     landCells.clear();
-    buildImageLand(image);
+    landRows.forEach((columns, row) => columns.forEach((column) => landCells.add(cellKey(column, row))));
     baseLandCells = new Set(landCells);
     for (const [cell, isLand] of terrainEdits.get(key) || []) {
       if (isLand) landCells.add(cell);
@@ -443,7 +366,6 @@
     resetView();
     mapSummary.textContent = `${nextMap.name} · ${nextMap.kilometers} × ${nextMap.kilometers} km · ${COLUMNS} × ${ROWS} hexes`;
     if (mapStatusName) mapStatusName.textContent = `${nextMap.name} online`;
-    if (mapSelector) mapSelector.disabled = false;
     return true;
   }
 

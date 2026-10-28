@@ -2318,14 +2318,8 @@ p {
   left: 0;
   overflow: hidden;
   transform-origin: top left;
-  background:
-    linear-gradient(rgba(110, 165, 190, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(110, 165, 190, 0.025) 1px, transparent 1px),
-    #071b2a;
-  background-size: 28px 28px;
+  background: var(--map-sea-color, #0b344a);
 }
-
-.hex-map.has-map-art { background-size: 100% 100%; background-repeat: no-repeat; }
 
 .hex-cell {
   position: absolute;
@@ -2334,7 +2328,7 @@ p {
   padding: 0;
   border: 0;
   clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
-  background: rgba(131, 180, 201, 0.14);
+  background: color-mix(in srgb, var(--map-sea-color) 62%, #7da6b8);
   color: inherit;
   font-family: var(--sans);
   cursor: default;
@@ -2342,61 +2336,31 @@ p {
 
 .hex-cell::before {
   position: absolute;
-  inset: 1px;
+  inset: 2px;
   clip-path: inherit;
   content: "";
 }
 
 .sea-hex::before {
-  background:
-    radial-gradient(circle at 35% 28%, rgba(115, 177, 202, 0.12), transparent 44%),
-    #0b344a;
+  background: var(--map-sea-color);
 }
 
-.sea-hex.terrain-variant-1::before { background-color: #0c3a51; }
-.sea-hex.terrain-variant-2::before { background-color: #0a3045; }
+.sea-hex.terrain-variant-1::before { background: color-mix(in srgb, var(--map-sea-color) 98%, white); }
+.sea-hex.terrain-variant-2::before { background: color-mix(in srgb, var(--map-sea-color) 97%, black); }
 
 .land-hex {
-  background: rgba(194, 181, 126, 0.58);
+  background: color-mix(in srgb, var(--map-land-color) 65%, #aeb8af);
 }
 
 .land-hex::before {
-  background:
-    radial-gradient(circle at 38% 34%, rgba(157, 163, 103, 0.72), transparent 48%),
-    #4e6047;
+  background: var(--map-land-color);
 }
 
-.land-hex.terrain-variant-1::before { background-color: #56664b; }
-.land-hex.terrain-variant-2::before { background-color: #485943; }
+.land-hex.terrain-variant-1::before { background: color-mix(in srgb, var(--map-land-color) 98%, white); }
+.land-hex.terrain-variant-2::before { background: color-mix(in srgb, var(--map-land-color) 97%, black); }
 
-/* The PNG is the bottom layer; translucent, color-matched terrain sits above it. */
-.map-art-cell {
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='112' viewBox='0 0 128 112'%3E%3Cpath d='M32 1H96L127 56L96 111H32L1 56Z' fill='none' stroke='%237da6b8' stroke-opacity='.68' stroke-width='1.5'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-}
-
-.map-art-cell.sea-hex { --tile-color: var(--map-sea-color); }
-.map-art-cell.land-hex { --tile-color: var(--map-land-color); }
-
-.map-art-cell.sea-hex::before {
-  background: color-mix(in srgb, var(--tile-color) 20%, transparent);
-}
-
-.map-art-cell.land-hex::before {
-  background: color-mix(in srgb, var(--tile-color) 68%, transparent);
-}
-
-.map-art-cell.sea-hex.terrain-painted::before {
-  background: color-mix(in srgb, color-mix(in srgb, var(--tile-color) 92%, white) 38%, transparent);
-}
-
-.map-art-cell.land-hex.terrain-painted::before {
-  background: color-mix(in srgb, color-mix(in srgb, var(--tile-color) 92%, white) 72%, transparent);
-}
-
-.map-art-cell.land-hex.terrain-edited-land::before,
-.map-art-cell.sea-hex.terrain-edited-sea::before {
-  background: color-mix(in srgb, var(--tile-color) 86%, transparent);
-}
+.sea-hex.terrain-painted::before { background: color-mix(in srgb, var(--map-sea-color) 92%, white); }
+.land-hex.terrain-painted::before { background: color-mix(in srgb, var(--map-land-color) 92%, white); }
 
 .hex-cell.is-reachable {
   z-index: 2;
