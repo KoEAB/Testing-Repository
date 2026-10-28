@@ -1,14 +1,23 @@
 (function () {
   "use strict";
 
-  const COLUMNS = 50;
-  const ROWS = 50;
+  const concealmentDemo = document.body.dataset.mode === "concealment";
+  const MAPS = {
+    "northern-lights": { name: "Northern Lights", kilometers: 48, columns: 56, rows: 48, image: "images/maps/northern-lights.png", land: "#555b60", sea: "#050c1c" },
+    "northern-waters": { name: "Northern Waters", kilometers: 42, columns: 49, rows: 42, image: "images/maps/northern-waters.png", land: "#575b55", sea: "#092b31" },
+    trap: { name: "Trap", kilometers: 42, columns: 49, rows: 42, image: "images/maps/trap.png", land: "#72784a", sea: "#153e5a" },
+    "two-brothers": { name: "Two Brothers", kilometers: 42, columns: 49, rows: 42, image: "images/maps/two-brothers.png", land: "#666d51", sea: "#173c3b" }
+  };
+  const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
+  let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
+  let COLUMNS = activeMap.columns;
+  let ROWS = activeMap.rows;
   const HEX_WIDTH = 128;
   const HEX_HEIGHT = 112;
   const COLUMN_STEP = 96;
-  const MAP_WIDTH = (COLUMNS - 1) * COLUMN_STEP + HEX_WIDTH;
-  const MAP_HEIGHT = ROWS * HEX_HEIGHT + HEX_HEIGHT / 2;
-  const MIN_SCALE = 0.15;
+  let MAP_WIDTH = (COLUMNS - 1) * COLUMN_STEP + HEX_WIDTH;
+  let MAP_HEIGHT = ROWS * HEX_HEIGHT + HEX_HEIGHT / 2;
+  const MIN_SCALE = 0.1;
   const MAX_SCALE = 2.2;
   const SCALE_STEP = 0.1;
   const MOVE_RANGE = 5;
@@ -20,7 +29,6 @@
   const MIN_AP_SHELL_VELOCITY = 701;
   const MAX_AP_SHELL_VELOCITY = 914;
   const DEFAULT_TARGET_SPEED_KNOTS = 29.5;
-  const concealmentDemo = document.body.dataset.mode === "concealment";
   const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
   const TORPEDO_CODES = new Set(["SS", "SSV", "DD", "DE"]);
   const SIZE_RANK = { SS: 1, SSV: 1, DD: 2, DE: 2, CL: 3, CA: 3, BM: 3, AR: 3, CVE: 3, CVL: 3, CB: 4, BC: 4, CV: 4, BB: 5, BBV: 5 };
@@ -117,7 +125,7 @@
     };
   }
 
-  const islandShapes = [
+  const trainingIslandShapes = [
     { column: 3, row: 4, width: 5, height: 6 },
     { column: 14, row: 8, width: 4, height: 5 },
     { column: 27, row: 5, width: 6, height: 4 },
@@ -134,15 +142,42 @@
   ];
 
   const landCells = new Set();
-  for (let column = 0; column < COLUMNS; column += 1) {
-    for (let row = 0; row < ROWS; row += 1) {
-      const isLand = islandShapes.some((island, index) => {
-        const x = (column - island.column) / island.width;
-        const y = (row - island.row) / island.height;
-        const edgeVariation = ((column * 17 + row * 29 + index * 11) % 9 - 4) * 0.035;
-        return x * x + y * y < 1 + edgeVariation;
-      });
-      if (isLand && !(row === 24 && column >= 17 && column <= 32)) landCells.add(`${column},${row}`);
+
+  function buildTrainingLand() {
+    for (let column = 0; column < COLUMNS; column += 1) {
+      for (let row = 0; row < ROWS; row += 1) {
+        const isLand = trainingIslandShapes.some((island, index) => {
+          const x = (column - island.column) / island.width;
+          const y = (row - island.row) / island.height;
+          const edgeVariation = ((column * 17 + row * 29 + index * 11) % 9 - 4) * 0.035;
+          return x * x + y * y < 1 + edgeVariation;
+        });
+        if (isLand && !(row === 24 && column >= 17 && column <= 32)) landCells.add(`${column},${row}`);
+      }
+    }
+  }
+
+  function buildImageLand(image) {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height);
+    const sea = [data[0], data[1], data[2]];
+    const samples = [[0, 0], [-0.22, 0], [0.22, 0], [0, -0.22], [0, 0.22], [-0.15, -0.15], [0.15, -0.15], [-0.15, 0.15], [0.15, 0.15]];
+    for (let column = 0; column < COLUMNS; column += 1) {
+      for (let row = 0; row < ROWS; row += 1) {
+        const center = cellCenter(column, row);
+        const landSamples = samples.filter(([dx, dy]) => {
+          const x = Math.max(0, Math.min(width - 1, Math.round((center.x + dx * HEX_WIDTH) / MAP_WIDTH * width)));
+          const y = Math.max(0, Math.min(height - 1, Math.round((center.y + dy * HEX_HEIGHT) / MAP_HEIGHT * height)));
+          const pixel = (y * width + x) * 4;
+          const difference = Math.abs(data[pixel] - sea[0]) + Math.abs(data[pixel + 1] - sea[1]) + Math.abs(data[pixel + 2] - sea[2]);
+          return difference > 65;
+        }).length;
+        if (landSamples >= 2) landCells.add(cellKey(column, row));
+      }
     }
   }
 
@@ -184,6 +219,9 @@
   const apButton = document.querySelector("#load-ap-shells");
   const heButton = document.querySelector("#load-he-shells");
   const developerPanel = document.querySelector("#developer-panel");
+  const mapSelector = document.querySelector("#developer-map");
+  const mapSummary = document.querySelector("#map-summary");
+  const mapStatusName = document.querySelector("#map-status-name");
   const developerPanelToggle = document.querySelector("#developer-panel-toggle");
   const developerTeam = document.querySelector("#developer-team");
   const developerType = document.querySelector("#developer-type");
@@ -259,8 +297,17 @@
   }
 
   function renderMap() {
+    map.replaceChildren();
+    tileElements.clear();
+    unitElements.clear();
     map.style.width = `${MAP_WIDTH}px`;
     map.style.height = `${MAP_HEIGHT}px`;
+    map.classList.toggle("has-map-art", Boolean(activeMap.image));
+    map.style.backgroundImage = activeMap.image ? `url("${activeMap.image}")` : "";
+    map.style.setProperty("--map-land-color", activeMap.land);
+    tacticalBoard.style.setProperty("--map-land-color", activeMap.land);
+    tacticalBoard.style.setProperty("--map-sea-color", activeMap.sea);
+    concealmentOutline.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
     for (let column = 0; column < COLUMNS; column += 1) {
       for (let row = 0; row < ROWS; row += 1) {
         const key = cellKey(column, row);
@@ -288,6 +335,52 @@
     shipTypes.forEach(renderUnit);
     updateDetection();
     renderDeveloperLists();
+  }
+
+  function loadMapImage(path) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error(`Could not load ${path}`));
+      image.src = path;
+    });
+  }
+
+  async function changeMap(key, clearBoard = true) {
+    const nextMap = MAPS[key];
+    if (!nextMap || isAnimating) return;
+    if (mapSelector) mapSelector.disabled = true;
+    let image;
+    try {
+      image = await loadMapImage(nextMap.image);
+    } catch (error) {
+      developerInstruction.textContent = `Map could not be loaded: ${nextMap.name}`;
+      if (mapSelector) {
+        mapSelector.value = Object.keys(MAPS).find((mapKey) => MAPS[mapKey] === activeMap);
+        mapSelector.disabled = false;
+      }
+      return;
+    }
+    if (clearBoard) {
+      deselectUnit();
+      shipTypes.splice(0);
+      unitSequence = 0;
+      currentTurn = 1;
+      turnNumber.textContent = "1";
+      developerInstruction.textContent = `${nextMap.name} loaded. All deployed units were cleared.`;
+    }
+    activeMap = nextMap;
+    COLUMNS = nextMap.columns;
+    ROWS = nextMap.rows;
+    MAP_WIDTH = (COLUMNS - 1) * COLUMN_STEP + HEX_WIDTH;
+    MAP_HEIGHT = ROWS * HEX_HEIGHT + HEX_HEIGHT / 2;
+    landCells.clear();
+    buildImageLand(image);
+    renderMap();
+    resetView();
+    mapSummary.textContent = `${nextMap.name} · ${nextMap.kilometers} × ${nextMap.kilometers} km · ${COLUMNS} × ${ROWS} hexes`;
+    if (mapStatusName) mapStatusName.textContent = `${nextMap.name} online`;
+    if (mapSelector) mapSelector.disabled = false;
   }
 
   function renderUnit(shipType) {
@@ -1450,10 +1543,11 @@
   }
 
   function resetView() {
-    setScale(1, false);
+    const fit = Math.min(viewport.clientWidth / MAP_WIDTH, viewport.clientHeight / MAP_HEIGHT) * 0.96;
+    setScale(Math.max(MIN_SCALE, fit), false);
     requestAnimationFrame(() => {
-      viewport.scrollLeft = Math.max(0, (MAP_WIDTH - viewport.clientWidth) / 2);
-      viewport.scrollTop = Math.max(0, (MAP_HEIGHT - viewport.clientHeight) / 2);
+      viewport.scrollLeft = Math.max(0, (MAP_WIDTH * scale - viewport.clientWidth) / 2);
+      viewport.scrollTop = Math.max(0, (MAP_HEIGHT * scale - viewport.clientHeight) / 2);
     });
   }
 
@@ -1531,6 +1625,7 @@
     const collapsed = developerPanel.classList.toggle("is-collapsed");
     developerPanelToggle.setAttribute("aria-expanded", String(!collapsed));
   });
+  mapSelector?.addEventListener("change", () => changeMap(mapSelector.value));
   developerAdd.addEventListener("click", beginPlacement);
   developerUnitLists.addEventListener("click", (event) => {
     const button = event.target.closest("[data-delete-unit]");
@@ -1576,6 +1671,12 @@
   developerType.innerHTML = [...unitTemplates.entries()]
     .map(([templateId, ship]) => `<option value="${templateId}">${templateId.startsWith("uss-") ? ship.label : `${ship.code} · ${ship.label}`}</option>`)
     .join("");
-  renderMap();
-  resetView();
+  if (concealmentDemo) {
+    buildTrainingLand();
+    renderMap();
+    resetView();
+    mapSummary.textContent = `Training Waters · ${TRAINING_MAP.kilometers} × ${TRAINING_MAP.kilometers} km · ${COLUMNS} × ${ROWS} hexes`;
+  } else {
+    changeMap("northern-lights", false);
+  }
 })();

@@ -2083,6 +2083,27 @@ p {
   padding: 14px;
 }
 
+.developer-map-control {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.developer-map-control select {
+  width: 100%;
+  min-height: 36px;
+  margin-top: 5px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  background: #071827;
+  color: var(--ink);
+  font: 13px var(--sans);
+}
+
 .developer-add-controls {
   display: grid;
   grid-template-columns: 1fr 1.25fr;
@@ -2269,6 +2290,12 @@ p {
     #071b2a;
   background-size: 28px 28px;
 }
+
+.hex-map.has-map-art { background-size: 100% 100%; background-repeat: no-repeat; }
+.hex-map.has-map-art .hex-cell { background: rgba(164, 189, 194, 0.11); }
+.hex-map.has-map-art .sea-hex::before { background: rgba(8, 23, 34, 0.16); }
+.hex-map.has-map-art .land-hex { background: color-mix(in srgb, var(--map-land-color) 55%, transparent); }
+.hex-map.has-map-art .land-hex::before { background: color-mix(in srgb, var(--map-land-color) 20%, transparent); }
 
 .hex-cell {
   position: absolute;
@@ -2998,8 +3025,8 @@ p {
   clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
 }
 
-.sea-swatch { background: #17607a; }
-.land-swatch { background: #6b754f; }
+.sea-swatch { background: var(--map-sea-color, #17607a); }
+.land-swatch { background: var(--map-land-color, #6b754f); }
 
 @media (max-width: 760px) {
   .login-background-placeholder {
