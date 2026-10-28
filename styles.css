@@ -2377,17 +2377,24 @@ p {
 .map-art-cell.sea-hex { --tile-color: var(--map-sea-color); }
 .map-art-cell.land-hex { --tile-color: var(--map-land-color); }
 
-.map-art-cell.sea-hex::before,
-.map-art-cell.land-hex::before {
+.map-art-cell.sea-hex::before {
   background: color-mix(in srgb, var(--tile-color) 20%, transparent);
 }
 
-.map-art-cell.terrain-painted::before {
+.map-art-cell.land-hex::before {
+  background: color-mix(in srgb, var(--tile-color) 68%, transparent);
+}
+
+.map-art-cell.sea-hex.terrain-painted::before {
   background: color-mix(in srgb, color-mix(in srgb, var(--tile-color) 92%, white) 38%, transparent);
 }
 
-.map-art-cell.terrain-edited-land::before,
-.map-art-cell.terrain-edited-sea::before {
+.map-art-cell.land-hex.terrain-painted::before {
+  background: color-mix(in srgb, color-mix(in srgb, var(--tile-color) 92%, white) 72%, transparent);
+}
+
+.map-art-cell.land-hex.terrain-edited-land::before,
+.map-art-cell.sea-hex.terrain-edited-sea::before {
   background: color-mix(in srgb, var(--tile-color) 86%, transparent);
 }
 
