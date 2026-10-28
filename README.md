@@ -28,3 +28,7 @@ The current transparent anime artwork is stored in `images/warships/` and mapped
 - Detail image: 3:4
 
 Ship names, historical summaries, type codes, rarities, placeholder capabilities, colors, and links are all managed in `data.js`.
+
+## Combat code
+
+`ship-combat-data.js` defines ship types and named combat statistics shared by the Shipyard and combat demos. Adding a named combat ship there makes it available in the developer panel; add its historical profile in `data.js` to show it in the Shipyard. `combat-rules.js` contains the damage, detection, and shell calculations used by both combat modes. Run its checks with `node --test tests/combat-rules.test.js`.

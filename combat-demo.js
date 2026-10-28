@@ -10,11 +10,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-62",
-    hit: "images/sounds/hit.mp3?v=navy-62",
-    hit2: "images/sounds/hit-2.mp3?v=navy-62",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-62",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-62`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-63",
+    hit: "images/sounds/hit.mp3?v=navy-63",
+    hit2: "images/sounds/hit-2.mp3?v=navy-63",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-63",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-63`)
   };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -33,65 +33,27 @@
   const TORPEDO_RANGE = 4;
   const TURN_DURATION = 300;
   const DEFAULT_CONCEALMENT = 10;
-  const MIN_AP_SHELL_VELOCITY = 701;
-  const MAX_AP_SHELL_VELOCITY = 914;
-  const DEFAULT_TARGET_SPEED_KNOTS = 29.5;
-  const ATTACK_CODES = new Set(["DD", "DE", "CL", "CA", "CB", "BC", "BB", "BBV", "BM", "CV"]);
-  const TORPEDO_CODES = new Set(["SS", "SSV", "DD", "DE"]);
-  const SIZE_RANK = { SS: 1, SSV: 1, DD: 2, DE: 2, CL: 3, CA: 3, BM: 3, AR: 3, CVE: 3, CVL: 3, CB: 4, BC: 4, CV: 4, BB: 5, BBV: 5 };
-  const NO_CITADEL_CODES = new Set(["DD", "DE", "SS", "SSV"]);
-  const MAIN_GUN_CALIBER_MM = { DD: 127, DE: 127, CL: 152, CA: 203, CB: 305, BC: 356, BB: 406, BBV: 356, BM: 305, CV: 127 };
-  const WRECK_CLASSIFICATION = {
-    SS: "Subs", SSV: "Subs",
-    DD: "Light", DE: "Light",
-    CL: "Med", CA: "Med", AR: "Med", BM: "Med", CVE: "Med", CVL: "Med",
-    BB: "Heavy", CB: "Heavy", BBV: "Heavy", CV: "Heavy",
-    BC: "Heavy"
-  };
+  const combatRules = window.NAVAL_COMBAT_RULES.createCombatRules(window.NAVAL_UNIT_TYPES);
+  const { MIN_AP_SHELL_VELOCITY, hexDistance } = combatRules;
+  const unitTypeByCode = new Map(window.NAVAL_UNIT_TYPES.map((type) => [type.code, type]));
+  const ATTACK_CODES = new Set(window.NAVAL_UNIT_TYPES.filter((type) => type.gun).map((type) => type.code));
+  const TORPEDO_CODES = new Set(window.NAVAL_UNIT_TYPES.filter((type) => type.torpedo).map((type) => type.code));
   const WRECK_TURNS = { Subs: 0, Light: 1, Med: 2, Heavy: 3 };
-  const UNIT_STATS = {
-    SS: { health: 70, torpedo: 110 }, SSV: { health: 80, torpedo: 100 },
-    DD: { health: 100, gun: 35, torpedo: 85 }, DE: { health: 110, gun: 30, torpedo: 75 },
-    CL: { health: 180, gun: 45 }, CA: { health: 240, gun: 60 }, CB: { health: 320, gun: 75 },
-    BC: { health: 380, gun: 85 }, BB: { health: 450, gun: 100 }, BBV: { health: 430, gun: 95 },
-    CV: { health: 360, gun: 20 }, CVL: { health: 280 }, CVE: { health: 220 },
-    BM: { health: 200, gun: 55 }, AR: { health: 180 }
-  };
-
   const unitTemplates = new Map([
-    ["SS", { label: "Submarine", group: "submarine" }], ["SSV", { label: "Aviation submarine", group: "submarine" }],
-    ["DD", { label: "Destroyer", group: "escort" }], ["DE", { label: "Destroyer escort", group: "escort" }],
-    ["CL", { label: "Light cruiser", group: "cruiser" }], ["CA", { label: "Heavy cruiser", group: "cruiser" }],
-    ["CB", { label: "Large cruiser", group: "cruiser" }], ["BC", { label: "Battlecruiser", group: "capital" }],
-    ["BB", { label: "Battleship", group: "capital" }], ["BBV", { label: "Aviation battleship", group: "capital" }],
-    ["CV", { label: "Aircraft carrier", group: "aviation" }], ["CVL", { label: "Light aircraft carrier", group: "aviation" }],
-    ["CVE", { label: "Escort aircraft carrier", group: "aviation" }], ["BM", { label: "Monitor", group: "coastal" }],
-    ["AR", { label: "Repair ship", group: "support" }],
-    ["uss-north-carolina", { code: "BB", label: "USS North Carolina", group: "capital", ...window.SHIP_COMBAT_DATA["USS North Carolina"] }],
-    ["uss-new-orleans", { code: "CA", label: "USS New Orleans", group: "cruiser", ...window.SHIP_COMBAT_DATA["USS New Orleans"] }],
-    ["uss-helena", { code: "CL", label: "USS Helena", group: "cruiser", ...window.SHIP_COMBAT_DATA["USS Helena"] }],
-    ["uss-des-moines", { code: "CA", label: "USS Des Moines", group: "cruiser", ...window.SHIP_COMBAT_DATA["USS Des Moines"] }],
-    ["uss-fletcher", { code: "DD", label: "USS Fletcher", group: "escort", ...window.SHIP_COMBAT_DATA["USS Fletcher"] }]
-  ].map(([code, details]) => [code, { code, ...details }]));
+    ...window.NAVAL_UNIT_TYPES.map(({ code, label, group }) => [code, { code, label, group }]),
+    ...Object.entries(window.SHIP_COMBAT_DATA).map(([label, stats]) => [
+      label.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      { ...stats, label, group: unitTypeByCode.get(stats.code).group }
+    ])
+  ]);
   const shipTypes = concealmentDemo ? [
     ["uss-fletcher", "friendly", 17, 24], ["uss-new-orleans", "friendly", 15, 25], ["uss-north-carolina", "friendly", 14, 18],
     ["uss-fletcher", "enemy", 38, 30], ["uss-new-orleans", "enemy", 43, 27], ["uss-north-carolina", "enemy", 34, 27]
   ].map(([key, team, column, row], index) => createUnitState({ ...unitTemplates.get(key), column, row }, `${team}-${key}-${index}`, team)) : [];
   let unitSequence = shipTypes.length;
 
-  function actionLayout(code) {
-    if (code === "DD" || code === "DE") return ["move", "gun", "torpedo"];
-    if (code === "SS") return ["move", "torpedo"];
-    if (code === "SSV") return ["move", "torpedo", "air"];
-    if (code === "CV") return ["move", "gun", "air"];
-    if (code === "CVL" || code === "CVE") return ["move", "air"];
-    if (code === "BBV") return ["move", "gun", "air"];
-    if (["CL", "CA", "CB", "BC", "BB", "BM"].includes(code)) return ["move", "gun"];
-    return ["move"];
-  }
-
   function createUnitState(ship, id, team) {
-    const stats = UNIT_STATS[ship.code];
+    const stats = unitTypeByCode.get(ship.code);
     return {
       ...ship,
       id,
@@ -108,7 +70,7 @@
       apShellVelocity: ship.apShellVelocity ?? null,
       heShellVelocity: ship.heShellVelocity ?? ship.apShellVelocity ?? null,
       heAlphaDamage: ship.heAlphaDamage ?? Math.round((ship.alphaDamage ?? ship.gunDamage ?? stats.gun ?? 0) * 0.6),
-      mainGunCaliberMm: ship.mainGunCaliberMm ?? MAIN_GUN_CALIBER_MM[ship.code] ?? null,
+      mainGunCaliberMm: ship.mainGunCaliberMm ?? stats.caliber ?? null,
       gunReloadPending: false,
       gunDamage: ship.gunDamage ?? stats.gun ?? 0,
       shellType: "AP",
@@ -128,7 +90,7 @@
       sunkTurn: null,
       wreckClassification: null,
       wreckTurnsRemaining: null,
-      actions: actionLayout(ship.code)
+      actions: [...stats.actions]
     };
   }
 
@@ -149,6 +111,8 @@
   ];
 
   const landCells = new Set();
+  let landMask = new Uint8Array(COLUMNS * ROWS);
+  const lineOfFireCache = new Map();
   let baseLandCells = new Set();
   const terrainEdits = new Map();
   const paintedTerrainCells = new Map();
@@ -233,6 +197,7 @@
   const logEntries = document.querySelector("#combat-log-entries");
   const logCount = document.querySelector("#combat-log-count");
   const tileElements = new Map();
+  const highlightedTiles = new Set();
   const unitElements = new Map();
   const concealmentOutline = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   concealmentOutline.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
@@ -357,6 +322,9 @@
   function renderMap() {
     map.replaceChildren();
     tileElements.clear();
+    highlightedTiles.clear();
+    lineOfFireCache.clear();
+    landMask = new Uint8Array(COLUMNS * ROWS);
     unitElements.clear();
     map.style.width = `${MAP_WIDTH}px`;
     map.style.height = `${MAP_HEIGHT}px`;
@@ -369,7 +337,9 @@
     for (let column = 0; column < COLUMNS; column += 1) {
       for (let row = 0; row < ROWS; row += 1) {
         const key = cellKey(column, row);
-        const terrain = landCells.has(key) ? "land" : "sea";
+        const isLand = landCells.has(key);
+        landMask[row * COLUMNS + column] = Number(isLand);
+        const terrain = isLand ? "land" : "sea";
         const tile = document.createElement("button");
         tile.className = `hex-cell ${terrain}-hex terrain-variant-${(column * 5 + row * 3) % 3}`;
         if (paintedTerrainCells.get(mapKey)?.has(key)) tile.classList.add("terrain-painted");
@@ -510,14 +480,6 @@
     });
   }
 
-  function hexDistance(first, second) {
-    const firstR = first.row - Math.floor(first.column / 2);
-    const secondR = second.row - Math.floor(second.column / 2);
-    const dq = first.column - second.column;
-    const dr = firstR - secondR;
-    return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
-  }
-
   function updateConcealmentOutline(ship, showWeapons = false) {
     if (!ship || ship.health <= 0) {
       concealmentOutline.setAttribute("hidden", "");
@@ -549,8 +511,7 @@
     shipTypes.forEach((ship) => {
       const marker = unitElements.get(ship.id);
       if (!marker) return;
-      const opponents = shipTypes.filter((other) => other.health > 0 && other.team !== ship.team);
-      const detected = ship.health > 0 && opponents.some((other) => hexDistance(ship, other) <= ship.concealmentRange);
+      const detected = combatRules.isDetected(ship, shipTypes);
       // A ship is revealed when an opponent enters the ship's own concealment radius.
       const visibleToFriendly = ship.team !== "enemy" || ship.health <= 0 || detected;
       const wasConcealed = marker.classList.contains("is-concealed-enemy");
@@ -588,7 +549,7 @@
     clearTacticalHighlights();
     const occupied = occupiedCells(null);
     tileElements.forEach((tile, key) => {
-      if ((setupMode || !landCells.has(key)) && !occupied.has(key)) tile.classList.add("is-placement");
+      if ((setupMode || !landCells.has(key)) && !occupied.has(key)) highlightTile(key, "is-placement");
     });
   }
 
@@ -662,6 +623,9 @@
     const wasLand = landCells.has(key);
     if (isLand) landCells.add(key);
     else landCells.delete(key);
+    const { column, row } = parseCellKey(key);
+    landMask[row * COLUMNS + column] = Number(isLand);
+    if (wasLand !== isLand) lineOfFireCache.clear();
     const mapKey = Object.keys(MAPS).find((name) => MAPS[name] === activeMap);
     if (!terrainEdits.has(mapKey)) terrainEdits.set(mapKey, new Map());
     if (!paintedTerrainCells.has(mapKey)) paintedTerrainCells.set(mapKey, new Set());
@@ -676,10 +640,9 @@
     tile.classList.toggle("terrain-edited-sea", !isLand && terrainEdits.get(mapKey).has(key));
     if (isLand) tile.setAttribute("aria-disabled", "true");
     else tile.removeAttribute("aria-disabled");
-    const cell = parseCellKey(key);
-    tile.setAttribute("aria-label", `${coordinateLabel(cell.column, cell.row)} · ${isLand ? "land" : "sea"}`);
+    tile.setAttribute("aria-label", `${coordinateLabel(column, row)} · ${isLand ? "land" : "sea"}`);
     terrainCodeOutput.value = "";
-    if (wasLand !== isLand) recordEvent(`${coordinateLabel(cell.column, cell.row)} changed to ${terrainBrush}.`);
+    if (wasLand !== isLand) recordEvent(`${coordinateLabel(column, row)} changed to ${terrainBrush}.`);
   }
 
   function exportTerrainCode() {
@@ -786,8 +749,8 @@
     const distance = new Map([[startKey, 0]]);
     const previous = new Map();
     const queue = [startKey];
-    while (queue.length) {
-      const currentKey = queue.shift();
+    for (let index = 0; index < queue.length; index += 1) {
+      const currentKey = queue[index];
       const currentDistance = distance.get(currentKey);
       if (currentDistance >= shipType.movementRange) continue;
       const current = parseCellKey(currentKey);
@@ -807,8 +770,8 @@
     const startKey = cellKey(shipType.column, shipType.row);
     const distance = new Map([[startKey, 0]]);
     const queue = [startKey];
-    while (queue.length) {
-      const currentKey = queue.shift();
+    for (let index = 0; index < queue.length; index += 1) {
+      const currentKey = queue[index];
       const currentDistance = distance.get(currentKey);
       if (currentDistance >= radius) continue;
       const current = parseCellKey(currentKey);
@@ -865,16 +828,26 @@
     restoreCommittedFacing();
   }
 
+  function highlightTile(key, className, options = {}) {
+    const tile = tileElements.get(key);
+    if (!tile) return;
+    tile.classList.add(className);
+    highlightedTiles.add(tile);
+    if (options.distance != null) tile.dataset.distance = String(options.distance);
+    if (options.focusable) tile.tabIndex = 0;
+  }
+
   function clearTacticalHighlights() {
-    tileElements.forEach((tile) => {
+    highlightedTiles.forEach((tile) => {
       tile.classList.remove("is-reachable", "is-unit-selected", "is-route", "is-attackable", "is-torpedoable", "is-placement", "is-facing-option", "is-designated-target");
       delete tile.dataset.distance;
       tile.tabIndex = -1;
     });
+    highlightedTiles.clear();
   }
 
   function markSelectedOrigin(shipType) {
-    tileElements.get(cellKey(shipType.column, shipType.row))?.classList.add("is-unit-selected");
+    highlightTile(cellKey(shipType.column, shipType.row), "is-unit-selected");
   }
 
   function showMovementArea(shipType) {
@@ -886,10 +859,7 @@
     reachableState = shipType.moved ? null : calculateReachable(shipType);
     if (!reachableState) return;
     reachableState.distance.forEach((distance, key) => {
-      const tile = tileElements.get(key);
-      tile.classList.add("is-reachable");
-      tile.dataset.distance = String(distance);
-      tile.tabIndex = 0;
+      highlightTile(key, "is-reachable", { distance, focusable: true });
     });
   }
 
@@ -902,9 +872,7 @@
     attackCells = new Set([...calculateRadius(shipType, shipType.gunRange)].filter((key) =>
       !targetIsFriendly(key, shipType) && !lineOfFireBlocked(shipType, key)));
     attackCells.forEach((key) => {
-      const tile = tileElements.get(key);
-      tile.classList.add("is-attackable");
-      tile.tabIndex = 0;
+      highlightTile(key, "is-attackable", { focusable: true });
     });
   }
 
@@ -917,9 +885,7 @@
     attackCells = new Set([...calculateRadius(shipType, shipType.torpedoRange)].filter((key) =>
       !targetIsFriendly(key, shipType) && !lineOfFireBlocked(shipType, key)));
     attackCells.forEach((key) => {
-      const tile = tileElements.get(key);
-      tile.classList.add("is-torpedoable");
-      tile.tabIndex = 0;
+      highlightTile(key, "is-torpedoable", { focusable: true });
     });
   }
 
@@ -930,11 +896,9 @@
     attackCells = calculateRadius(selectedUnit, AIM_RANGE);
     markSelectedOrigin(selectedUnit);
     attackCells.forEach((key) => {
-      const tile = tileElements.get(key);
-      tile.classList.add("is-facing-option");
-      tile.tabIndex = 0;
+      highlightTile(key, "is-facing-option", { focusable: true });
     });
-    tileElements.get(targetKey)?.classList.add("is-designated-target");
+    highlightTile(targetKey, "is-designated-target");
     updateTurretIndicators();
     unitReadout.textContent = `${selectedUnit.code} · Choose a facing within ${AIM_RANGE} hexes`;
     const target = parseCellKey(targetKey);
@@ -1250,11 +1214,11 @@
 
   function pointIntersectsLand(point, clearance = 18, ignoredKeys = null) {
     const approximateColumn = Math.round((point.x - HEX_WIDTH / 2) / COLUMN_STEP);
-    for (let column = approximateColumn - 2; column <= approximateColumn + 2; column += 1) {
+    // A point can overlap only the nearest column and its immediate neighbors.
+    for (let column = Math.max(0, approximateColumn - 1); column <= Math.min(COLUMNS - 1, approximateColumn + 1); column += 1) {
       const approximateRow = Math.round((point.y - HEX_HEIGHT / 2 - (column % 2 ? HEX_HEIGHT / 2 : 0)) / HEX_HEIGHT);
-      for (let row = approximateRow - 2; row <= approximateRow + 2; row += 1) {
-        const key = cellKey(column, row);
-        if (!landCells.has(key) || ignoredKeys?.has(key)) continue;
+      for (let row = Math.max(0, approximateRow - 1); row <= Math.min(ROWS - 1, approximateRow + 1); row += 1) {
+        if (!landMask[row * COLUMNS + column] || ignoredKeys?.has(cellKey(column, row))) continue;
         const center = cellCenter(column, row);
         const x = Math.abs(point.x - center.x);
         const y = Math.abs(point.y - center.y);
@@ -1280,9 +1244,19 @@
   }
 
   function lineOfFireBlocked(ship, targetKey) {
+    const originKey = cellKey(ship.column, ship.row);
+    let visibleFromOrigin = lineOfFireCache.get(originKey);
+    if (!visibleFromOrigin) {
+      if (lineOfFireCache.size >= 32) lineOfFireCache.delete(lineOfFireCache.keys().next().value);
+      visibleFromOrigin = new Map();
+      lineOfFireCache.set(originKey, visibleFromOrigin);
+    }
+    if (visibleFromOrigin.has(targetKey)) return visibleFromOrigin.get(targetKey);
     const target = parseCellKey(targetKey);
-    return lineCrossesLand(cellCenter(ship.column, ship.row), cellCenter(target.column, target.row), 0,
-      new Set([cellKey(ship.column, ship.row), targetKey]));
+    const blocked = lineCrossesLand(cellCenter(ship.column, ship.row), cellCenter(target.column, target.row), 0,
+      new Set([originKey, targetKey]));
+    visibleFromOrigin.set(targetKey, blocked);
+    return blocked;
   }
 
   function simplifyLandRoute(points) {
@@ -1327,7 +1301,7 @@
     marker.dataset.lastRoute = landInWay ? "detour" : "direct";
     marker.dataset.routeSegments = String(routePoints.length - 1);
     clearTacticalHighlights();
-    if (landInWay) path.forEach((key) => tileElements.get(key)?.classList.add("is-route"));
+    if (landInWay) path.forEach((key) => highlightTile(key, "is-route"));
     marker.classList.add("is-moving");
     updateDetailPanel(shipType, "Underway");
     unitReadout.textContent = `${shipType.code} · Underway`;
@@ -1387,12 +1361,11 @@
   }
 
   function applyDamage(target, amount, attacker) {
-    if (!target || !attacker || target.team === attacker.team || target.health <= 0 || amount <= 0) return 0;
-    const damageDealt = Math.min(target.health, amount);
-    target.health -= damageDealt;
+    const damageDealt = combatRules.applyHullDamage(target, amount, attacker);
+    if (!damageDealt) return 0;
     if (target.health === 0) {
       target.sunkTurn = currentTurn;
-      target.wreckClassification = WRECK_CLASSIFICATION[target.code] || "Heavy";
+      target.wreckClassification = unitTypeByCode.get(target.code)?.wreck || "Heavy";
       target.wreckTurnsRemaining = WRECK_TURNS[target.wreckClassification];
     }
     refreshUnitDisplay(target);
@@ -1406,92 +1379,13 @@
     return damageDealt;
   }
 
-  function northCarolinaMissChance(attacker, target, distance) {
-    const concealment = attacker.concealmentRange;
-    const maximum = attacker.gunRange;
-    const targetSizeAdjustment = 0.02 * (3 - (SIZE_RANK[target.code] || 3));
-    const closeMissChance = Math.min(0.33, Math.max(0.08,
-      0.18 + 0.11 * Math.min(distance / Math.max(1, concealment), 1) + targetSizeAdjustment));
-    if (distance <= concealment || maximum <= concealment) return closeMissChance;
-    const missAtConcealment = Math.min(0.33, Math.max(0.08, 0.29 + targetSizeAdjustment));
-    const longRangeProgress = Math.min(1, (distance - concealment) / (maximum - concealment));
-    return missAtConcealment + (0.72 - missAtConcealment) * longRangeProgress;
-  }
-
-  function shellVelocityMissAdjustment(attacker) {
-    const velocity = loadedShellVelocity(attacker);
-    if (velocity == null) return 0;
-    const velocityProgress = Math.max(0, Math.min(1,
-      (velocity - MIN_AP_SHELL_VELOCITY) / (MAX_AP_SHELL_VELOCITY - MIN_AP_SHELL_VELOCITY)));
-    return -0.10 * velocityProgress;
-  }
-
-  function targetSpeedMissAdjustment(target) {
-    if (target.speedKnots == null) return 0;
-    // 20.5–38.5 knots is the ordinary range. This smooth curve stays bounded above it.
-    const speedOffset = target.speedKnots - DEFAULT_TARGET_SPEED_KNOTS;
-    return 0.10 * speedOffset / (9 + Math.abs(speedOffset));
-  }
-
-  function calculateMissChance(attacker, target, distance, sternQuarter) {
-    const rangeMissChance = attacker.accuracyProfile === "north-carolina"
-      ? northCarolinaMissChance(attacker, target, distance)
-      : Math.min(0.4, Math.max(0.12, 0.17 + 0.18 * distance / attacker.gunRange - 0.02 * ((SIZE_RANK[target.code] || 3) - 3)));
-    let chance = rangeMissChance + 0.09 * sternQuarter +
-      shellVelocityMissAdjustment(attacker) + targetSpeedMissAdjustment(target);
-    if (attacker.accuracyProfile === "north-carolina") {
-      if (distance <= attacker.concealmentRange) chance = Math.min(chance, 0.33);
-      if (distance >= attacker.gunRange) chance = Math.max(chance, 0.67);
-    }
-    return Math.max(0.05, Math.min(0.90, chance));
-  }
-
-  function resolveApSalvo(attacker, target, shellCount = attacker.shellCount) {
+  function resolveSalvo(attacker, target, shellCount = attacker.shellCount) {
     const from = cellCenter(attacker.column, attacker.row);
     const to = cellCenter(target.column, target.row);
     const incomingBearing = Math.atan2(from.y - to.y, from.x - to.x) * 180 / Math.PI;
-    const relativeAngle = ((incomingBearing - target.heading) % 360 + 540) % 360 - 180;
-    const aspectRadians = Math.abs(relativeAngle) * Math.PI / 180;
-    const broadside = Math.sin(aspectRadians) ** 2;
-    const bowQuarter = Math.max(0, Math.sin(2 * aspectRadians));
-    const sternQuarter = Math.max(0, -Math.sin(2 * aspectRadians));
-    const sizeAdvantage = Math.max(0, (SIZE_RANK[attacker.code] || 3) - (SIZE_RANK[target.code] || 3));
-    const sizeDisadvantage = Math.max(0, (SIZE_RANK[target.code] || 3) - (SIZE_RANK[attacker.code] || 3));
-    const angleFromEnd = Math.min(Math.abs(relativeAngle), 180 - Math.abs(relativeAngle));
-    const distance = hexDistance(attacker, target);
-    const missChance = calculateMissChance(attacker, target, distance, sternQuarter);
-    const shellType = attacker.shellType;
-    const ricochetChance = broadside >= 0.98 ? 0 : Math.min(0.55,
-      Math.max(0.03, 0.32 - 0.075 * sizeAdvantage) * (1 - broadside) +
-      0.13 * bowQuarter * Math.max(0.35, 1 - 0.18 * sizeAdvantage));
-    const nonPenChance = Math.min(0.26, 0.08 + 0.1 * (1 - broadside) + 0.025 * sizeDisadvantage);
-    const closeRangeProgress = Math.max(0, (attacker.concealmentRange / 2 - distance) / Math.max(1, attacker.concealmentRange / 2));
-    const minimumCitadelAngle = sizeAdvantage > 0 ? 45 : 65;
-    const citadelExposure = angleFromEnd < minimumCitadelAngle ? 0 :
-      0.08 + 0.92 * (angleFromEnd - minimumCitadelAngle) / (90 - minimumCitadelAngle);
-    const citadelChance = NO_CITADEL_CODES.has(target.code) ? 0 : citadelExposure * (
-      0.14 * broadside + 0.025 * sizeAdvantage * (1 - broadside) +
-      closeRangeProgress * (0.1 * broadside + 0.025 * sizeAdvantage * (1 - broadside)));
-    const destroyerTarget = target.code === "DD" || target.code === "DE";
-    const overPenThreshold = attacker.gunRange * 2 / 3;
-    const closeOverPenProgress = Math.max(0, (overPenThreshold - distance) / Math.max(1, overPenThreshold));
-    const overPenChance = Math.min(0.75, 0.15 + 0.04 * sizeAdvantage +
-      (destroyerTarget && attacker.mainGunCaliberMm >= 203 ? 0.5 * closeOverPenProgress : 0));
-    const heNonPenChance = destroyerTarget ? 0 : Math.min(0.78,
-      0.26 + 0.24 * (1 - broadside) + 0.06 * sizeDisadvantage);
-    const shells = Array.from({ length: shellCount }, () => {
-      if (Math.random() < missChance) return { outcome: "miss", damage: 0 };
-      const roll = Math.random();
-      if (shellType === "HE") return roll < heNonPenChance
-        ? { outcome: "non-penetration", damage: 0 }
-        : { outcome: "penetration", damage: Math.round(attacker.heAlphaDamage / 3) };
-      if (roll < ricochetChance) return { outcome: "ricochet", damage: 0 };
-      if (roll < ricochetChance + nonPenChance) return { outcome: "non-penetration", damage: 0 };
-      if (roll < ricochetChance + nonPenChance + citadelChance) return { outcome: "citadel", damage: attacker.alphaDamage };
-      if (roll < ricochetChance + nonPenChance + citadelChance + overPenChance) return { outcome: "overpenetration", damage: Math.round(attacker.alphaDamage * 0.1) };
-      return { outcome: "penetration", damage: Math.round(attacker.alphaDamage / 3) };
+    return combatRules.resolveSalvo(attacker, target, {
+      distance: hexDistance(attacker, target), incomingBearing, shellCount
     });
-    return { shellType, targetId: target.id, impactAngle: relativeAngle, shells, totalDamage: shells.reduce((sum, shell) => sum + shell.damage, 0), damageDealt: 0 };
   }
 
   function summarizeSalvo(salvo) {
@@ -1523,7 +1417,7 @@
     const groups = firingGroups || (shipType.salvoPattern || [shipType.shellCount]).map((shells, index) => ({ shells, index }));
     const shellCount = groups.reduce((sum, group) => sum + group.shells, 0);
     const shellFlightMs = Math.max(250, 440 * MIN_AP_SHELL_VELOCITY / (loadedShellVelocity(shipType) ?? MIN_AP_SHELL_VELOCITY));
-    const salvo = preparedSalvo || (navalTarget ? resolveApSalvo(shipType, navalTarget, shellCount) : {
+    const salvo = preparedSalvo || (navalTarget ? resolveSalvo(shipType, navalTarget, shellCount) : {
       shellType: shipType.shellType, targetId: null, impactAngle: null,
       shells: Array.from({ length: shellCount }, () => ({ outcome: "miss", damage: 0 })),
       totalDamage: 0, damageDealt: 0
@@ -1610,7 +1504,7 @@
       // already launched will sink the target, even while their animations are in flight.
       if (useRemaining && (initialTarget.health <= 0 || projectedDamage >= targetHealthAtStart)) break;
       const preparedSalvo = useRemaining
-        ? resolveApSalvo(shipType, initialTarget, firingGroups.reduce((sum, group) => sum + group.shells, 0))
+        ? resolveSalvo(shipType, initialTarget, firingGroups.reduce((sum, group) => sum + group.shells, 0))
         : null;
       if (preparedSalvo) projectedDamage += preparedSalvo.totalDamage;
       shipType.gunAttacksRemaining -= 1;

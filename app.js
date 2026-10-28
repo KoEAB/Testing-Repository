@@ -1,23 +1,7 @@
 (function () {
   "use strict";
 
-  const SHIP_TYPES = [
-    { value: "SS", label: "Submarine" },
-    { value: "SSV", label: "Aviation submarine" },
-    { value: "DD", label: "Destroyer" },
-    { value: "DE", label: "Destroyer escort" },
-    { value: "CL", label: "Light cruiser" },
-    { value: "CA", label: "Heavy cruiser" },
-    { value: "CB", label: "Large cruiser" },
-    { value: "BC", label: "Battlecruiser" },
-    { value: "BB", label: "Battleship" },
-    { value: "BBV", label: "Aviation battleship" },
-    { value: "CV", label: "Aircraft carrier" },
-    { value: "CVL", label: "Light aircraft carrier" },
-    { value: "CVE", label: "Escort aircraft carrier" },
-    { value: "BM", label: "Monitor" },
-    { value: "AR", label: "Repair ship" }
-  ];
+  const SHIP_TYPES = window.NAVAL_UNIT_TYPES.map(({ code, label }) => ({ value: code, label }));
   const RARITIES = ["C", "U", "R", "SR", "SSR", "UR"];
 
   const roster = document.querySelector("#character-roster");
@@ -56,7 +40,7 @@
     link.dataset.characterId = character.id;
     link.dataset.shipType = character.typeCode || "";
     link.dataset.rarity = character.rarity || "";
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-62`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-63`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
@@ -229,7 +213,7 @@
       : "切换副图";
 
     roster.querySelectorAll(".character-card").forEach((link) => {
-      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-62`;
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-63`;
     });
   });
 })();
