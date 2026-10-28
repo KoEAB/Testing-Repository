@@ -2081,6 +2081,8 @@ p {
 
 .developer-panel-body {
   padding: 14px;
+  max-height: calc(100vh - 195px);
+  overflow-y: auto;
 }
 
 .developer-map-control {
@@ -2105,6 +2107,21 @@ p {
 }
 
 .developer-setup-controls { display: grid; gap: 7px; margin-bottom: 12px; }
+.terrain-editor-controls { display: grid; gap: 7px; margin-bottom: 12px; }
+.terrain-editor-controls button,
+.terrain-editor-controls textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #071827;
+  color: var(--ink);
+  font: 12px var(--sans);
+}
+.terrain-editor-controls button { min-height: 34px; cursor: pointer; }
+.terrain-editor-controls textarea { min-height: 52px; padding: 8px; resize: vertical; }
+.terrain-editor-controls p { margin: 2px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.terrain-brushes { display: flex; gap: 7px; }
+.terrain-brushes button[aria-pressed="true"],
+.terrain-editor-controls > button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
 .developer-setup-controls button,
 .developer-setup-controls textarea {
   width: 100%;
@@ -2310,6 +2327,10 @@ p {
 .hex-map.has-map-art .sea-hex::before { background: rgba(8, 23, 34, 0.16); }
 .hex-map.has-map-art .land-hex { background: color-mix(in srgb, var(--map-land-color) 72%, rgba(230, 218, 170, 0.5)); }
 .hex-map.has-map-art .land-hex::before { background: color-mix(in srgb, var(--map-land-color) 20%, transparent); }
+.hex-map.has-map-art .terrain-edited-land::before { background: var(--map-land-color); }
+.hex-map.has-map-art .terrain-edited-sea::before { background: var(--map-sea-color); }
+.hex-map.has-map-art .terrain-edited-land,
+.hex-map.has-map-art .terrain-edited-sea { background: rgba(235, 216, 147, 0.78); }
 
 .hex-cell {
   position: absolute;

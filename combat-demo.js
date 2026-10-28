@@ -142,6 +142,8 @@
   ];
 
   const landCells = new Set();
+  let baseLandCells = new Set();
+  const terrainEdits = new Map();
 
   function buildTrainingLand() {
     for (let column = 0; column < COLUMNS; column += 1) {
@@ -195,6 +197,7 @@
       for (let row = 16; row <= 28; row += 1) landCells.delete(cellKey(24, row));
     }
     if (activeMap === MAPS["northern-lights"]) {
+      landCells.add(cellKey(32, 22));
       for (let column = 41; column <= 50; column += 1) landCells.delete(cellKey(column, 23));
     }
   }
@@ -252,6 +255,13 @@
   const setupCodeOutput = document.querySelector("#setup-code-output");
   const setupCodeInput = document.querySelector("#setup-code-input");
   const setupMessage = document.querySelector("#setup-message");
+  const terrainEditToggle = document.querySelector("#terrain-edit-toggle");
+  const terrainBrushLand = document.querySelector("#terrain-brush-land");
+  const terrainBrushSea = document.querySelector("#terrain-brush-sea");
+  const terrainExport = document.querySelector("#terrain-export");
+  const terrainCopy = document.querySelector("#terrain-copy");
+  const terrainCodeOutput = document.querySelector("#terrain-code-output");
+  const terrainEditMessage = document.querySelector("#terrain-edit-message");
   const tileElements = new Map();
   const unitElements = new Map();
   const concealmentOutline = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -276,6 +286,8 @@
   let currentTurn = 1;
   let placementOrder = null;
   let setupMode = false;
+  let terrainMode = false;
+  let terrainBrush = "land";
 
   function cellKey(column, row) {
     return `${column},${row}`;
@@ -339,6 +351,9 @@
         const terrain = landCells.has(key) ? "land" : "sea";
         const tile = document.createElement("button");
         tile.className = `hex-cell ${terrain}-hex terrain-variant-${(column * 5 + row * 3) % 3}`;
+        if (terrainEdits.get(Object.keys(MAPS).find((name) => MAPS[name] === activeMap))?.has(key)) {
+          tile.classList.add(terrain === "land" ? "terrain-edited-land" : "terrain-edited-sea");
+        }
         tile.type = "button";
         tile.dataset.cell = key;
         tile.style.left = `${column * COLUMN_STEP}px`;
@@ -402,6 +417,11 @@
     MAP_HEIGHT = ROWS * HEX_HEIGHT + HEX_HEIGHT / 2;
     landCells.clear();
     buildImageLand(image);
+    baseLandCells = new Set(landCells);
+    for (const [cell, isLand] of terrainEdits.get(key) || []) {
+      if (isLand) landCells.add(cell);
+      else landCells.delete(cell);
+    }
     renderMap();
     resetView();
     mapSummary.textContent = `${nextMap.name} · ${nextMap.kilometers} × ${nextMap.kilometers} km · ${COLUMNS} × ${ROWS} hexes`;
@@ -586,6 +606,7 @@
 
   function setSetupMode(enabled) {
     if (isAnimating || concealmentDemo) return;
+    if (enabled && terrainMode) setTerrainMode(false);
     deselectUnit();
     setupMode = enabled;
     setupToggle.textContent = enabled ? "Finish setting up" : "Enter setting up mode";
@@ -595,6 +616,56 @@
     setupMessage.textContent = enabled
       ? "Place either side on any unoccupied hex, then generate a layout code."
       : "Setup mode lets you place units on any unoccupied hex.";
+  }
+
+  function setTerrainMode(enabled) {
+    if (isAnimating || concealmentDemo) return;
+    if (enabled && setupMode) setSetupMode(false);
+    deselectUnit();
+    terrainMode = enabled;
+    terrainEditToggle.setAttribute("aria-pressed", String(enabled));
+    terrainEditToggle.textContent = enabled ? "Finish terrain editing" : "Edit land and sea";
+    viewport.style.cursor = enabled ? "crosshair" : "";
+    terrainEditMessage.textContent = enabled
+      ? `Painting ${terrainBrush}. Click or drag across hexes.`
+      : "Select Edit land and sea, then click or drag across hexes.";
+  }
+
+  function setTerrainBrush(brush) {
+    terrainBrush = brush;
+    terrainBrushLand.setAttribute("aria-pressed", String(brush === "land"));
+    terrainBrushSea.setAttribute("aria-pressed", String(brush === "sea"));
+    if (terrainMode) terrainEditMessage.textContent = `Painting ${brush}. Click or drag across hexes.`;
+  }
+
+  function paintTerrain(key) {
+    if (!terrainMode || isAnimating || !tileElements.has(key)) return;
+    const isLand = terrainBrush === "land";
+    if (isLand) landCells.add(key);
+    else landCells.delete(key);
+    const mapKey = Object.keys(MAPS).find((name) => MAPS[name] === activeMap);
+    if (!terrainEdits.has(mapKey)) terrainEdits.set(mapKey, new Map());
+    if (baseLandCells.has(key) === isLand) terrainEdits.get(mapKey).delete(key);
+    else terrainEdits.get(mapKey).set(key, isLand);
+    const tile = tileElements.get(key);
+    tile.classList.toggle("land-hex", isLand);
+    tile.classList.toggle("sea-hex", !isLand);
+    tile.classList.toggle("terrain-edited-land", isLand && terrainEdits.get(mapKey).has(key));
+    tile.classList.toggle("terrain-edited-sea", !isLand && terrainEdits.get(mapKey).has(key));
+    if (isLand) tile.setAttribute("aria-disabled", "true");
+    else tile.removeAttribute("aria-disabled");
+    const cell = parseCellKey(key);
+    tile.setAttribute("aria-label", `${coordinateLabel(cell.column, cell.row)} · ${isLand ? "land" : "sea"}`);
+    terrainCodeOutput.value = "";
+  }
+
+  function exportTerrainCode() {
+    const mapKey = Object.keys(MAPS).find((name) => MAPS[name] === activeMap);
+    const edits = [...(terrainEdits.get(mapKey) || [])].sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, isLand]) => { const { column, row } = parseCellKey(key); return [column, row, isLand ? 1 : 0]; });
+    const payload = { v: 1, map: mapKey, columns: COLUMNS, rows: ROWS, edits };
+    terrainCodeOutput.value = `NC-T1:${btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+    terrainEditMessage.textContent = `Generated ${activeMap.name} terrain code with ${edits.length} changed hexes. Paste it into our chat.`;
   }
 
   function exportSetup() {
@@ -982,6 +1053,7 @@
 
   function handleUnitClick(event, marker, shipType) {
     event.stopPropagation();
+    if (terrainMode) { paintTerrain(cellKey(shipType.column, shipType.row)); return; }
     if (setupMode) return;
     if (isAnimating) return;
     if (shipType.health <= 0) {
@@ -1058,7 +1130,7 @@
   function beginAttackMode(event, marker, shipType) {
     event.preventDefault();
     event.stopPropagation();
-    if (setupMode) return;
+    if (setupMode || terrainMode) return;
     if (isAnimating || shipType.health <= 0) return;
     if (concealmentDemo && shipType.team === "enemy") {
       if (inspectedEnemy?.id === shipType.id) deselectUnit();
@@ -1576,6 +1648,10 @@
       ignoreNextTileClick = false;
       return;
     }
+    if (terrainMode) {
+      paintTerrain(key);
+      return;
+    }
     if (setupMode) {
       if (placementOrder) placeUnit(key);
       return;
@@ -1742,6 +1818,23 @@
   setupToggle?.addEventListener("click", () => setSetupMode(!setupMode));
   setupExport?.addEventListener("click", exportSetup);
   setupImport?.addEventListener("click", importSetup);
+  terrainEditToggle?.addEventListener("click", () => setTerrainMode(!terrainMode));
+  terrainBrushLand?.addEventListener("click", () => setTerrainBrush("land"));
+  terrainBrushSea?.addEventListener("click", () => setTerrainBrush("sea"));
+  terrainExport?.addEventListener("click", exportTerrainCode);
+  terrainCopy?.addEventListener("click", async () => {
+    if (!terrainCodeOutput.value) return;
+    try {
+      await navigator.clipboard.writeText(terrainCodeOutput.value);
+      terrainEditMessage.textContent = "Terrain code copied. Paste it into our chat.";
+    } catch {
+      terrainCodeOutput.select();
+      terrainEditMessage.textContent = "Select and copy the terrain code, then paste it into our chat.";
+    }
+  });
+  map.addEventListener("pointerover", (event) => {
+    if (terrainMode && event.buttons === 1) paintTerrain(event.target.closest(".hex-cell")?.dataset.cell);
+  });
   mapSelector?.addEventListener("change", () => changeMap(mapSelector.value));
   developerAdd.addEventListener("click", beginPlacement);
   developerUnitLists.addEventListener("click", (event) => {
@@ -1765,7 +1858,7 @@
     else if (event.key === "Escape") deselectUnit();
   });
   viewport.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest(".map-unit")) return;
+    if (terrainMode || event.button !== 0 || event.target.closest(".map-unit")) return;
     dragState = { x: event.clientX, y: event.clientY, scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop, moved: false };
   });
   viewport.addEventListener("pointermove", (event) => {
