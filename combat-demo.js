@@ -144,6 +144,7 @@
   const landCells = new Set();
   let baseLandCells = new Set();
   const terrainEdits = new Map();
+  const paintedTerrainCells = new Map();
 
   function buildTrainingLand() {
     for (let column = 0; column < COLUMNS; column += 1) {
@@ -167,6 +168,7 @@
     context.drawImage(image, 0, 0);
     const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height);
     const sea = [data[0], data[1], data[2]];
+    const landPaletteSamples = [];
     const samples = [[0, 0], [-0.22, 0], [0.22, 0], [0, -0.22], [0, 0.22], [-0.15, -0.15], [0.15, -0.15], [-0.15, 0.15], [0.15, 0.15]];
     for (let column = 0; column < COLUMNS; column += 1) {
       for (let row = 0; row < ROWS; row += 1) {
@@ -179,7 +181,20 @@
           return difference > 65;
         }).length;
         if (landSamples >= 2) landCells.add(cellKey(column, row));
+        if (landSamples >= 5) {
+          const x = Math.max(0, Math.min(width - 1, Math.round(center.x / MAP_WIDTH * width)));
+          const y = Math.max(0, Math.min(height - 1, Math.round(center.y / MAP_HEIGHT * height)));
+          const pixel = (y * width + x) * 4;
+          landPaletteSamples.push([data[pixel], data[pixel + 1], data[pixel + 2]]);
+        }
       }
+    }
+    // Match the transparent hex paints to the colors in this map's PNG.
+    activeMap.sea = `rgb(${sea.join(", ")})`;
+    if (landPaletteSamples.length >= 5) {
+      const medianLand = [0, 1, 2].map((channel) =>
+        landPaletteSamples.map((pixel) => pixel[channel]).sort((a, b) => a - b)[Math.floor(landPaletteSamples.length / 2)]);
+      activeMap.land = `rgb(${medianLand.join(", ")})`;
     }
     if (activeMap === MAPS["two-brothers"]) {
       // Fill isolated sampling holes inside the two central islands.
@@ -345,13 +360,15 @@
     tacticalBoard.style.setProperty("--map-land-color", activeMap.land);
     tacticalBoard.style.setProperty("--map-sea-color", activeMap.sea);
     concealmentOutline.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
+    const mapKey = Object.keys(MAPS).find((name) => MAPS[name] === activeMap);
     for (let column = 0; column < COLUMNS; column += 1) {
       for (let row = 0; row < ROWS; row += 1) {
         const key = cellKey(column, row);
         const terrain = landCells.has(key) ? "land" : "sea";
         const tile = document.createElement("button");
         tile.className = `hex-cell ${activeMap.image ? "map-art-cell " : ""}${terrain}-hex terrain-variant-${(column * 5 + row * 3) % 3}`;
-        if (terrainEdits.get(Object.keys(MAPS).find((name) => MAPS[name] === activeMap))?.has(key)) {
+        if (paintedTerrainCells.get(mapKey)?.has(key)) tile.classList.add("terrain-painted");
+        if (terrainEdits.get(mapKey)?.has(key)) {
           tile.classList.add(terrain === "land" ? "terrain-edited-land" : "terrain-edited-sea");
         }
         tile.type = "button";
@@ -645,11 +662,14 @@
     else landCells.delete(key);
     const mapKey = Object.keys(MAPS).find((name) => MAPS[name] === activeMap);
     if (!terrainEdits.has(mapKey)) terrainEdits.set(mapKey, new Map());
+    if (!paintedTerrainCells.has(mapKey)) paintedTerrainCells.set(mapKey, new Set());
+    paintedTerrainCells.get(mapKey).add(key);
     if (baseLandCells.has(key) === isLand) terrainEdits.get(mapKey).delete(key);
     else terrainEdits.get(mapKey).set(key, isLand);
     const tile = tileElements.get(key);
     tile.classList.toggle("land-hex", isLand);
     tile.classList.toggle("sea-hex", !isLand);
+    tile.classList.add("terrain-painted");
     tile.classList.toggle("terrain-edited-land", isLand && terrainEdits.get(mapKey).has(key));
     tile.classList.toggle("terrain-edited-sea", !isLand && terrainEdits.get(mapKey).has(key));
     if (isLand) tile.setAttribute("aria-disabled", "true");
