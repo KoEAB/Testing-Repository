@@ -10,11 +10,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-63",
-    hit: "images/sounds/hit.mp3?v=navy-63",
-    hit2: "images/sounds/hit-2.mp3?v=navy-63",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-63",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-63`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-64",
+    hit: "images/sounds/hit.mp3?v=navy-64",
+    hit2: "images/sounds/hit-2.mp3?v=navy-64",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-64",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-64`)
   };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -1424,36 +1424,30 @@
     });
     shipType.lastSalvo = salvo;
     recordEvent(`${shipType.label} fired ${salvo.shellType} at ${navalTarget?.label || coordinateLabel(target.column, target.row)}.`);
-    const shots = [];
-    groups.forEach((group, groupIndex) => {
+    const shots = groups.map(async (group, groupIndex) => {
       const groupSize = group.shells;
       const groupStart = groupIndex * (shipType.salvoGroupGapMs ?? 170);
-      shots.push((async () => {
-        await wait(groupStart);
-        const flash = createEffect("muzzle-flash", origin);
-        await flash.animate([
-          { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
-          { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
-          { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
-        ], { duration: 150, easing: "ease-out" }).finished;
-        flash.remove();
-      })());
+      // Turrets fire in sequence; every shell from one turret starts in the same frame.
+      await wait(groupStart);
+      const flash = createEffect("muzzle-flash", origin);
+      const flashFinished = flash.animate([
+        { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
+        { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
+        { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
+      ], { duration: 150, easing: "ease-out" }).finished.finally(() => flash.remove());
+      const shellFlights = [];
       for (let index = 0; index < groupSize; index += 1) {
-        const launchDelay = groupStart + index * 35;
         const offset = (index - (groupSize - 1) / 2) * 5 +
           (groupSize === 1 ? (group.index - ((shipType.salvoPattern?.length || groups.length) - 1) / 2) * 3 : 0);
-        shots.push((async () => {
-          await wait(launchDelay);
-          const shell = createEffect("volley-shell", origin);
-          shell.style.marginTop = `${offset}px`;
-          const animation = shell.animate([
-            { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
-            { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
-          ], { duration: shellFlightMs, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
-          await animation.finished;
-          shell.remove();
-        })());
+        const shell = createEffect("volley-shell", origin);
+        shell.style.marginTop = `${offset}px`;
+        const animation = shell.animate([
+          { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
+          { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
+        ], { duration: shellFlightMs, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
+        shellFlights.push(animation.finished.finally(() => shell.remove()));
       }
+      await Promise.all([flashFinished, ...shellFlights]);
     });
     await Promise.all(shots);
 
