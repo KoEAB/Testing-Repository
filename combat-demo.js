@@ -10,11 +10,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-65",
-    hit: "images/sounds/hit.mp3?v=navy-65",
-    hit2: "images/sounds/hit-2.mp3?v=navy-65",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-65",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-65`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-66",
+    hit: "images/sounds/hit.mp3?v=navy-66",
+    hit2: "images/sounds/hit-2.mp3?v=navy-66",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-66",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-66`)
   };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -1408,16 +1408,49 @@
     ], { duration: 1050, easing: "ease-out" }).finished.finally(() => popup.remove());
   }
 
-  function turretShellFormation(groupSize, turretIndex, turretCount) {
+  // [sideways, forward] offsets from the shell path, in unscaled map pixels.
+  const SHELL_FORMATIONS = {
+    2: [
+      [[-23, 0], [23, 0]], [[0, 23], [0, -23]],
+      [[-20, 18], [20, -18]], [[-20, -18], [20, 18]],
+      [[-28, 8], [16, -8]], [[-16, -8], [28, 8]],
+      [[-13, 23], [13, -23]]
+    ],
+    3: [
+      [[-22, 8], [22, 8], [0, -26]], [[0, 26], [-22, -8], [22, -8]],
+      [[-26, 0], [0, 0], [26, 0]], [[0, 26], [0, 0], [0, -26]],
+      [[-23, 20], [0, 0], [23, -20]], [[-23, -20], [0, 0], [23, 20]],
+      [[-24, 15], [4, 14], [18, -23]]
+    ],
+    4: [
+      [[-24, 18], [24, 18], [-24, -18], [24, -18]],
+      [[0, 30], [-27, 0], [27, 0], [0, -30]],
+      [[-30, 24], [-10, 8], [10, -8], [30, -24]],
+      [[-30, -24], [-10, -8], [10, 8], [30, 24]],
+      [[-36, 0], [-12, 0], [12, 0], [36, 0]],
+      [[0, 36], [0, 12], [0, -12], [0, -36]],
+      [[-30, 18], [12, 18], [-12, -18], [30, -18]]
+    ]
+  };
+
+  function turretShellFormation(groupSize, turretIndex, turretCount, formationDecks) {
     if (groupSize === 1) return [{ side: (turretIndex - (turretCount - 1) / 2) * 3, forward: 0 }];
     const jitter = (span) => (Math.random() - 0.5) * span;
-    if (groupSize === 3) {
-      const spread = 18 + Math.random() * 7;
-      return [
-        { side: -spread + jitter(5), forward: jitter(8) },
-        { side: spread + jitter(5), forward: jitter(8) },
-        { side: jitter(12), forward: -(24 + Math.random() * 10) }
-      ];
+    const configurations = SHELL_FORMATIONS[groupSize];
+    if (configurations) {
+      let deck = formationDecks.get(groupSize);
+      if (!deck?.length) {
+        // Each turret size draws from a shuffled deck before any layout repeats.
+        deck = configurations.map((_, index) => index);
+        for (let index = deck.length - 1; index > 0; index -= 1) {
+          const swap = Math.floor(Math.random() * (index + 1));
+          [deck[index], deck[swap]] = [deck[swap], deck[index]];
+        }
+        formationDecks.set(groupSize, deck);
+      }
+      return configurations[deck.pop()].map(([side, forward]) => ({
+        side: side + jitter(3), forward: forward + jitter(3)
+      }));
     }
     return Array.from({ length: groupSize }, (_, index) => ({
       side: (index - (groupSize - 1) / 2) * 18 + jitter(5), forward: jitter(10)
@@ -1448,6 +1481,9 @@
     });
     shipType.lastSalvo = salvo;
     recordEvent(`${shipType.label} fired ${salvo.shellType} at ${navalTarget?.label || coordinateLabel(target.column, target.row)}.`);
+    const formationDecks = new Map();
+    const formations = groups.map((group) => turretShellFormation(
+      group.shells, group.index, shipType.salvoPattern?.length || groups.length, formationDecks));
     const shots = groups.map(async (group, groupIndex) => {
       const groupSize = group.shells;
       const groupStart = groupIndex * (shipType.salvoGroupGapMs ?? 170);
@@ -1460,7 +1496,7 @@
         { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
       ], { duration: 150, easing: "ease-out" }).finished.finally(() => flash.remove());
       const shellFlights = [];
-      const formation = turretShellFormation(groupSize, group.index, shipType.salvoPattern?.length || groups.length);
+      const formation = formations[groupIndex];
       for (let index = 0; index < groupSize; index += 1) {
         const { side, forward } = formation[index];
         const offsetX = sideX * side + forwardX * forward;
