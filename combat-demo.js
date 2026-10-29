@@ -10,11 +10,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-64",
-    hit: "images/sounds/hit.mp3?v=navy-64",
-    hit2: "images/sounds/hit-2.mp3?v=navy-64",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-64",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-64`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-65",
+    hit: "images/sounds/hit.mp3?v=navy-65",
+    hit2: "images/sounds/hit-2.mp3?v=navy-65",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-65",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-65`)
   };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -1408,11 +1408,35 @@
     ], { duration: 1050, easing: "ease-out" }).finished.finally(() => popup.remove());
   }
 
+  function turretShellFormation(groupSize, turretIndex, turretCount) {
+    if (groupSize === 1) return [{ side: (turretIndex - (turretCount - 1) / 2) * 3, forward: 0 }];
+    const jitter = (span) => (Math.random() - 0.5) * span;
+    if (groupSize === 3) {
+      const spread = 18 + Math.random() * 7;
+      return [
+        { side: -spread + jitter(5), forward: jitter(8) },
+        { side: spread + jitter(5), forward: jitter(8) },
+        { side: jitter(12), forward: -(24 + Math.random() * 10) }
+      ];
+    }
+    return Array.from({ length: groupSize }, (_, index) => ({
+      side: (index - (groupSize - 1) / 2) * 18 + jitter(5), forward: jitter(10)
+    }));
+  }
+
   async function animateVolley(shipType, targetKey, firingGroups, preparedSalvo = null) {
     if (targetIsFriendly(targetKey, shipType)) return;
     const origin = cellCenter(shipType.column, shipType.row);
     const target = parseCellKey(targetKey);
     const destination = cellCenter(target.column, target.row);
+    const travelX = destination.x - origin.x;
+    const travelY = destination.y - origin.y;
+    const travelLength = Math.max(1, Math.hypot(travelX, travelY));
+    const forwardX = travelX / travelLength;
+    const forwardY = travelY / travelLength;
+    const sideX = -forwardY;
+    const sideY = forwardX;
+    const flightAngle = Math.atan2(travelY, travelX) * 180 / Math.PI;
     const navalTarget = unitAt(targetKey, shipType.id);
     const groups = firingGroups || (shipType.salvoPattern || [shipType.shellCount]).map((shells, index) => ({ shells, index }));
     const shellCount = groups.reduce((sum, group) => sum + group.shells, 0);
@@ -1436,14 +1460,16 @@
         { opacity: 0, transform: "translate(-50%, -50%) scale(1.8)" }
       ], { duration: 150, easing: "ease-out" }).finished.finally(() => flash.remove());
       const shellFlights = [];
+      const formation = turretShellFormation(groupSize, group.index, shipType.salvoPattern?.length || groups.length);
       for (let index = 0; index < groupSize; index += 1) {
-        const offset = (index - (groupSize - 1) / 2) * 5 +
-          (groupSize === 1 ? (group.index - ((shipType.salvoPattern?.length || groups.length) - 1) / 2) * 3 : 0);
-        const shell = createEffect("volley-shell", origin);
-        shell.style.marginTop = `${offset}px`;
+        const { side, forward } = formation[index];
+        const offsetX = sideX * side + forwardX * forward;
+        const offsetY = sideY * side + forwardY * forward;
+        const shell = createEffect("volley-shell", { x: origin.x + offsetX, y: origin.y + offsetY });
+        shell.style.transform = `translate(-50%, -50%) rotate(${flightAngle}deg)`;
         const animation = shell.animate([
-          { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 1 },
-          { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
+          { left: `${origin.x + offsetX}px`, top: `${origin.y + offsetY}px`, opacity: 1 },
+          { left: `${destination.x + offsetX}px`, top: `${destination.y + offsetY}px`, opacity: 1 }
         ], { duration: shellFlightMs, easing: "cubic-bezier(.35,.05,.75,.95)", fill: "forwards" });
         shellFlights.push(animation.finished.finally(() => shell.remove()));
       }

@@ -2776,11 +2776,11 @@ p {
 }
 
 .volley-shell {
-  width: 13px;
-  height: 4px;
+  width: 16px;
+  height: 6px;
   border-radius: 50%;
   background: #fff4bd;
-  box-shadow: 0 0 8px #ffd66d, -9px 0 11px rgba(255, 202, 89, 0.65);
+  box-shadow: 0 0 4px #ffd66d, -6px 0 5px rgba(255, 202, 89, 0.5);
 }
 
 .torpedo-wake {
