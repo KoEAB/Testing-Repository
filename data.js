@@ -70,6 +70,7 @@
     },
     {
       name: "USS North Carolina", hullNumber: "BB-55", shipClass: "North Carolina", rarity: "UR",
+      alternateImage: "images/warships/north-carolina-shipyard-icon.png",
       description: "America's first modern fast battleship, USS North Carolina protected the carrier force at the Eastern Solomons and provided formidable antiaircraft fire before a submarine torpedo sent her to Pearl Harbor for repairs.",
       origin: "New York Naval Shipyard", affinity: "Pacific Theater"
     },
@@ -140,6 +141,7 @@
     },
     {
       name: "USS New Orleans", hullNumber: "CA-32", shipClass: "New Orleans", rarity: "UR",
+      alternateImage: "images/warships/new-orleans-shipyard-icon.png",
       description: "USS New Orleans screened carriers at Coral Sea, Midway, and the Eastern Solomons. At Tassafaronga a torpedo tore away her bow, yet determined damage control brought the cruiser safely back to port.",
       origin: "New York Navy Yard", affinity: "Pacific Theater"
     },
@@ -235,11 +237,13 @@
     },
     {
       name: "USS Helena", hullNumber: "CL-50", shipClass: "Brooklyn", rarity: "SSR",
+      alternateImage: "images/warships/helena-shipyard-icon.png",
       description: "Repaired after Pearl Harbor, USS Helena returned with modern radar and fought aggressively at Cape Esperance and in the Naval Battle of Guadalcanal during 1942.",
       origin: "New York Navy Yard", affinity: "Pacific Theater"
     },
     {
       name: "USS Des Moines", hullNumber: "CA-134", shipClass: "Des Moines",
+      alternateImage: "images/warships/des-moines-shipyard-icon.png",
       description: "Commissioned in 1948, USS Des Moines was the lead ship of the U.S. Navy's final heavy-cruiser class. Her automatic 8-inch guns gave her an exceptional rate of fire; she served with the Atlantic and Sixth Fleets but did not see combat.",
       origin: "Fore River Shipyard", affinity: "Atlantic and Mediterranean"
     },
@@ -325,6 +329,7 @@
     },
     {
       name: "USS Fletcher", hullNumber: "DD-445", shipClass: "Fletcher", rarity: "SSR",
+      alternateImage: "images/warships/fletcher-shipyard-icon.png",
       description: "Lead ship of the Fletcher-class destroyers, USS Fletcher entered Pacific service in 1942. She fought through the Solomon Islands and later campaigns, earning fifteen battle stars during World War II.",
       origin: "Federal Shipbuilding", affinity: "Pacific Theater"
     }
