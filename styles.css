@@ -514,8 +514,9 @@ p {
 .portrait-layer {
   position: absolute;
   z-index: 1;
-  inset: 0;
+  inset: 2.5% calc(10% / 3);
   display: grid;
+  overflow: hidden;
   place-items: center;
   opacity: 1;
   transition: opacity 260ms ease;
@@ -579,8 +580,20 @@ p {
 }
 
 .portrait-placeholder::after {
-  width: 38%;
-  aspect-ratio: 1;
+  /* The portrait is 3:4, so 3.333% of its width equals 2.5% of its height. */
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(#66869b, #66869b) top / 100% 2.5%,
+    linear-gradient(#354e60, #354e60) bottom / 100% 2.5%,
+    linear-gradient(#66869b, #354e60) left / calc(10% / 3) 100%,
+    linear-gradient(#66869b, #354e60) right / calc(10% / 3) 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 .portrait-monogram,
@@ -842,7 +855,10 @@ p {
 }
 
 .detail-ship-art {
-  padding: 14px 14px 0;
+  inset: 2.5% calc(10% / 3);
+  width: calc(100% - 20% / 3);
+  height: 95%;
+  padding: 0;
 }
 
 .detail-monogram {

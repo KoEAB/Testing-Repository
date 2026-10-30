@@ -10,11 +10,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-67",
-    hit: "images/sounds/hit.mp3?v=navy-67",
-    hit2: "images/sounds/hit-2.mp3?v=navy-67",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-67",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-67`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-68",
+    hit: "images/sounds/hit.mp3?v=navy-68",
+    hit2: "images/sounds/hit-2.mp3?v=navy-68",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-68",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-68`)
   };
   let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
