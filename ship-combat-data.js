@@ -62,7 +62,8 @@
       forwardFiringAngle: 30, backwardFiringAngle: 38, alphaDamage: 21, apShellVelocity: 792,
       heAlphaDamage: 18, heShellVelocity: 792, mainGunCaliberMm: 127,
       gunRange: 13, gunAttacksPerTurn: 4, salvoGroupGapMs: 75,
-      torpedoRange: 10, torpedoDamage: 85, torpedoReloadDuration: 3
+      torpedoRange: 10, torpedoCount: 5, torpedoAlphaDamage: 190,
+      torpedoSpeedKnots: 66, torpedoReloadDuration: 3, torpedoTravelN: 2, torpedoConcealmentRange: 2
     }
   };
 })();

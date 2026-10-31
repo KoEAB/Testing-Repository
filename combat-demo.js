@@ -14,11 +14,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-69",
-    hit: "images/sounds/hit.mp3?v=navy-69",
-    hit2: "images/sounds/hit-2.mp3?v=navy-69",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-69",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-69`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-70",
+    hit: "images/sounds/hit.mp3?v=navy-70",
+    hit2: "images/sounds/hit-2.mp3?v=navy-70",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-70",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-70`)
   };
   let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -37,6 +37,9 @@
   const TORPEDO_RANGE = 4;
   const TURN_DURATION = 300;
   const DEFAULT_CONCEALMENT = 10;
+  const torpedoRules = window.NAVAL_TORPEDO_RULES;
+  const torpedoGeometry = torpedoRules.createGeometry({ width: HEX_WIDTH, height: HEX_HEIGHT, step: COLUMN_STEP });
+  const TORPEDO_STEP_MS = 720;
   const combatRules = window.NAVAL_COMBAT_RULES.createCombatRules(window.NAVAL_UNIT_TYPES);
   const { MIN_AP_SHELL_VELOCITY, hexDistance } = combatRules;
   const unitTypeByCode = new Map(window.NAVAL_UNIT_TYPES.map((type) => [type.code, type]));
@@ -81,7 +84,11 @@
       shellCount: ship.shellCount ?? (stats.gun ? 3 : 0),
       alphaDamage: ship.alphaDamage ?? ship.gunDamage ?? stats.gun ?? 0,
       lastSalvo: null,
-      torpedoDamage: ship.torpedoDamage ?? stats.torpedo ?? 0,
+      torpedoCount: ship.torpedoCount ?? 3,
+      torpedoAlphaDamage: ship.torpedoAlphaDamage ?? Math.round((ship.torpedoDamage ?? stats.torpedo ?? 0) / (ship.torpedoCount ?? 3)),
+      torpedoSpeedKnots: ship.torpedoSpeedKnots ?? null,
+      torpedoTravelN: ship.torpedoTravelN ?? 2,
+      torpedoConcealmentRange: ship.torpedoConcealmentRange ?? 2,
       gunRange: ship.gunRange || ATTACK_RANGE,
       gunAttacksPerTurn: ship.gunAttacksPerTurn || 1,
       gunAttacksRemaining: ship.gunAttacksPerTurn || 1,
@@ -205,6 +212,10 @@
   const tileElements = new Map();
   const highlightedTiles = new Set();
   const unitElements = new Map();
+  const torpedoes = [];
+  const torpedoElements = new Map();
+  const torpedoPreviewTiles = new Set();
+  let torpedoSequence = 0;
   const concealmentOutline = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   concealmentOutline.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
   concealmentOutline.setAttribute("class", "concealment-outline");
@@ -352,6 +363,7 @@
     lineOfFireCache.clear();
     landMask = new Uint8Array(COLUMNS * ROWS);
     unitElements.clear();
+    torpedoElements.clear();
     map.style.width = `${MAP_WIDTH}px`;
     map.style.height = `${MAP_HEIGHT}px`;
     map.style.setProperty("--map-land-color", activeMap.land);
@@ -391,6 +403,7 @@
 
     map.appendChild(concealmentOutline);
     shipTypes.forEach(renderUnit);
+    torpedoes.forEach(renderTorpedo);
     updateDetection();
     renderDeveloperLists();
   }
@@ -403,6 +416,7 @@
     if (clearBoard) {
       deselectUnit();
       shipTypes.splice(0);
+      torpedoes.splice(0);
       if (setupCodeOutput) setupCodeOutput.value = "";
       unitSequence = 0;
       battleFlow.reset();
@@ -449,6 +463,8 @@
     unitName.textContent = shipType.label.replace(/^USS\s+/i, "");
     marker.addEventListener("click", (event) => handleUnitClick(event, marker, shipType));
     marker.addEventListener("contextmenu", (event) => beginAttackMode(event, marker, shipType));
+    marker.addEventListener("mouseenter", () => previewMovementFacing(cellKey(shipType.column, shipType.row)));
+    marker.addEventListener("mouseleave", clearTorpedoPreview);
     unitElements.set(shipType.id, marker);
     map.appendChild(marker);
     refreshUnitDisplay(shipType);
@@ -551,6 +567,7 @@
       marker.dataset.viewTeam = battleFlow.viewTeam || "developer";
       marker.dataset.detectionInitialized = "true";
     });
+    refreshTorpedoVisibility();
   }
 
   function renderDeveloperLists() {
@@ -868,6 +885,7 @@
   }
 
   function clearTacticalHighlights() {
+    clearTorpedoPreview();
     highlightedTiles.forEach((tile) => {
       tile.classList.remove("is-reachable", "is-unit-selected", "is-route", "is-attackable", "is-torpedoable", "is-placement", "is-facing-option", "is-designated-target");
       delete tile.dataset.distance;
@@ -913,9 +931,32 @@
     mode = "torpedo";
     markSelectedOrigin(shipType);
     attackCells = new Set([...calculateRadius(shipType, shipType.torpedoRange)].filter((key) =>
-      !targetIsFriendly(key, shipType) && !lineOfFireBlocked(shipType, key)));
+      hexDistance(shipType, parseCellKey(key)) === shipType.torpedoRange && !targetIsFriendly(key, shipType) &&
+      torpedoSpread(shipType, key)));
     attackCells.forEach((key) => {
       highlightTile(key, "is-torpedoable", { focusable: true });
+    });
+  }
+
+  function torpedoSpread(ship, key) {
+    const target = parseCellKey(key);
+    return torpedoGeometry.spread(ship, target, getNeighbors(target.column, target.row), ship.torpedoCount);
+  }
+
+  function clearTorpedoPreview() {
+    torpedoPreviewTiles.forEach((tile) => tile.classList.remove("is-torpedo-preview"));
+    torpedoPreviewTiles.clear();
+  }
+
+  function previewTorpedoSpread(key) {
+    clearTorpedoPreview();
+    if (mode !== "torpedo" || !selectedUnit || !attackCells.has(key)) return;
+    const spread = torpedoSpread(selectedUnit, key);
+    if (!spread) return;
+    spread.tiles.forEach((cell) => {
+      const tile = tileElements.get(cellKey(cell.column, cell.row));
+      tile.classList.add("is-torpedo-preview");
+      torpedoPreviewTiles.add(tile);
     });
   }
 
@@ -964,6 +1005,12 @@
         ? `Reloading · ${shipType.torpedoReloadRemaining} turn${shipType.torpedoReloadRemaining === 1 ? "" : "s"}`
         : shipType.torpedoed ? "Spent" : `Ready · ${shipType.torpedoRange} tiles`)
       : "Unavailable";
+    if (canTorpedo) {
+      document.querySelector("#unit-detail-torpedo-launch").textContent = `${shipType.torpedoCount} torpedoes · ${shipType.torpedoAlphaDamage} alpha each`;
+      document.querySelector("#unit-detail-torpedo-speed").textContent = shipType.torpedoSpeedKnots == null ? "Not specified" : `${shipType.torpedoSpeedKnots} knots`;
+      document.querySelector("#unit-detail-torpedo-travel").textContent = `N = ${shipType.torpedoTravelN} · ${shipType.torpedoRange / shipType.torpedoTravelN} hexes per owner phase`;
+      document.querySelector("#unit-detail-torpedo-concealment").textContent = `${shipType.torpedoConcealmentRange} hexes`;
+    }
     // An opposing contact exposes ship characteristics, not its private action state.
     const privateState = developerMode || shipType.team === battleFlow.viewTeam;
     if (!privateState) {
@@ -989,7 +1036,7 @@
       : mode === "attack" || mode === "salvo-skill"
       ? (mode === "salvo-skill" ? "Select an enemy in red range to fire every remaining salvo at it." : "Select a red hex to fire the ship's guns.")
       : mode === "torpedo"
-        ? "Select a cyan hex to launch torpedoes."
+        ? "Hover over a cyan maximum-range hex to preview the three-hex spread. Select it to launch; torpedoes advance when your phase ends."
         : "Hover to preview facing. Left-click to move; right-click to set facing.";
     detailPanel.hidden = false;
   }
@@ -1040,6 +1087,7 @@
   }
 
   function restoreCommittedFacing() {
+    clearTorpedoPreview();
     if (!selectedUnit || isAnimating) return;
     const marker = unitElements.get(selectedUnit.id);
     marker.dataset.heading = String(selectedUnit.heading);
@@ -1049,7 +1097,9 @@
 
   function previewMovementFacing(key) {
     if (!selectedUnit || isAnimating) return;
-    if (mode === "aim" && aimState && attackCells.has(key)) {
+    if (mode === "torpedo") {
+      previewTorpedoSpread(key);
+    } else if (mode === "aim" && aimState && attackCells.has(key)) {
       updateTurretIndicators(setMarkerHeading(selectedUnit, parseCellKey(key)));
     } else if (mode === "move" && reachableState?.distance.has(key)) {
       setMarkerHeading(selectedUnit, parseCellKey(key));
@@ -1071,7 +1121,7 @@
 
   function queueAttackAim(targetKey, weapon, useRemaining = false) {
     if (!battleFlow.canControl(selectedUnit) || isAnimating || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit)) return;
-    if (lineOfFireBlocked(selectedUnit, targetKey)) return;
+    if (weapon === "gun" && lineOfFireBlocked(selectedUnit, targetKey)) return;
     if (weapon === "gun" && !gunsReady(selectedUnit)) return;
     if (weapon === "torpedo" && (selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code))) return;
     if (useRemaining && !unitAt(targetKey, selectedUnit.id)) return;
@@ -1529,6 +1579,7 @@
     });
     shipType.lastSalvo = salvo;
     recordEvent(`${shipType.label} fired ${salvo.shellType} at ${navalTarget?.label || coordinateLabel(target.column, target.row)}.`, [shipType, ...(navalTarget ? [navalTarget] : [])]);
+    const launchVisible = unitIsVisible(shipType);
     const formationDecks = new Map();
     const formations = groups.map((group) => turretShellFormation(
       group.shells, group.index, shipType.salvoPattern?.length || groups.length, formationDecks));
@@ -1538,6 +1589,7 @@
       // Turrets fire in sequence; every shell from one turret starts in the same frame.
       await wait(groupStart);
       const flash = createEffect("muzzle-flash", origin);
+      flash.hidden = !launchVisible;
       const flashFinished = flash.animate([
         { opacity: 0, transform: "translate(-50%, -50%) scale(.2)" },
         { opacity: 1, transform: "translate(-50%, -50%) scale(1.2)", offset: 0.35 },
@@ -1550,6 +1602,7 @@
         const offsetX = sideX * side + forwardX * forward;
         const offsetY = sideY * side + forwardY * forward;
         const shell = createEffect("volley-shell", { x: origin.x + offsetX, y: origin.y + offsetY });
+        shell.hidden = !launchVisible;
         shell.style.transform = `translate(-50%, -50%) rotate(${flightAngle}deg)`;
         const animation = shell.animate([
           { left: `${origin.x + offsetX}px`, top: `${origin.y + offsetY}px`, opacity: 1 },
@@ -1642,73 +1695,209 @@
     unitReadout.textContent = `${shipType.code} · ${status}`;
   }
 
-  async function animateTorpedoAttack(shipType, targetKey) {
-    if (targetIsFriendly(targetKey, shipType)) return;
-    const origin = cellCenter(shipType.column, shipType.row);
-    const targetCell = parseCellKey(targetKey);
-    const destination = cellCenter(targetCell.column, targetCell.row);
-    const launches = [-6, 6].map(async (offset, index) => {
-      await wait(index * 90);
-      const torpedo = createEffect("torpedo-wake", origin);
-      torpedo.style.marginTop = `${offset}px`;
-      const animation = torpedo.animate([
-        { left: `${origin.x}px`, top: `${origin.y}px`, opacity: 0.3 },
-        { left: `${destination.x}px`, top: `${destination.y}px`, opacity: 1 }
-      ], { duration: 720, easing: "linear", fill: "forwards" });
-      await animation.finished;
-      torpedo.remove();
-    });
-    await Promise.all(launches);
-    const navalTarget = unitAt(targetKey, shipType.id);
-    const impactClass = navalTarget ? "impact-explosion" : "impact-splash";
-    const impact = createEffect(impactClass, destination);
-    const impactAnimation = impact.animate([
-      { opacity: 0, transform: "translate(-50%, -50%) scale(.15)" },
-      { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.35 },
-      { opacity: 0, transform: "translate(-50%, -50%) scale(1.65)" }
-    ], { duration: 800, easing: "ease-out", fill: "forwards" });
-    const damageDealt = navalTarget ? applyDamage(navalTarget, shipType.torpedoDamage, shipType) : 0;
-    if (navalTarget) showDamagePopup(destination, damageDealt);
-    else recordEvent(`${shipType.label}'s torpedoes splashed at ${coordinateLabel(targetCell.column, targetCell.row)}.`, [shipType]);
-    await impactAnimation.finished;
-    impact.remove();
-    return Boolean(navalTarget && damageDealt > 0 && navalTarget.health <= 0);
+  function torpedoIsVisible(torpedo, point) {
+    if (developerMode || torpedo.team === battleFlow.viewTeam) return true;
+    const cell = torpedoGeometry.cellAt(point);
+    return combatRules.isDetected({ ...cell, team: torpedo.team, health: 1, concealmentRange: torpedo.concealmentRange }, shipTypes);
+  }
+
+  function renderTorpedo(torpedo) {
+    const marker = document.createElement("span");
+    marker.className = `map-torpedo team-${torpedo.team}`;
+    marker.dataset.projectileId = String(torpedo.id);
+    marker.dataset.ownerId = torpedo.owner.id;
+    marker.setAttribute("aria-hidden", "true");
+    marker.style.transform = `translate(-50%, -50%) rotate(${torpedo.bearing - 90}deg)`;
+    torpedoElements.set(torpedo.id, marker);
+    map.appendChild(marker);
+    positionTorpedo(torpedo);
+  }
+
+  function positionTorpedo(torpedo) {
+    const marker = torpedoElements.get(torpedo.id);
+    const point = torpedoGeometry.interpolate(torpedo.origin, torpedo.endpoint, torpedo.progress);
+    marker.style.left = `${point.x}px`;
+    marker.style.top = `${point.y}px`;
+    marker.dataset.progress = String(torpedo.progress);
+    marker.hidden = !torpedoIsVisible(torpedo, point);
+  }
+
+  function refreshTorpedoVisibility() {
+    torpedoes.forEach(positionTorpedo);
+  }
+
+  function removeTorpedo(torpedo) {
+    torpedoElements.get(torpedo.id)?.remove();
+    torpedoElements.delete(torpedo.id);
+    const index = torpedoes.indexOf(torpedo);
+    if (index >= 0) torpedoes.splice(index, 1);
+  }
+
+  async function resolveLaunchReactions(ship, spread) {
+    if (!combatRules.isDetected(ship, shipTypes)) return;
+    const key = cellKey(ship.column, ship.row);
+    const reactions = shipTypes.filter((enemy) =>
+      enemy.health > 0 && enemy.team !== ship.team && ATTACK_CODES.has(enemy.code) && !enemy.gunReloadPending &&
+      torpedoRules.inTriangle(cellCenter(enemy.column, enemy.row), spread.origin, spread.left, spread.right) &&
+      hexDistance(enemy, ship) <= enemy.gunRange && !lineOfFireBlocked(enemy, key)
+    ).map((enemy) => ({ enemy, groups: turretGroupsForHeading(enemy, key, enemy.heading).filter((group) => group.ready) }))
+      .filter(({ groups }) => groups.length);
+    if (!reactions.length) return;
+    updateDetailPanel(ship, "Receiving reaction fire before launch");
+    const results = await Promise.all(reactions.map(({ enemy, groups }) => {
+      const to = spread.origin, from = cellCenter(enemy.column, enemy.row);
+      const bearing = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+      enemy.angleWhenFiring = ((bearing - enemy.heading + 540) % 360) - 180;
+      enemy.broadsideWhenFiring = enemy.angleWhenFiring >= 0 ? "right" : "left";
+      recordEvent(`${enemy.label} fired a free reaction salvo at ${ship.label}.`, [enemy, ship]);
+      // Reaction salvos use loaded ammunition and existing turret arcs, but never spend normal salvos.
+      return animateVolley(enemy, key, groups);
+    }));
+    if (ship.health <= 0) playEffect(SOUND_PATHS.enemyDestroyed);
+    else {
+      const damage = results.reduce((sum, salvo) => sum + (salvo.damageDealt || 0), 0);
+      if (damage > 0) {
+        const extensiveAp = results.some((salvo) => salvo.shellType === "AP") && damage >= Math.max(60, ship.maxHealth * 0.18);
+        playEffect(extensiveAp ? SOUND_PATHS.hit2 : SOUND_PATHS.hit);
+      }
+    }
   }
 
   async function fireTorpedoes(targetKey) {
-    if (!battleFlow.canControl(selectedUnit) || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
-    isAnimating = true;
-    mode = null;
+    if (!battleFlow.canControl(selectedUnit) || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 ||
+        targetIsFriendly(targetKey, selectedUnit) || isAnimating || !attackCells.has(targetKey)) return;
     const shipType = selectedUnit;
-    shipType.torpedoed = true;
-    shipType.torpedoReloadRemaining = shipType.torpedoReloadDuration;
-    refreshUnitDisplay(shipType);
-    const targetCell = parseCellKey(targetKey);
-    const from = cellCenter(shipType.column, shipType.row);
-    const to = cellCenter(targetCell.column, targetCell.row);
-    const bearing = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
-    const difference = ((bearing - shipType.heading + 540) % 360) - 180;
-    shipType.angleWhenFiring = difference;
-    shipType.broadsideWhenFiring = difference >= 0 ? "right" : "left";
-    const broadsideHeading = bearing + (difference >= 0 ? -90 : 90);
-    const marker = unitElements.get(shipType.id);
-    marker.dataset.heading = String(broadsideHeading);
-    marker.style.setProperty("--heading", `${broadsideHeading}deg`);
-    shipType.heading = broadsideHeading;
-    clearTacticalHighlights();
-    markSelectedOrigin(shipType);
-    updateDetailPanel(shipType, "Launching torpedoes");
-    unitReadout.textContent = `${shipType.code} · Launching torpedoes`;
-    recordEvent(`${shipType.label} launched torpedoes at ${coordinateLabel(targetCell.column, targetCell.row)}.`, [shipType]);
-    await wait(TURN_DURATION);
-    const targetDestroyed = await animateTorpedoAttack(shipType, targetKey);
-    if (targetDestroyed) playEffect(SOUND_PATHS.enemyDestroyed);
-    renderDeveloperLists();
-    isAnimating = false;
-    updateDetailPanel(shipType, "Torpedo attack complete");
-    unitReadout.textContent = `${shipType.code} · Torpedo attack complete`;
-    if (!shipType.moved) showMovementArea(shipType);
-    else markSelectedOrigin(shipType);
+    const spread = torpedoSpread(shipType, targetKey);
+    if (!spread) return;
+    isAnimating = true;
+    nextTurnButton.disabled = true;
+    mode = null;
+    refreshSkillButton();
+    try {
+      const bearing = Math.atan2(spread.middle.y - spread.origin.y, spread.middle.x - spread.origin.x) * 180 / Math.PI;
+      const difference = ((bearing - shipType.heading + 540) % 360) - 180;
+      shipType.angleWhenFiring = difference;
+      shipType.broadsideWhenFiring = difference >= 0 ? "right" : "left";
+      // Submarines fire ahead; destroyers use the nearer broadside.
+      const heading = ["SS", "SSV"].includes(shipType.code) ? bearing : bearing + (difference >= 0 ? -90 : 90);
+      const marker = unitElements.get(shipType.id);
+      marker.dataset.heading = String(heading);
+      marker.style.setProperty("--heading", `${heading}deg`);
+      shipType.heading = heading;
+      clearTacticalHighlights();
+      markSelectedOrigin(shipType);
+      updateDetailPanel(shipType, "Preparing torpedo launch");
+      await wait(TURN_DURATION);
+      if (["DD", "DE"].includes(shipType.code)) await resolveLaunchReactions(shipType, spread);
+      if (shipType.health <= 0) {
+        recordEvent(`${shipType.label} was sunk before its torpedoes could launch.`, [shipType]);
+        return;
+      }
+      shipType.torpedoed = true;
+      shipType.torpedoReloadRemaining = shipType.torpedoReloadDuration;
+      for (const endpoint of spread.endpoints) {
+        const direction = Math.atan2(endpoint.y - spread.origin.y, endpoint.x - spread.origin.x) * 180 / Math.PI;
+        const torpedo = {
+          id: ++torpedoSequence, owner: shipType, team: shipType.team, origin: { ...spread.origin }, endpoint,
+          bearing: direction, alphaDamage: shipType.torpedoAlphaDamage,
+          travelN: shipType.torpedoTravelN, concealmentRange: shipType.torpedoConcealmentRange,
+          steps: 0, progress: 1 / shipType.torpedoRange, attemptedTargets: new Set()
+        };
+        torpedoes.push(torpedo);
+        renderTorpedo(torpedo);
+      }
+      refreshUnitDisplay(shipType);
+      const target = parseCellKey(targetKey);
+      recordEvent(`${shipType.label} launched ${shipType.torpedoCount} torpedoes toward ${coordinateLabel(target.column, target.row)}.`, [shipType]);
+    } finally {
+      isAnimating = false;
+      nextTurnButton.disabled = false;
+      if (shipType.health <= 0) {
+        deselectUnit();
+        showSunkDetails(shipType);
+      } else {
+        updateDetailPanel(shipType, "Torpedoes in the water");
+        unitReadout.textContent = `${shipType.code} · Torpedoes advance at the end of your phase`;
+        if (!shipType.moved) showMovementArea(shipType);
+        else markSelectedOrigin(shipType);
+      }
+      refreshSkillButton();
+    }
+  }
+
+  async function advanceTorpedoes(team) {
+    const moving = torpedoes.filter((torpedo) => torpedo.team === team);
+    if (!moving.length) return;
+    const flights = torpedoGeometry.planTravel(moving, shipTypes, {
+      isLand: (cell) => landCells.has(cellKey(cell.column, cell.row)),
+      inBounds: (cell) => cell.column >= 0 && cell.column < COLUMNS && cell.row >= 0 && cell.row < ROWS
+    });
+    unitReadout.textContent = `${team === "friendly" ? "Green" : "Red"} torpedoes advancing`;
+    const damagedTargets = new Set();
+    await Promise.all(flights.map(async (flight) => {
+      const { torpedo, from, to, impact } = flight;
+      const marker = torpedoElements.get(torpedo.id);
+      marker.hidden = !torpedoIsVisible(torpedo, from);
+      const time = TORPEDO_STEP_MS * (impact?.time ?? 1);
+      const wake = createEffect("torpedo-foam", from);
+      wake.hidden = marker.hidden;
+      wake.style.width = `${Math.hypot(to.x - from.x, to.y - from.y)}px`;
+      wake.style.transform = `translateY(-50%) rotate(${torpedo.bearing}deg)`;
+      const foam = wake.animate([
+        { clipPath: "inset(0 100% 0 0)", opacity: 0.9 },
+        { clipPath: "inset(0 0 0 0)", opacity: 0.45 }
+      ], { duration: Math.max(1, time), fill: "forwards" });
+      const movement = marker.animate([
+        { left: `${from.x}px`, top: `${from.y}px` },
+        { left: `${to.x}px`, top: `${to.y}px` }
+      ], { duration: Math.max(1, time), easing: "linear", fill: "forwards" });
+      let visibilityFrame;
+      const startedAt = performance.now();
+      if (!developerMode && torpedo.team !== battleFlow.viewTeam) {
+        const updateTravelVisibility = () => {
+          const fraction = Math.min(1, (performance.now() - startedAt) / Math.max(1, time));
+          const point = torpedoGeometry.interpolate(from, to, fraction);
+          marker.hidden = !torpedoIsVisible(torpedo, point);
+          // Show only the recent foam behind a detected contact, never a trail back to its hidden launch point.
+          wake.hidden = marker.hidden;
+          wake.style.left = `${point.x}px`;
+          wake.style.top = `${point.y}px`;
+          wake.style.width = "28px";
+          wake.style.transform = `translateY(-50%) rotate(${torpedo.bearing + 180}deg)`;
+          if (fraction < 1) visibilityFrame = requestAnimationFrame(updateTravelVisibility);
+        };
+        visibilityFrame = requestAnimationFrame(updateTravelVisibility);
+      }
+      await movement.finished;
+      if (visibilityFrame) cancelAnimationFrame(visibilityFrame);
+      movement.cancel();
+      await foam.finished;
+      wake.remove();
+      torpedo.attemptedTargets = flight.attemptedTargets;
+      torpedo.steps += 1;
+      torpedo.progress = flight.nextProgress;
+      if (flight.stop) {
+        removeTorpedo(torpedo);
+        let damage = 0;
+        if (impact.kind === "hit") {
+          damage = applyDamage(impact.target, torpedo.alphaDamage, torpedo.owner);
+          if (damage > 0) damagedTargets.add(impact.target);
+          if (unitIsVisible(impact.target)) showDamagePopup(to, damage);
+        }
+        const effect = createEffect(damage > 0 ? "impact-explosion" : "impact-splash", to);
+        effect.hidden = !torpedoIsVisible(torpedo, to);
+        const animation = effect.animate([
+          { opacity: 1, transform: "translate(-50%, -50%) scale(.2)" },
+          { opacity: 0, transform: "translate(-50%, -50%) scale(1.1)" }
+        ], { duration: 240, fill: "forwards" });
+        await animation.finished;
+        effect.remove();
+      } else positionTorpedo(torpedo);
+    }));
+    if ([...damagedTargets].some((target) => target.health <= 0)) playEffect(SOUND_PATHS.enemyDestroyed);
+    else if (damagedTargets.size) playEffect(SOUND_PATHS.hit);
+    recordEvent(`${team === "friendly" ? "Green" : "Red"} torpedoes advanced to their next waypoints.`, [], [team]);
+    refreshTorpedoVisibility();
   }
 
   function handleTileClick(key) {
@@ -1762,22 +1951,32 @@
     refreshLogVisibility();
   }
 
-  function advancePhase() {
+  async function advancePhase() {
     if (isAnimating || setupMode || terrainMode) return;
     deselectUnit();
     setLogOpen(false);
-    let turnEnded = battleFlow.advance();
-    recordEvent(`${battleFlow.phase === "green" ? "Green" : "Red"} phase began.`);
-    if (concealmentDemo && battleFlow.phase === "red") {
-      // AI integration point: red receives control, then ends its phase immediately.
-      // The player's view remains green throughout the red phase.
-      recordEvent("Red phase ended (AI placeholder).");
-      turnEnded = battleFlow.advance();
+    isAnimating = true;
+    nextTurnButton.disabled = true;
+    try {
+      await advanceTorpedoes(battleFlow.activeTeam);
+      let turnEnded = battleFlow.advance();
+      recordEvent(`${battleFlow.phase === "green" ? "Green" : "Red"} phase began.`);
+      if (concealmentDemo && battleFlow.phase === "red") {
+        // AI integration point: red ends immediately, but its torpedoes still advance.
+        // The player's view remains green throughout the red phase.
+        await advanceTorpedoes("enemy");
+        recordEvent("Red phase ended (AI placeholder).");
+        turnEnded = battleFlow.advance();
+      }
+      if (turnEnded) restoreTurnActions();
+      refreshPhaseUI();
+      unitReadout.textContent = `Turn ${battleFlow.turn} · ${phaseName.textContent}`;
+      if (turnEnded) recordEvent(`Turn ${battleFlow.turn} began · Green phase.`);
+    } finally {
+      isAnimating = false;
+      nextTurnButton.disabled = false;
+      refreshSkillButton();
     }
-    if (turnEnded) restoreTurnActions();
-    refreshPhaseUI();
-    unitReadout.textContent = `Turn ${battleFlow.turn} · ${phaseName.textContent}`;
-    if (turnEnded) recordEvent(`Turn ${battleFlow.turn} began · Green phase.`);
   }
 
   function restoreTurnActions() {

@@ -15,7 +15,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="shipyard.html?v=navy-69">Return to Shipyard</a>
+        <a class="primary-button" href="shipyard.html?v=navy-70">Return to Shipyard</a>
       </section>
     `;
     return;
@@ -40,7 +40,7 @@
 
       <nav class="character-navigation empty-navigation" aria-label="Browse warships">
         ${renderAdjacentLink(character, -1, "上一项")}
-        <a class="all-characters" href="shipyard.html?v=navy-69">全部档案</a>
+        <a class="all-characters" href="shipyard.html?v=navy-70">全部档案</a>
         ${renderAdjacentLink(character, 1, "下一项")}
       </nav>
     `;
@@ -90,8 +90,12 @@
           ["Backward firing angle", `${combatStats.backwardFiringAngle}°`],
           ...(combatStats.torpedoRange == null ? [] : [
             ["Torpedo range", `${combatStats.torpedoRange} hexes`],
-            ["Torpedo damage", combatStats.torpedoDamage],
-            ["Torpedo reload", `${combatStats.torpedoReloadDuration} turns`]
+            ["Torpedoes / launch", combatStats.torpedoCount],
+            ["Torpedo alpha / hit", combatStats.torpedoAlphaDamage],
+            ["Torpedo speed", `${combatStats.torpedoSpeedKnots} knots`],
+            ["Torpedo concealment range", `${combatStats.torpedoConcealmentRange} hexes`],
+            ["Torpedo reload", `${combatStats.torpedoReloadDuration} turns`],
+            ["Torpedo travel N", combatStats.torpedoTravelN]
           ])
         ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("")}
       </dl>
@@ -142,7 +146,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="shipyard.html?v=navy-69">All profiles</a>
+      <a class="all-characters" href="shipyard.html?v=navy-70">All profiles</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -155,7 +159,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-69">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-70">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>

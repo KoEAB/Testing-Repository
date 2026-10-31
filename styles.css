@@ -2523,6 +2523,17 @@ p {
   pointer-events: none;
 }
 
+.hex-cell.is-torpedo-preview {
+  z-index: 3;
+  background: #f1786d;
+}
+
+.hex-cell.is-torpedo-preview::before {
+  background: radial-gradient(circle, rgba(249, 117, 103, 0.4), transparent 70%), #793d3a;
+}
+
+.hex-cell.is-torpedo-preview::after { border-color: #ff9c8e; }
+
 .hex-cell.is-facing-option {
   z-index: 2;
   background: rgba(220, 185, 103, 0.9);
@@ -2811,12 +2822,27 @@ p {
   box-shadow: 0 0 4px #ffd66d, -6px 0 5px rgba(255, 202, 89, 0.5);
 }
 
-.torpedo-wake {
-  width: 18px;
+.map-torpedo {
+  position: absolute;
+  z-index: 10;
+  width: 0;
+  height: 0;
+  border-top: 7px solid #b4ffe1;
+  border-left: 4.04px solid transparent;
+  border-right: 4.04px solid transparent;
+  filter: drop-shadow(0 0 2px #041422);
+  pointer-events: none;
+}
+
+.map-torpedo.team-enemy { border-top-color: #ffaaa0; }
+.map-torpedo[hidden], .combat-effect[hidden] { display: none; }
+
+.torpedo-foam {
   height: 5px;
+  transform-origin: left center;
+  background: repeating-linear-gradient(90deg, rgba(232, 255, 255, 0.7) 0 5px, rgba(232, 255, 255, 0.16) 5px 9px);
   border-radius: 50%;
-  background: #bafaff;
-  box-shadow: -12px 0 12px rgba(89, 224, 236, 0.8), -25px 0 18px rgba(89, 224, 236, 0.42);
+  box-shadow: 0 0 4px rgba(202, 246, 246, 0.4);
 }
 
 .muzzle-flash {
