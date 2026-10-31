@@ -14,11 +14,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-71",
-    hit: "images/sounds/hit.mp3?v=navy-71",
-    hit2: "images/sounds/hit-2.mp3?v=navy-71",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-71",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-71`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-72",
+    hit: "images/sounds/hit.mp3?v=navy-72",
+    hit2: "images/sounds/hit-2.mp3?v=navy-72",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-72",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-72`)
   };
   let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -1497,8 +1497,12 @@
   }
 
   function showDamagePopup(center, amount) {
+    showCombatPopup(center, amount > 0 ? `−${amount}` : "0");
+  }
+
+  function showCombatPopup(center, text) {
     const popup = createEffect("damage-popup", center);
-    popup.textContent = amount > 0 ? `−${amount}` : "0";
+    popup.textContent = text;
     popup.animate([
       { opacity: 0, transform: "translate(-50%, -50%) translateY(0) scale(.7)" },
       { opacity: 1, transform: "translate(-50%, -50%) translateY(-18px) scale(1.1)", offset: 0.25 },
@@ -1737,7 +1741,7 @@
     const key = cellKey(ship.column, ship.row);
     const reactions = shipTypes.filter((enemy) =>
       enemy.health > 0 && enemy.team !== ship.team && ATTACK_CODES.has(enemy.code) && !enemy.gunReloadPending &&
-      torpedoRules.inTriangle(cellCenter(enemy.column, enemy.row), spread.origin, spread.left, spread.right) &&
+      torpedoRules.inLaunchSector(cellCenter(enemy.column, enemy.row), spread) &&
       hexDistance(enemy, ship) <= enemy.gunRange && !lineOfFireBlocked(enemy, key)
     ).map((enemy) => ({ enemy, groups: turretGroupsForHeading(enemy, key, enemy.heading).filter((group) => group.ready) }))
       .filter(({ groups }) => groups.length);
@@ -1833,9 +1837,21 @@
     });
     unitReadout.textContent = `${team === "friendly" ? "Green" : "Red"} torpedoes advancing`;
     const damagedTargets = new Set();
+    const popupCounts = new Map();
+    function showTorpedoPopup(target, text) {
+      if (!unitIsVisible(target)) return;
+      const index = popupCounts.get(target.id) || 0;
+      popupCounts.set(target.id, index + 1);
+      const center = cellCenter(target.column, target.row);
+      showCombatPopup({ x: center.x + [0, -24, 24][index % 3], y: center.y - Math.floor(index / 3) * 18 }, text);
+    }
     await Promise.all(flights.map(async (flight) => {
       const { torpedo, from, to, impact } = flight;
       const marker = torpedoElements.get(torpedo.id);
+      const missPopups = flight.misses.map(async (miss) => {
+        await wait(TORPEDO_STEP_MS * miss.time);
+        showTorpedoPopup(miss.target, "Miss");
+      });
       marker.hidden = !torpedoIsVisible(torpedo, from);
       const time = TORPEDO_STEP_MS * (impact?.time ?? 1);
       const wake = createEffect("torpedo-foam", from);
@@ -1870,6 +1886,7 @@
         visibilityFrame = requestAnimationFrame(updateTravelVisibility);
       }
       await movement.finished;
+      await Promise.all(missPopups);
       if (visibilityFrame) cancelAnimationFrame(visibilityFrame);
       movement.cancel();
       await foam.finished;
@@ -1883,7 +1900,7 @@
         if (impact.kind === "hit") {
           damage = applyDamage(impact.target, torpedo.alphaDamage, torpedo.owner);
           if (damage > 0) damagedTargets.add(impact.target);
-          if (unitIsVisible(impact.target)) showDamagePopup(to, damage);
+          if (damage > 0) showTorpedoPopup(impact.target, `−${damage}`);
         }
         const effect = createEffect(damage > 0 ? "impact-explosion" : "impact-splash", to);
         effect.hidden = !torpedoIsVisible(torpedo, to);

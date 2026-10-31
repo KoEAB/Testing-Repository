@@ -20,6 +20,11 @@
     return !signs.some((v) => v < -0.001) || !signs.some((v) => v > 0.001);
   }
 
+  function inLaunchSector(point, spread) {
+    return inTriangle(point, spread.origin, spread.left, spread.middle) ||
+      inTriangle(point, spread.origin, spread.middle, spread.right);
+  }
+
   function createGeometry({ width = 128, height = 112, step = 96 } = {}) {
     function center(cell) {
       return { x: cell.column * step + width / 2,
@@ -37,30 +42,26 @@
     }
     const interpolate = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
+    function distance(first, second) {
+      const dq = first.column - second.column;
+      const dr = first.row - Math.floor(first.column / 2) - second.row + Math.floor(second.column / 2);
+      return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
+    }
+
     function spread(attacker, target, neighbors, count) {
       const origin = center(attacker), middle = center(target);
-      const direction = { x: middle.x - origin.x, y: middle.y - origin.y };
-      const length = Math.hypot(direction.x, direction.y);
-      if (!length) return null;
-      let best = null;
-      for (let i = 0; i < neighbors.length; i += 1) {
-        for (let j = i + 1; j < neighbors.length; j += 1) {
-          const left = center(neighbors[i]), right = center(neighbors[j]);
-          if (Math.hypot(left.x + right.x - 2 * middle.x, left.y + right.y - 2 * middle.y) > 0.01) continue;
-          const dx = right.x - left.x, dy = right.y - left.y;
-          const score = Math.abs(dx * direction.x + dy * direction.y) / (Math.hypot(dx, dy) * length);
-          if (!best || score < best.score) best = { left, right, score, tiles: [neighbors[i], target, neighbors[j]] };
-        }
-      }
-      if (!best || best.score > 0.55) return null;
-      // Three collinear hexes use the closest available grid axis to a perpendicular.
-      // Equal spacing across their interiors keeps every endpoint within those three hexes.
-      const dx = (best.right.x - best.left.x) / 2, dy = (best.right.y - best.left.y) / 2;
+      const range = distance(attacker, target);
+      if (!range) return null;
+      const flanks = neighbors.filter((cell) => distance(attacker, cell) === range);
+      if (flanks.length !== 2) return null;
+      const left = center(flanks[0]), right = center(flanks[1]);
+      // Follow the range ring at its corners as well as its straight edges.
+      // Interpolate each half separately so the actual spread stays in the preview hexes.
       const endpoints = Array.from({ length: count }, (_, i) => {
         const offset = ((i + 0.5) / count - 0.5) * 3;
-        return { x: middle.x + dx * offset, y: middle.y + dy * offset };
+        return interpolate(middle, offset < 0 ? left : right, Math.abs(offset));
       });
-      return { origin, middle, left: best.left, right: best.right, tiles: best.tiles, endpoints };
+      return { origin, middle, left, right, tiles: [flanks[0], target, flanks[1]], endpoints };
     }
 
     function planTravel(torpedoes, units, { isLand, inBounds, random = Math.random }) {
@@ -71,7 +72,7 @@
         const nextProgress = Math.max(torpedo.progress, Math.min(1, (torpedo.steps + 1) / torpedo.travelN));
         const from = interpolate(torpedo.origin, torpedo.endpoint, torpedo.progress);
         const to = interpolate(torpedo.origin, torpedo.endpoint, nextProgress);
-        const flight = { torpedo, from, to, nextProgress, stop: false, impact: null,
+        const flight = { torpedo, from, to, nextProgress, stop: false, impact: null, misses: [],
           attemptedTargets: new Set(torpedo.attemptedTargets || []) };
         const samples = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / (height / 12)));
         let previousKey;
@@ -95,7 +96,10 @@
           const encounter = target ? `${target.id}@${event.key}` : null;
           if (!target || target.team === torpedo.team || projectedHealth.get(target.id) <= 0 || flight.attemptedTargets.has(encounter)) continue;
           flight.attemptedTargets.add(encounter);
-          if (random() >= hitChance(target.heading, torpedo.bearing)) continue;
+          if (random() >= hitChance(target.heading, torpedo.bearing)) {
+            flight.misses.push({ target, time: event.time });
+            continue;
+          }
           projectedHealth.set(target.id, Math.max(0, projectedHealth.get(target.id) - torpedo.alphaDamage));
           impact = { kind: "hit", target };
         }
@@ -114,6 +118,6 @@
     return { center, cellAt, interpolate, spread, planTravel };
   }
 
-  root.NAVAL_TORPEDO_RULES = { maximumRangeTravelSeconds, hitChance, inTriangle, createGeometry };
+  root.NAVAL_TORPEDO_RULES = { maximumRangeTravelSeconds, hitChance, inTriangle, inLaunchSector, createGeometry };
   if (typeof module !== "undefined" && module.exports) module.exports = root.NAVAL_TORPEDO_RULES;
 })(globalThis);

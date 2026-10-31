@@ -59,6 +59,29 @@ test("five spread endpoints occupy exactly the three preview hexes", () => {
   assert.equal(spread.left.y+spread.right.y,spread.middle.y*2);
 });
 
+test("all six ring bends keep the selected hex, both flanks, and every endpoint on the range limit", () => {
+  const attacker={column:20,row:20};
+  const distance=(a,b)=>{
+    const dq=a.column-b.column,dr=a.row-Math.floor(a.column/2)-b.row+Math.floor(b.column/2);
+    return Math.max(Math.abs(dq),Math.abs(dr),Math.abs(dq+dr));
+  };
+  for(const [dq,dr] of [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]]){
+    const q=attacker.column+dq*10,r=attacker.row-Math.floor(attacker.column/2)+dr*10;
+    const target={column:q,row:r+Math.floor(q/2)};
+    const rows=q%2?[target.row,target.row+1]:[target.row-1,target.row];
+    const neighbors=[{column:q,row:target.row-1},{column:q,row:target.row+1},
+      ...[q-1,q+1].flatMap(column=>rows.map(row=>({column,row})))];
+    const spread=geometry.spread(attacker,target,neighbors,5);
+    assert.ok(spread);
+    assert.ok(spread.tiles.every(cell=>distance(attacker,cell)===10));
+    assert.ok(spread.tiles.some(cell=>key(cell)===key(target)));
+    const preview=new Set(spread.tiles.map(key));
+    const endpoints=spread.endpoints.map(point=>key(geometry.cellAt(point)));
+    assert.ok(endpoints.every(cell=>preview.has(cell)));
+    assert.equal(new Set(endpoints).size,3);
+  }
+});
+
 test("sector includes contacts ahead and excludes contacts behind or to the side", () => {
   const o={x:0,y:0}, left={x:100,y:-20}, right={x:100,y:20};
   assert.ok(rules.inTriangle({x:50,y:0},o,left,right));
@@ -68,9 +91,18 @@ test("sector includes contacts ahead and excludes contacts behind or to the side
   assert.ok(!rules.inTriangle({x:50,y:0},o,{x:100,y:0},{x:120,y:0}));
 });
 
-test("map-edge launch tiles without room for a transverse three-hex spread are rejected", () => {
+test("map-edge launch tiles without two neighboring range-limit hexes are rejected", () => {
   assert.equal(geometry.spread({column:0,row:0},{column:0,row:10},
     [{column:0,row:9},{column:0,row:11}],5),null);
+});
+
+test("reaction fire follows all three preview hexes at a ring bend", () => {
+  const spread={origin:{x:0,y:0},left:{x:-20,y:90},middle:{x:0,y:100},right:{x:20,y:90}};
+  assert.equal(rules.inLaunchSector({x:0,y:98},spread),true);
+  assert.equal(rules.inLaunchSector(spread.left,spread),true);
+  assert.equal(rules.inLaunchSector(spread.right,spread),true);
+  assert.equal(rules.inLaunchSector({x:0,y:110},spread),false);
+  assert.equal(rules.inLaunchSector({x:30,y:50},spread),false);
 });
 
 test("N=2 advances from the adjacent hex to half range, then maximum range", () => {
@@ -109,9 +141,13 @@ test("misses continue, and a target is only rolled once per torpedo across phase
   const opts={...ocean,random:()=>{rolls++;return 0.99;}};
   const [first]=geometry.planTravel([torpedo],[ship],opts);
   assert.equal(first.stop,false);
+  assert.equal(first.misses.length,1);
+  assert.equal(first.misses[0].target,ship);
+  assert.ok(first.misses[0].time>=0 && first.misses[0].time<=1);
   torpedo.progress=first.nextProgress;torpedo.steps++;
   torpedo.attemptedTargets=first.attemptedTargets;
-  geometry.planTravel([torpedo],[ship],opts);
+  const [second]=geometry.planTravel([torpedo],[ship],opts);
+  assert.equal(second.misses.length,0);
   assert.equal(rolls,1);
 });
 
