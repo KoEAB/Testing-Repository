@@ -7,6 +7,8 @@
   --surface: #0b1b2c;
   --line: rgba(154, 183, 207, 0.18);
   --gold: #d7b568;
+  --friendly-unit-color: #79d99a;
+  --enemy-unit-color: #ed625a;
   --character-accent: var(--gold);
   --character-rgb: 229, 185, 111;
   --serif: "Times New Roman", "Liberation Serif", "DejaVu Serif", serif;
@@ -2583,7 +2585,7 @@ p {
 }
 
 .map-unit {
-  --unit-color: #79d99a;
+  --unit-color: var(--friendly-unit-color);
   position: absolute;
   z-index: 5;
   display: grid;
@@ -2599,8 +2601,9 @@ p {
   transition: none;
 }
 
-.map-unit.team-enemy {
-  --unit-color: #ed625a;
+.map-unit.team-enemy,
+.map-torpedo.team-enemy {
+  --unit-color: var(--enemy-unit-color);
 }
 
 .unit-name {
@@ -2823,26 +2826,27 @@ p {
 }
 
 .map-torpedo {
+  --unit-color: var(--friendly-unit-color);
   position: absolute;
   z-index: 10;
-  width: 0;
-  height: 0;
-  border-top: 7px solid #b4ffe1;
-  border-left: 4.04px solid transparent;
-  border-right: 4.04px solid transparent;
+  width: calc(14px / 1.7320508075688772);
+  height: 7px;
+  background: var(--unit-color);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  /* The downward tip, rather than the glyph center, marks the water coordinate. */
+  transform: translate(-50%, -100%);
   filter: drop-shadow(0 0 2px #041422);
   pointer-events: none;
 }
 
-.map-torpedo.team-enemy { border-top-color: #ffaaa0; }
 .map-torpedo[hidden], .combat-effect[hidden] { display: none; }
 
 .torpedo-foam {
   height: 5px;
   transform-origin: left center;
-  background: repeating-linear-gradient(90deg, rgba(232, 255, 255, 0.7) 0 5px, rgba(232, 255, 255, 0.16) 5px 9px);
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0 5px, rgba(255, 255, 255, 0.16) 5px 9px);
   border-radius: 50%;
-  box-shadow: 0 0 4px rgba(202, 246, 246, 0.4);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
 }
 
 .muzzle-flash {

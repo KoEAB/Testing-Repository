@@ -14,11 +14,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-70",
-    hit: "images/sounds/hit.mp3?v=navy-70",
-    hit2: "images/sounds/hit-2.mp3?v=navy-70",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-70",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-70`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-71",
+    hit: "images/sounds/hit.mp3?v=navy-71",
+    hit2: "images/sounds/hit-2.mp3?v=navy-71",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-71",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-71`)
   };
   let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -1707,7 +1707,6 @@
     marker.dataset.projectileId = String(torpedo.id);
     marker.dataset.ownerId = torpedo.owner.id;
     marker.setAttribute("aria-hidden", "true");
-    marker.style.transform = `translate(-50%, -50%) rotate(${torpedo.bearing - 90}deg)`;
     torpedoElements.set(torpedo.id, marker);
     map.appendChild(marker);
     positionTorpedo(torpedo);
@@ -1851,6 +1850,8 @@
         { left: `${from.x}px`, top: `${from.y}px` },
         { left: `${to.x}px`, top: `${to.y}px` }
       ], { duration: Math.max(1, time), easing: "linear", fill: "forwards" });
+      // Keep the foam's advancing end synchronized with the triangle's bottom tip.
+      foam.startTime = movement.startTime = document.timeline.currentTime;
       let visibilityFrame;
       const startedAt = performance.now();
       if (!developerMode && torpedo.team !== battleFlow.viewTeam) {
