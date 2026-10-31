@@ -2035,13 +2035,15 @@ p {
 
 .turn-counter {
   display: flex;
+  flex-direction: column;
   align-items: center;
   min-width: 126px;
   justify-content: center;
   color: var(--muted);
   font-size: 9px;
   font-weight: 600;
-  gap: 10px;
+  gap: 2px;
+  padding: 4px 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -2052,6 +2054,14 @@ p {
   font-size: 20px;
   font-weight: 400;
 }
+
+.phase-name {
+  color: #74d398;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+[data-phase="red"] .phase-name { color: #ef817b; }
 
 .developer-panel {
   position: absolute;
@@ -2629,9 +2639,11 @@ p {
 
 .concealment-outline[hidden],
 .combat-map-page[data-mode="concealment"] .developer-panel,
-.combat-map-page[data-mode="concealment"] .map-unit.is-concealed-enemy { display: none; }
+.combat-map-page[data-mode="vs"] .developer-panel,
+.map-unit.is-concealed-enemy,
+.unit-detection-dot[hidden],
+#combat-log-entries li[hidden] { display: none; }
 
-.combat-map-page[data-mode="concealment"] .map-unit.team-enemy .unit-actions,
 .combat-map-page[data-mode="concealment"] .map-unit.team-enemy .unit-detection-dot { display: none; }
 
 .map-unit:hover,

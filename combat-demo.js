@@ -2,6 +2,10 @@
   "use strict";
 
   const concealmentDemo = document.body.dataset.mode === "concealment";
+  const vsMode = document.body.dataset.mode === "vs";
+  const developerMode = !concealmentDemo && !vsMode;
+  const battleFlow = window.NAVAL_COMBAT_PHASES.createBattleFlow(developerMode ? "developer" : vsMode ? "vs" : "player");
+  const trainingBattle = !developerMode;
   const MAPS = {
     "northern-lights": { name: "Northern Lights", kilometers: 48, columns: 56, rows: 48, land: "#3c424c", sea: "#010713" },
     "northern-waters": { name: "Northern Waters", kilometers: 42, columns: 49, rows: 42, land: "#5d5a51", sea: "#06272e" },
@@ -10,13 +14,13 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-68",
-    hit: "images/sounds/hit.mp3?v=navy-68",
-    hit2: "images/sounds/hit-2.mp3?v=navy-68",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-68",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-68`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-69",
+    hit: "images/sounds/hit.mp3?v=navy-69",
+    hit2: "images/sounds/hit-2.mp3?v=navy-69",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-69",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-69`)
   };
-  let activeMap = concealmentDemo ? TRAINING_MAP : MAPS["northern-lights"];
+  let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
   let ROWS = activeMap.rows;
   const HEX_WIDTH = 128;
@@ -46,7 +50,7 @@
       { ...stats, label, group: unitTypeByCode.get(stats.code).group }
     ])
   ]);
-  const shipTypes = concealmentDemo ? [
+  const shipTypes = trainingBattle ? [
     ["uss-fletcher", "friendly", 17, 24], ["uss-new-orleans", "friendly", 15, 25], ["uss-north-carolina", "friendly", 14, 18],
     ["uss-fletcher", "enemy", 38, 30], ["uss-new-orleans", "enemy", 43, 27], ["uss-north-carolina", "enemy", 34, 27]
   ].map(([key, team, column, row], index) => createUnitState({ ...unitTemplates.get(key), column, row }, `${team}-${key}-${index}`, team)) : [];
@@ -162,6 +166,8 @@
   const detailHeading = document.querySelector(".unit-detail-heading");
   const nextTurnButton = document.querySelector("#next-turn");
   const turnNumber = document.querySelector("#turn-number");
+  const phaseName = document.querySelector("#phase-name");
+  const phaseButtonLabel = document.querySelector("#phase-button-label");
   const gunOrderButton = document.querySelector("#gun-order");
   const torpedoOrderButton = document.querySelector("#torpedo-order");
   const fireRemainingButton = document.querySelector("#fire-remaining-salvos");
@@ -219,7 +225,6 @@
   let aimState = null;
   let mode = null;
   let isAnimating = false;
-  let currentTurn = 1;
   let placementOrder = null;
   let setupMode = false;
   let terrainMode = false;
@@ -256,16 +261,37 @@
     playEffect(SOUND_PATHS.reloaded[Math.floor(Math.random() * SOUND_PATHS.reloaded.length)]);
   }
 
-  function recordEvent(message) {
+  function visibleToTeam(ship, team) {
+    return ship.team === team || (ship.health > 0
+      ? combatRules.isDetected(ship, shipTypes)
+      : ship.knownSunkTeams?.includes(team));
+  }
+
+  function unitIsVisible(ship) {
+    return developerMode || Boolean(visibleToTeam(ship, battleFlow.viewTeam));
+  }
+
+  function recordEvent(message, subjects = [], audience) {
     const item = document.createElement("li");
+    item.dataset.audience = (audience || ["friendly", "enemy"].filter((team) =>
+      subjects.every((ship) => visibleToTeam(ship, team)))).join(" ");
     const turn = document.createElement("time");
-    turn.textContent = `Turn ${currentTurn}`;
+    turn.textContent = `Turn ${battleFlow.turn} · ${battleFlow.phase === "green" ? "Green" : "Red"} phase`;
     const description = document.createElement("span");
     description.textContent = message;
     item.append(turn, description);
     logEntries.appendChild(item);
-    logCount.textContent = String(logEntries.childElementCount);
+    refreshLogVisibility();
     logEntries.scrollTop = logEntries.scrollHeight;
+  }
+
+  function refreshLogVisibility() {
+    let count = 0;
+    for (const item of logEntries.children) {
+      item.hidden = !developerMode && !item.dataset.audience.split(" ").includes(battleFlow.viewTeam);
+      if (!item.hidden) count += 1;
+    }
+    logCount.textContent = String(count);
   }
 
   function setLogOpen(open) {
@@ -379,8 +405,8 @@
       shipTypes.splice(0);
       if (setupCodeOutput) setupCodeOutput.value = "";
       unitSequence = 0;
-      currentTurn = 1;
-      turnNumber.textContent = "1";
+      battleFlow.reset();
+      refreshPhaseUI();
       developerInstruction.textContent = `${nextMap.name} loaded. All deployed units were cleared.`;
     }
     activeMap = nextMap;
@@ -460,7 +486,8 @@
     marker.classList.toggle("is-wreck", isSunk && !isDeathMarker);
     marker.classList.toggle("is-death-marker", isDeathMarker);
     marker.querySelector(".unit-health").hidden = isSunk;
-    marker.querySelector(".unit-actions").hidden = isSunk;
+    marker.querySelector(".unit-actions").hidden = isSunk || shipType.team !== battleFlow.activeTeam;
+    marker.querySelector(".unit-detection-dot").hidden = !developerMode && shipType.team !== battleFlow.viewTeam;
     if (isDeathMarker) marker.setAttribute("aria-label", `${shipType.team} death marker: ${shipType.label}, sunk at ${coordinateLabel(shipType.column, shipType.row)}`);
     else if (isSunk) marker.setAttribute("aria-label", `${shipType.team} wreck: ${shipType.label}, sunk at ${coordinateLabel(shipType.column, shipType.row)}`);
     else marker.setAttribute("aria-label", `${shipType.team} ${shipType.code}: ${shipType.label}, ${shipType.health} of ${shipType.maxHealth} health`);
@@ -513,19 +540,21 @@
       if (!marker) return;
       const detected = combatRules.isDetected(ship, shipTypes);
       // A ship is revealed when an opponent enters the ship's own concealment radius.
-      const visibleToFriendly = ship.team !== "enemy" || ship.health <= 0 || detected;
+      const visible = unitIsVisible(ship);
       const wasConcealed = marker.classList.contains("is-concealed-enemy");
       marker.classList.toggle("is-detected", detected);
-      marker.classList.toggle("is-concealed-enemy", concealmentDemo && ship.team === "enemy" && !visibleToFriendly);
-      if (concealmentDemo && ship.team === "enemy" && marker.dataset.detectionInitialized === "true" &&
-          wasConcealed !== !visibleToFriendly) {
-        recordEvent(visibleToFriendly ? `Enemy contact spotted: ${ship.label}.` : `Contact lost: ${ship.label}.`);
+      marker.classList.toggle("is-concealed-enemy", !visible);
+      if (!developerMode && ship.team !== battleFlow.viewTeam && marker.dataset.detectionInitialized === "true" &&
+          marker.dataset.viewTeam === battleFlow.viewTeam && wasConcealed !== !visible) {
+        recordEvent(visible ? `Enemy contact spotted: ${ship.label}.` : `Contact lost: ${ship.label}.`, [], [battleFlow.viewTeam]);
       }
+      marker.dataset.viewTeam = battleFlow.viewTeam || "developer";
       marker.dataset.detectionInitialized = "true";
     });
   }
 
   function renderDeveloperLists() {
+    if (!developerMode) return;
     developerUnitLists.innerHTML = ["friendly", "enemy"].map((team) => {
       const units = shipTypes.filter((ship) => ship.team === team && ship.health > 0);
       const sunkUnits = shipTypes.filter((ship) => ship.team === team && ship.health <= 0);
@@ -554,7 +583,7 @@
   }
 
   function beginPlacement() {
-    if (isAnimating) return;
+    if (isAnimating || !developerMode) return;
     deselectUnit();
     placementOrder = { team: developerTeam.value, code: developerType.value };
     developerInstruction.textContent = `Select an empty ${setupMode ? "hex" : "sea hex"} for the ${placementOrder.team} ${placementOrder.code}.`;
@@ -562,7 +591,7 @@
   }
 
   function placeUnit(key) {
-    if (!placementOrder || (!setupMode && landCells.has(key)) || occupiedCells(null).has(key)) return;
+    if (!developerMode || !placementOrder || (!setupMode && landCells.has(key)) || occupiedCells(null).has(key)) return;
     const template = unitTemplates.get(placementOrder.code);
     const cell = parseCellKey(key);
     const unit = createUnitState({
@@ -582,7 +611,7 @@
   }
 
   function setSetupMode(enabled) {
-    if (isAnimating || concealmentDemo) return;
+    if (isAnimating || !developerMode) return;
     if (enabled && terrainMode) setTerrainMode(false);
     deselectUnit();
     setupMode = enabled;
@@ -597,7 +626,7 @@
   }
 
   function setTerrainMode(enabled) {
-    if (isAnimating || concealmentDemo) return;
+    if (isAnimating || !developerMode) return;
     if (enabled && setupMode) setSetupMode(false);
     deselectUnit();
     terrainMode = enabled;
@@ -666,7 +695,7 @@
   }
 
   async function importSetup() {
-    if (isAnimating || concealmentDemo) return;
+    if (isAnimating || !developerMode) return;
     try {
       const code = setupCodeInput.value.trim();
       if (code.length > 20000 || !/^NC1:[A-Za-z0-9_-]+$/.test(code)) throw new Error("Invalid layout code.");
@@ -705,6 +734,7 @@
   }
 
   function deleteUnit(id) {
+    if (!developerMode) return;
     const index = shipTypes.findIndex((ship) => ship.id === id);
     if (index < 0 || isAnimating) return;
     const removed = shipTypes[index];
@@ -934,11 +964,24 @@
         ? `Reloading · ${shipType.torpedoReloadRemaining} turn${shipType.torpedoReloadRemaining === 1 ? "" : "s"}`
         : shipType.torpedoed ? "Spent" : `Ready · ${shipType.torpedoRange} tiles`)
       : "Unavailable";
-    gunOrderButton.hidden = !canAttack;
+    // An opposing contact exposes ship characteristics, not its private action state.
+    const privateState = developerMode || shipType.team === battleFlow.viewTeam;
+    if (!privateState) {
+      detailMovement.textContent = `${shipType.movementRange} hexes per turn`;
+      detailAttack.textContent = `${shipType.gunRange} tiles · ${shipType.gunAttacksPerTurn} salvos per turn`;
+      detailTorpedo.textContent = `${shipType.torpedoRange} tiles`;
+      detailSalvo.textContent = `${shipType.shellCount} shells · AP ${shipType.alphaDamage} / HE ${shipType.heAlphaDamage} alpha`;
+      detailShellVelocity.textContent = `AP ${shipType.apShellVelocity ?? "—"} / HE ${shipType.heShellVelocity ?? "—"} m/s`;
+    }
+    detailSalvo.previousElementSibling.textContent = privateState ? "Loaded salvo" : "Salvo";
+    [detailAmmo, detailLastSalvo].forEach((field) => { field.parentElement.hidden = !canAttack || !privateState; });
+    detailConcealment.textContent = privateState ? detailConcealment.textContent : `${shipType.concealmentRange} hexes`;
+    const canOrder = battleFlow.canControl(shipType);
+    gunOrderButton.hidden = !canAttack || !canOrder;
     gunOrderButton.disabled = !gunsReady(shipType);
-    torpedoOrderButton.hidden = !TORPEDO_CODES.has(shipType.code);
+    torpedoOrderButton.hidden = !canTorpedo || !canOrder;
     torpedoOrderButton.disabled = shipType.torpedoed || shipType.torpedoReloadRemaining > 0;
-    gunOrderButton.parentElement.hidden = !canAttack && !canTorpedo;
+    gunOrderButton.parentElement.hidden = !canOrder || (!canAttack && !canTorpedo);
     refreshSkillButton();
     detailStatus.textContent = status;
     detailInstruction.textContent = mode === "aim"
@@ -952,7 +995,7 @@
   }
 
   function refreshSkillButton() {
-    const canControl = selectedUnit && !(concealmentDemo && selectedUnit.team === "enemy") && !isAnimating;
+    const canControl = battleFlow.canControl(selectedUnit) && !isAnimating;
     const ready = canControl && gunsReady(selectedUnit);
     fireRemainingButton.disabled = !ready;
     fireRemainingButton.classList.toggle("is-active", ready && mode === "salvo-skill");
@@ -967,15 +1010,15 @@
   }
 
   function loadAmmunition(type) {
-    if (!selectedUnit || selectedUnit.health <= 0 || !ATTACK_CODES.has(selectedUnit.code) ||
-        (concealmentDemo && selectedUnit.team === "enemy") || isAnimating || selectedUnit.shellType === type) return;
+    if (!battleFlow.canControl(selectedUnit) || !ATTACK_CODES.has(selectedUnit.code) ||
+        isAnimating || selectedUnit.shellType === type) return;
     selectedUnit.shellType = type;
     selectedUnit.gunReloadPending = true;
     showMovementArea(selectedUnit);
     refreshUnitDisplay(selectedUnit);
     updateDetailPanel(selectedUnit, `${type} selected · guns reload next turn`);
     unitReadout.textContent = `${selectedUnit.code} · ${type} selected · reloading`;
-    recordEvent(`${selectedUnit.label} switched to ${type}; guns reload next turn.`);
+    recordEvent(`${selectedUnit.label} switched to ${type}; guns reload next turn.`, [], [selectedUnit.team]);
   }
 
   function setMarkerHeading(shipType, targetCell, options = {}) {
@@ -1019,15 +1062,15 @@
       paintTerrain(key);
       return;
     }
-    if (mode !== "move" || !selectedUnit || isAnimating || !reachableState?.distance.has(key)) return;
+    if (mode !== "move" || !battleFlow.canControl(selectedUnit) || isAnimating || !reachableState?.distance.has(key)) return;
     const target = parseCellKey(key);
     setMarkerHeading(selectedUnit, target, { commit: true });
     updateDetailPanel(selectedUnit, `Facing ${coordinateLabel(target.column, target.row)}`);
-    recordEvent(`${selectedUnit.label} turned toward ${coordinateLabel(target.column, target.row)}.`);
+    recordEvent(`${selectedUnit.label} turned toward ${coordinateLabel(target.column, target.row)}.`, [selectedUnit]);
   }
 
   function queueAttackAim(targetKey, weapon, useRemaining = false) {
-    if (!selectedUnit || isAnimating || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit)) return;
+    if (!battleFlow.canControl(selectedUnit) || isAnimating || !attackCells.has(targetKey) || targetIsFriendly(targetKey, selectedUnit)) return;
     if (lineOfFireBlocked(selectedUnit, targetKey)) return;
     if (weapon === "gun" && !gunsReady(selectedUnit)) return;
     if (weapon === "torpedo" && (selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code))) return;
@@ -1037,7 +1080,7 @@
   }
 
   function confirmFacing(key) {
-    if (mode !== "aim" || !aimState || !selectedUnit || isAnimating || !attackCells.has(key)) return;
+    if (mode !== "aim" || !aimState || !battleFlow.canControl(selectedUnit) || isAnimating || !attackCells.has(key)) return;
     const heading = setMarkerHeading(selectedUnit, parseCellKey(key));
     const groups = aimState.weapon === "gun" ? turretGroupsForHeading(selectedUnit, aimState.targetKey, heading).filter((group) => group.ready) : [];
     if (aimState.weapon === "gun" && !groups.length) {
@@ -1057,6 +1100,7 @@
     if (terrainMode) return;
     if (setupMode) return;
     if (isAnimating) return;
+    if (!unitIsVisible(shipType)) return;
     if (shipType.health <= 0) {
       if (marker.classList.contains("is-death-marker")) showSunkDetails(shipType);
       return;
@@ -1072,7 +1116,7 @@
       return;
     }
     if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && shipType.team === selectedUnit.team) return;
-    if (concealmentDemo && shipType.team === "enemy") {
+    if (!battleFlow.canControl(shipType)) {
       if (inspectedEnemy?.id === shipType.id) deselectUnit();
       else inspectEnemy(marker, shipType);
       return;
@@ -1085,7 +1129,7 @@
   }
 
   function selectUnit(marker, shipType) {
-    if (isAnimating) return;
+    if (isAnimating || !battleFlow.canControl(shipType) || !unitIsVisible(shipType)) return;
     placementOrder = null;
     clearAimState();
     map.querySelectorAll(".map-unit.is-selected").forEach((unit) => unit.classList.remove("is-selected"));
@@ -1099,6 +1143,7 @@
   }
 
   function inspectEnemy(marker, shipType) {
+    if (!unitIsVisible(shipType)) return;
     deselectUnit();
     inspectedEnemy = shipType;
     marker.classList.add("is-selected");
@@ -1112,6 +1157,7 @@
   }
 
   function showSunkDetails(shipType) {
+    if (!unitIsVisible(shipType)) return;
     deselectUnit();
     const marker = unitElements.get(shipType.id);
     marker?.classList.add("is-selected");
@@ -1136,8 +1182,8 @@
       return;
     }
     if (setupMode) return;
-    if (isAnimating || shipType.health <= 0) return;
-    if (concealmentDemo && shipType.team === "enemy") {
+    if (isAnimating || shipType.health <= 0 || !unitIsVisible(shipType)) return;
+    if (!battleFlow.canControl(shipType)) {
       if (inspectedEnemy?.id === shipType.id) deselectUnit();
       else inspectEnemy(marker, shipType);
       return;
@@ -1161,7 +1207,7 @@
   }
 
   function activateGunMode() {
-    if (!gunsReady(selectedUnit) || isAnimating) return;
+    if (!battleFlow.canControl(selectedUnit) || !gunsReady(selectedUnit) || isAnimating) return;
     const enteringGunRange = !gunRangeOpen();
     showAttackArea(selectedUnit);
     if (enteringGunRange) playRandomReloaded();
@@ -1170,14 +1216,14 @@
   }
 
   function activateTorpedoMode() {
-    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code) || isAnimating) return;
+    if (!battleFlow.canControl(selectedUnit) || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || !TORPEDO_CODES.has(selectedUnit.code) || isAnimating) return;
     showTorpedoArea(selectedUnit);
     unitReadout.textContent = `${selectedUnit.code} · Torpedo range`;
     updateDetailPanel(selectedUnit, "Select torpedo target");
   }
 
   function activateFireRemainingSkill() {
-    if (!gunsReady(selectedUnit) || (concealmentDemo && selectedUnit.team === "enemy") || isAnimating) return;
+    if (!battleFlow.canControl(selectedUnit) || !gunsReady(selectedUnit) || isAnimating) return;
     const enteringGunRange = !gunRangeOpen();
     showAttackArea(selectedUnit, true);
     if (enteringGunRange) playRandomReloaded();
@@ -1281,7 +1327,7 @@
   }
 
   async function moveSelectedUnit(targetKey) {
-    if (!selectedUnit || selectedUnit.moved || !reachableState?.distance.has(targetKey) || isAnimating) return;
+    if (!battleFlow.canControl(selectedUnit) || selectedUnit.moved || !reachableState?.distance.has(targetKey) || isAnimating) return;
     const path = buildPath(targetKey);
     if (!path.length) return;
     isAnimating = true;
@@ -1338,7 +1384,7 @@
     markSelectedOrigin(shipType);
     updateDetailPanel(shipType, "Movement complete");
     unitReadout.textContent = `${shipType.code} · Movement complete`;
-    recordEvent(`${shipType.label} moved from ${originLabel} to ${coordinateLabel(targetCell.column, targetCell.row)}${landInWay ? " around land" : ""}.`);
+    recordEvent(`${shipType.label} moved from ${originLabel} to ${coordinateLabel(targetCell.column, targetCell.row)}${landInWay ? " around land" : ""}.`, [], [shipType.team]);
   }
 
   function createEffect(className, center) {
@@ -1352,7 +1398,7 @@
 
   function unitAt(key, exceptId) {
     return shipTypes.find((ship) => ship.id !== exceptId && ship.health > 0 && cellKey(ship.column, ship.row) === key &&
-      (!concealmentDemo || ship.team !== "enemy" || !unitElements.get(ship.id)?.classList.contains("is-concealed-enemy")));
+      unitIsVisible(ship));
   }
 
   function targetIsFriendly(key, attacker) {
@@ -1361,10 +1407,12 @@
   }
 
   function applyDamage(target, amount, attacker) {
+    const witnesses = target ? ["friendly", "enemy"].filter((team) => visibleToTeam(target, team)) : [];
     const damageDealt = combatRules.applyHullDamage(target, amount, attacker);
     if (!damageDealt) return 0;
     if (target.health === 0) {
-      target.sunkTurn = currentTurn;
+      target.sunkTurn = battleFlow.turn;
+      target.knownSunkTeams = witnesses;
       target.wreckClassification = unitTypeByCode.get(target.code)?.wreck || "Heavy";
       target.wreckTurnsRemaining = WRECK_TURNS[target.wreckClassification];
     }
@@ -1374,8 +1422,8 @@
     if (selectedUnit?.id === target.id) {
       updateDetailPanel(target, target.health > 0 ? `Hit for ${damageDealt} damage` : "Unit destroyed");
     }
-    recordEvent(`${attacker.label} dealt ${damageDealt} damage to ${target.label} (${target.health}/${target.maxHealth} HP).`);
-    if (target.health === 0) recordEvent(`${target.label} sunk at ${coordinateLabel(target.column, target.row)}.`);
+    recordEvent(`${attacker.label} dealt ${damageDealt} damage to ${target.label} (${target.health}/${target.maxHealth} HP).`, [attacker, target]);
+    if (target.health === 0) recordEvent(`${target.label} sunk at ${coordinateLabel(target.column, target.row)}.`, [], witnesses);
     return damageDealt;
   }
 
@@ -1480,7 +1528,7 @@
       totalDamage: 0, damageDealt: 0
     });
     shipType.lastSalvo = salvo;
-    recordEvent(`${shipType.label} fired ${salvo.shellType} at ${navalTarget?.label || coordinateLabel(target.column, target.row)}.`);
+    recordEvent(`${shipType.label} fired ${salvo.shellType} at ${navalTarget?.label || coordinateLabel(target.column, target.row)}.`, [shipType, ...(navalTarget ? [navalTarget] : [])]);
     const formationDecks = new Map();
     const formations = groups.map((group) => turretShellFormation(
       group.shells, group.index, shipType.salvoPattern?.length || groups.length, formationDecks));
@@ -1528,12 +1576,12 @@
     }
     await impactAnimation.finished;
     impact.remove();
-    recordEvent(`${shipType.label} salvo result: ${summarizeSalvo(salvo)}.`);
+    recordEvent(`${shipType.label} salvo result: ${summarizeSalvo(salvo)}.`, [], [shipType.team]);
     return salvo;
   }
 
   async function fireVolley(targetKey, useRemaining = false, firingGroups) {
-    if (!gunsReady(selectedUnit) || !firingGroups?.length || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
+    if (!battleFlow.canControl(selectedUnit) || !gunsReady(selectedUnit) || !firingGroups?.length || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
     const initialTarget = unitAt(targetKey, selectedUnit.id);
     if (useRemaining && (!initialTarget || initialTarget.team === selectedUnit.team)) return;
     isAnimating = true;
@@ -1621,14 +1669,14 @@
     ], { duration: 800, easing: "ease-out", fill: "forwards" });
     const damageDealt = navalTarget ? applyDamage(navalTarget, shipType.torpedoDamage, shipType) : 0;
     if (navalTarget) showDamagePopup(destination, damageDealt);
-    else recordEvent(`${shipType.label}'s torpedoes splashed at ${coordinateLabel(targetCell.column, targetCell.row)}.`);
+    else recordEvent(`${shipType.label}'s torpedoes splashed at ${coordinateLabel(targetCell.column, targetCell.row)}.`, [shipType]);
     await impactAnimation.finished;
     impact.remove();
     return Boolean(navalTarget && damageDealt > 0 && navalTarget.health <= 0);
   }
 
   async function fireTorpedoes(targetKey) {
-    if (!selectedUnit || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
+    if (!battleFlow.canControl(selectedUnit) || selectedUnit.torpedoed || selectedUnit.torpedoReloadRemaining > 0 || targetIsFriendly(targetKey, selectedUnit) || isAnimating) return;
     isAnimating = true;
     mode = null;
     const shipType = selectedUnit;
@@ -1651,7 +1699,7 @@
     markSelectedOrigin(shipType);
     updateDetailPanel(shipType, "Launching torpedoes");
     unitReadout.textContent = `${shipType.code} · Launching torpedoes`;
-    recordEvent(`${shipType.label} launched torpedoes at ${coordinateLabel(targetCell.column, targetCell.row)}.`);
+    recordEvent(`${shipType.label} launched torpedoes at ${coordinateLabel(targetCell.column, targetCell.row)}.`, [shipType]);
     await wait(TURN_DURATION);
     const targetDestroyed = await animateTorpedoAttack(shipType, targetKey);
     if (targetDestroyed) playEffect(SOUND_PATHS.enemyDestroyed);
@@ -1664,6 +1712,7 @@
   }
 
   function handleTileClick(key) {
+    if (isAnimating) return;
     if (ignoreNextTileClick) {
       ignoreNextTileClick = false;
       return;
@@ -1678,8 +1727,8 @@
       else deselectUnit();
       return;
     }
-    const visibleEnemy = concealmentDemo ? shipTypes.find((ship) => ship.team === "enemy" && ship.health > 0 &&
-      cellKey(ship.column, ship.row) === key && !unitElements.get(ship.id)?.classList.contains("is-concealed-enemy")) : null;
+    const visibleEnemy = shipTypes.find((ship) => !battleFlow.canControl(ship) && ship.health > 0 &&
+      cellKey(ship.column, ship.row) === key && unitIsVisible(ship));
     if (placementOrder) {
       placeUnit(key);
     } else if ((mode === "attack" || mode === "salvo-skill" || mode === "torpedo") && selectedUnit && targetIsFriendly(key, selectedUnit)) {
@@ -1702,8 +1751,36 @@
     }
   }
 
-  function advanceTurn() {
-    if (isAnimating || setupMode) return;
+  function refreshPhaseUI() {
+    document.body.dataset.phase = battleFlow.phase;
+    turnNumber.textContent = String(battleFlow.turn);
+    phaseName.textContent = `${battleFlow.phase === "green" ? "Green" : "Red"} phase`;
+    phaseButtonLabel.textContent = battleFlow.buttonLabel;
+    nextTurnButton.title = `${battleFlow.buttonLabel} (Q)`;
+    shipTypes.forEach(refreshUnitDisplay);
+    updateDetection();
+    refreshLogVisibility();
+  }
+
+  function advancePhase() {
+    if (isAnimating || setupMode || terrainMode) return;
+    deselectUnit();
+    setLogOpen(false);
+    let turnEnded = battleFlow.advance();
+    recordEvent(`${battleFlow.phase === "green" ? "Green" : "Red"} phase began.`);
+    if (concealmentDemo && battleFlow.phase === "red") {
+      // AI integration point: red receives control, then ends its phase immediately.
+      // The player's view remains green throughout the red phase.
+      recordEvent("Red phase ended (AI placeholder).");
+      turnEnded = battleFlow.advance();
+    }
+    if (turnEnded) restoreTurnActions();
+    refreshPhaseUI();
+    unitReadout.textContent = `Turn ${battleFlow.turn} · ${phaseName.textContent}`;
+    if (turnEnded) recordEvent(`Turn ${battleFlow.turn} began · Green phase.`);
+  }
+
+  function restoreTurnActions() {
     shipTypes.forEach((ship) => {
       if (ship.health > 0) {
         ship.moved = false;
@@ -1715,23 +1792,18 @@
           ship.torpedoReloadRemaining -= 1;
           if (ship.torpedoReloadRemaining === 0) {
             ship.torpedoed = false;
-            recordEvent(`${ship.label}'s torpedoes finished reloading.`);
+            recordEvent(`${ship.label}'s torpedoes finished reloading.`, [], [ship.team]);
           }
         } else if (!ship.torpedoReloadDuration) {
           ship.torpedoed = false;
         }
       } else if (ship.wreckTurnsRemaining > 0) {
         ship.wreckTurnsRemaining -= 1;
-        if (ship.wreckTurnsRemaining === 0) recordEvent(`${ship.label}'s wreck cleared; death marker remains.`);
+        if (ship.wreckTurnsRemaining === 0) recordEvent(`${ship.label}'s wreck cleared; death marker remains.`, [ship]);
       }
       refreshUnitDisplay(ship);
     });
     renderDeveloperLists();
-    currentTurn += 1;
-    turnNumber.textContent = String(currentTurn);
-    deselectUnit();
-    unitReadout.textContent = `Turn ${currentTurn} · All units ready`;
-    recordEvent(`Turn ${currentTurn} began.`);
   }
 
   function setScale(nextScale, preserveCenter = true) {
@@ -1836,7 +1908,7 @@
   detailHeading.addEventListener("pointercancel", stopDetailDragging);
 
   detailClose.addEventListener("click", deselectUnit);
-  nextTurnButton.addEventListener("click", advanceTurn);
+  nextTurnButton.addEventListener("click", advancePhase);
   logToggle.addEventListener("click", () => setLogOpen(!logPanel.classList.contains("is-open")));
   logClose.addEventListener("click", () => setLogOpen(false));
   gunOrderButton.addEventListener("click", activateGunMode);
@@ -1851,7 +1923,7 @@
     event.preventDefault();
     if (key === "1") loadAmmunition("AP");
     else if (key === "2") loadAmmunition("HE");
-    else if (key === "q") advanceTurn();
+    else if (key === "q") advancePhase();
     else activateFireRemainingSkill();
   });
   developerPanelToggle.addEventListener("click", () => {
@@ -1961,15 +2033,16 @@
   developerType.innerHTML = [...unitTemplates.entries()]
     .map(([templateId, ship]) => `<option value="${templateId}">${templateId.startsWith("uss-") ? ship.label : `${ship.code} · ${ship.label}`}</option>`)
     .join("");
-  if (concealmentDemo) {
+  if (trainingBattle) {
     buildTrainingLand();
     renderMap();
     resetView();
     mapSummary.textContent = `Training Waters · ${TRAINING_MAP.kilometers} × ${TRAINING_MAP.kilometers} km · ${COLUMNS} × ${ROWS} hexes`;
-    recordEvent("Training Waters loaded. Locate the concealed enemy ships.");
+    recordEvent(vsMode ? "VS mode loaded. Green phase goes first." : "Training Waters loaded. Locate the concealed enemy ships.");
   } else {
     changeMap("northern-lights", false);
   }
+  refreshPhaseUI();
   window.addEventListener("pointerdown", playEnterMatch, true);
   window.addEventListener("keydown", playEnterMatch, true);
   playEnterMatch();

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Two-player naval combat with alternating green and red phases." />
+    <title>VS Mode — Naval Command</title>
+    <link rel="icon" href="favicon.svg?v=navy-69" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-69" />
+    <script src="ship-combat-data.js?v=navy-69" defer></script>
+    <script src="combat-rules.js?v=navy-69" defer></script>
+    <script src="combat-phases.js?v=navy-69" defer></script>
+    <script src="map-terrain-data.js?v=navy-69" defer></script>
+    <script src="combat-demo.js?v=navy-69" defer></script>
+  </head>
+  <body class="combat-map-page" data-mode="vs" data-phase="green">
+    <main class="combat-map-shell">
+      <section class="tactical-board" aria-label="Interactive combat map">
+        <div class="combat-turn-hud">
+          <a href="campaign.html?v=navy-69"><span aria-hidden="true">←</span> Exit combat</a>
+          <div class="turn-counter" aria-live="polite"><span>Turn <strong id="turn-number">1</strong></span><span id="phase-name" class="phase-name">Green phase</span></div>
+          <button id="next-turn" type="button" aria-keyshortcuts="Q" title="Change Phase (Q)"><span id="phase-button-label">Change Phase</span> <kbd>Q</kbd></button>
+        </div>
+
+        <aside class="developer-panel" id="developer-panel">
+          <button class="developer-panel-toggle" id="developer-panel-toggle" type="button" aria-expanded="true">
+            <span>Developer fleet control</span><span aria-hidden="true">‹</span>
+          </button>
+          <div class="developer-panel-body">
+            <div class="developer-add-controls">
+              <label>Side<select id="developer-team"><option value="friendly">Friendly</option><option value="enemy">Enemy</option></select></label>
+              <label>Ship type<select id="developer-type"></select></label>
+              <button id="developer-add" type="button">Place unit</button>
+            </div>
+            <p id="developer-instruction">Choose a side and ship type, then place it on an empty sea hex.</p>
+            <div class="developer-unit-lists" id="developer-unit-lists"></div>
+          </div>
+        </aside>
+
+        <div class="map-status-strip">
+          <span><span class="status-dot" aria-hidden="true"></span> Training waters online</span>
+          <span id="unit-readout" aria-live="polite">Green phase · Select a green ship</span>
+        </div>
+
+        <div
+          class="hex-map-viewport"
+          id="hex-map-viewport"
+          tabindex="0"
+          aria-label="Hexagonal sea and land map. Drag to pan and use the mouse wheel or controls to zoom."
+        >
+          <div class="hex-map-stage" id="hex-map-stage">
+            <div class="hex-map" id="hex-map"></div>
+          </div>
+        </div>
+
+        <div class="map-footer-strip">
+          <div class="terrain-legend" aria-label="Terrain legend">
+            <span><i class="terrain-swatch sea-swatch" aria-hidden="true"></i>Sea</span>
+            <span><i class="terrain-swatch land-swatch" aria-hidden="true"></i>Land</span>
+          </div>
+          <span id="map-summary">Training Waters · Two players · Alternating visibility</span>
+          <span>Drag to pan · Mouse wheel to zoom</span>
+        </div>
+
+        <button class="combat-log-toggle" id="combat-log-toggle" type="button" aria-controls="combat-log-panel" aria-expanded="false">Log <span id="combat-log-count">0</span></button>
+        <aside class="combat-log-panel" id="combat-log-panel" aria-label="Combat log" aria-hidden="true" inert>
+          <div class="combat-log-heading"><h2>Combat log</h2><button id="combat-log-close" type="button" aria-label="Close combat log">×</button></div>
+          <ol id="combat-log-entries"></ol>
+        </aside>
+
+        <div class="combat-skills" aria-label="Ship skills">
+          <button id="load-ap-shells" data-ammo="AP" class="ammo-button" type="button" aria-label="Load AP shells" aria-keyshortcuts="1" aria-pressed="false" title="Load AP shells (1)" disabled><img src="images/ammo/ap.png" alt="" /><kbd>1</kbd></button>
+          <button id="load-he-shells" data-ammo="HE" class="ammo-button" type="button" aria-label="Load HE shells" aria-keyshortcuts="2" aria-pressed="false" title="Load HE shells (2)" disabled><img src="images/ammo/he.png" alt="" /><kbd>2</kbd></button>
+          <button id="fire-remaining-salvos" type="button" aria-keyshortcuts="E" aria-pressed="false" disabled title="Select a ship with guns, then choose a hostile target">
+            Fire remaining salvos <kbd>E</kbd>
+          </button>
+        </div>
+
+        <aside class="unit-detail-panel" id="unit-detail-panel" aria-live="polite" hidden>
+          <div class="unit-detail-heading">
+            <p>Selected unit · Drag to move</p>
+            <div class="unit-detail-heading-actions">
+              <button id="unit-detail-collapse" type="button" aria-label="Collapse ship details" aria-controls="unit-detail-body" aria-expanded="true">−</button>
+              <button id="unit-detail-close" type="button" aria-label="Close ship details">×</button>
+            </div>
+          </div>
+          <div class="unit-detail-title">
+            <span id="unit-detail-code">—</span>
+            <h2 id="unit-detail-name">No ship selected</h2>
+          </div>
+          <div class="unit-detail-body" id="unit-detail-body">
+          <dl>
+            <div><dt>Ship type</dt><dd id="unit-detail-category">—</dd></div>
+            <div><dt>Position</dt><dd id="unit-detail-position">—</dd></div>
+            <div><dt>Health</dt><dd id="unit-detail-health">100 / 100</dd></div>
+            <div><dt>Speed</dt><dd id="unit-detail-speed">—</dd></div>
+            <div><dt>Concealment</dt><dd id="unit-detail-concealment">10 hexes</dd></div>
+            <div><dt>Movement</dt><dd id="unit-detail-movement">Ready</dd></div>
+            <div data-requires="guns"><dt>Guns</dt><dd id="unit-detail-attack">Ready</dd></div>
+            <div data-requires="guns"><dt>Loaded ammunition</dt><dd id="unit-detail-ammo">—</dd></div>
+            <div data-requires="guns"><dt>Firing angles</dt><dd id="unit-detail-gun-arcs">—</dd></div>
+            <div data-requires="guns"><dt>Loaded salvo</dt><dd id="unit-detail-salvo">—</dd></div>
+            <div data-requires="guns"><dt>Shell velocity</dt><dd id="unit-detail-shell-velocity">—</dd></div>
+            <div data-requires="guns"><dt>Last salvo</dt><dd id="unit-detail-last-salvo">—</dd></div>
+            <div data-requires="torpedoes"><dt>Torpedoes</dt><dd id="unit-detail-torpedo">Unavailable</dd></div>
+            <div><dt>Status</dt><dd id="unit-detail-status">Awaiting orders</dd></div>
+          </dl>
+          <div class="unit-order-actions">
+            <button id="gun-order" type="button">Gun range</button>
+            <button id="torpedo-order" type="button">Torpedo range</button>
+          </div>
+          <div class="unit-turret-status" id="unit-detail-turrets" hidden>
+            <div class="unit-turret-heading"><span>Turrets on target</span><strong id="unit-detail-turret-count">—</strong></div>
+            <div class="unit-turret-circles" id="unit-detail-turret-circles"></div>
+          </div>
+          <p id="unit-detail-instruction">Select a highlighted sea tile to issue a movement order.</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
