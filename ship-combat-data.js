@@ -45,7 +45,9 @@
       turretPositions: ["forward", "forward", "forward", "aft", "aft"],
       forwardFiringAngle: 30, backwardFiringAngle: 33, alphaDamage: 32, apShellVelocity: 762,
       heAlphaDamage: 22, heShellVelocity: 812, mainGunCaliberMm: 152,
-      gunRange: 15, gunAttacksPerTurn: 3
+      gunRange: 15, gunAttacksPerTurn: 3,
+      traits: ["Scouting", "Barrage Fire"],
+      skills: ["surveillance-radar", "main-battery-reload-booster", "adrenaline-rush"]
     },
     "USS Des Moines": {
       code: "CA",

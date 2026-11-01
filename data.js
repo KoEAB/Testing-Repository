@@ -352,6 +352,7 @@
 
   window.CHARACTERS = ships.map((ship, index) => {
     const profile = classProfiles[ship.shipClass];
+    const combatStats = window.SHIP_COMBAT_DATA?.[ship.name] || null;
     return {
       id: createId(ship),
       number: String(index + 1).padStart(2, "0"),
@@ -368,8 +369,8 @@
       origin: ship.origin,
       affinity: ship.affinity,
       weapon: profile.weapon,
-      traits: ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
-      abilities: createAbilities(profile.shipType),
+      traits: combatStats?.traits || ["Trait placeholder A", "Trait placeholder B", "Trait placeholder C"],
+      abilities: combatStats?.skills?.map((id) => window.NAVAL_COMBAT_SKILLS.definitions[id]) || createAbilities(profile.shipType),
       combatStats: window.SHIP_COMBAT_DATA?.[ship.name] || null,
       accent: ship.accent || profile.accent,
       rgb: ship.rgb || profile.rgb

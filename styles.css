@@ -995,6 +995,20 @@ p {
 
 .combat-stats-section .section-label { margin-bottom: 24px; }
 
+.combat-stat-groups { display: grid; gap: 24px; }
+
+.combat-stat-group {
+  padding: 24px;
+  border: 1px solid var(--line);
+  background: rgba(8, 24, 39, 0.72);
+}
+
+.combat-stat-group h3 { margin: 0 0 12px; font: 400 28px var(--serif); }
+
+.stat-ammunition { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
+.stat-ammunition h4 { margin: 0 0 8px; color: var(--ink); font: 600 13px var(--sans); letter-spacing: 0.1em; }
+.stat-ammunition .combat-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 .combat-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1004,9 +1018,8 @@ p {
 
 .combat-stats-grid > div {
   min-height: 98px;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  background: rgba(8, 24, 39, 0.72);
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .combat-stats-grid dt {
@@ -1026,11 +1039,14 @@ p {
 
 .ability {
   display: grid;
-  grid-template-columns: 42px 1fr;
+  grid-template-columns: 52px minmax(0, 1fr);
   gap: 14px;
   padding: 24px 0;
   border-bottom: 1px solid var(--line);
 }
+
+.ability-icon { width: 52px; height: 52px; display: grid; place-items: center; background: #000; border: 1px solid var(--line); }
+.ability-icon img { width: 48px; height: 48px; object-fit: contain; }
 
 .ability-number {
   padding-top: 5px;
@@ -1266,6 +1282,7 @@ p {
   }
 
   .combat-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-ammunition { grid-template-columns: 1fr; }
 
   .character-navigation {
     grid-template-columns: 1fr 1fr;
@@ -2938,6 +2955,10 @@ p {
 #combat-log-entries time { color: var(--gold); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
 
 .combat-skills {
+  max-width: calc(100% - 28px);
+  width: max-content;
+  flex-wrap: wrap;
+  justify-content: center;
   position: absolute;
   z-index: 18;
   right: 50%;
@@ -2971,6 +2992,7 @@ p {
 .combat-skills kbd { margin-left: 12px; color: var(--gold); font: inherit; }
 
 .combat-skills .ammo-button {
+  flex: 0 0 44px;
   position: relative;
   width: 44px;
   height: 44px;
@@ -2982,6 +3004,8 @@ p {
 }
 
 .combat-skills .ammo-button.is-loaded { border-color: #fff; box-shadow: 0 0 0 2px var(--gold) inset; }
+.combat-skills .consumable-button[hidden] { display: none; }
+.unit-skill-status { display: grid; gap: 6px; text-align: right; }
 .combat-skills .ammo-button img { display: block; width: 40px; height: 40px; object-fit: contain; background: #000; }
 .combat-skills .ammo-button kbd {
   position: absolute;
@@ -3411,6 +3435,7 @@ p {
   .combat-log-panel { top: 216px; right: 14px; width: calc(100% - 28px); max-height: calc(100% - 230px); }
 
   .combat-skills { bottom: 14px; }
+  .tactical-board:has(.consumable-button:not([hidden])) .unit-detail-panel { bottom: 124px; max-height: calc(100% - 244px); }
 
   .unit-detail-panel {
     right: 14px;

@@ -14,11 +14,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-73",
-    hit: "images/sounds/hit.mp3?v=navy-73",
-    hit2: "images/sounds/hit-2.mp3?v=navy-73",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-73",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-73`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-74",
+    hit: "images/sounds/hit.mp3?v=navy-74",
+    hit2: "images/sounds/hit-2.mp3?v=navy-74",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-74",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-74`)
   };
   let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -41,6 +41,7 @@
   const torpedoGeometry = torpedoRules.createGeometry({ width: HEX_WIDTH, height: HEX_HEIGHT, step: COLUMN_STEP });
   const TORPEDO_STEP_MS = 720;
   const combatRules = window.NAVAL_COMBAT_RULES.createCombatRules(window.NAVAL_UNIT_TYPES);
+  const skillRules = window.NAVAL_COMBAT_SKILLS;
   const { MIN_AP_SHELL_VELOCITY, hexDistance } = combatRules;
   const unitTypeByCode = new Map(window.NAVAL_UNIT_TYPES.map((type) => [type.code, type]));
   const ATTACK_CODES = new Set(window.NAVAL_UNIT_TYPES.filter((type) => type.gun).map((type) => type.code));
@@ -61,7 +62,7 @@
 
   function createUnitState(ship, id, team) {
     const stats = unitTypeByCode.get(ship.code);
-    return {
+    return skillRules.initialize({
       ...ship,
       id,
       team,
@@ -102,7 +103,7 @@
       wreckClassification: null,
       wreckTurnsRemaining: null,
       actions: [...stats.actions]
-    };
+    });
   }
 
   const trainingIslandShapes = [
@@ -180,6 +181,7 @@
   const fireRemainingButton = document.querySelector("#fire-remaining-salvos");
   const apButton = document.querySelector("#load-ap-shells");
   const heButton = document.querySelector("#load-he-shells");
+  const consumableButtons = [...document.querySelectorAll("[data-consumable]")];
   const developerPanel = document.querySelector("#developer-panel");
   const developerDragHandle = document.querySelector("#developer-panel-drag");
   const mapSelector = document.querySelector("#developer-map");
@@ -272,9 +274,14 @@
     playEffect(SOUND_PATHS.reloaded[Math.floor(Math.random() * SOUND_PATHS.reloaded.length)]);
   }
 
+  function shipIsDetected(ship) {
+    const opposingTeam = ship.team === "friendly" ? "enemy" : "friendly";
+    return combatRules.isDetected(ship, shipTypes) || skillRules.revealedByRadar(ship, shipTypes, opposingTeam, hexDistance);
+  }
+
   function visibleToTeam(ship, team) {
     return ship.team === team || (ship.health > 0
-      ? combatRules.isDetected(ship, shipTypes)
+      ? shipIsDetected(ship)
       : ship.knownSunkTeams?.includes(team));
   }
 
@@ -554,7 +561,7 @@
     shipTypes.forEach((ship) => {
       const marker = unitElements.get(ship.id);
       if (!marker) return;
-      const detected = combatRules.isDetected(ship, shipTypes);
+      const detected = shipIsDetected(ship);
       // A ship is revealed when an opponent enters the ship's own concealment radius.
       const visible = unitIsVisible(ship);
       const wasConcealed = marker.classList.contains("is-concealed-enemy");
@@ -1004,6 +1011,7 @@
   });
 
   function updateDetailPanel(shipType, status = "Awaiting orders") {
+    skillRules.syncSalvoAllowance(shipType);
     const canAttack = ATTACK_CODES.has(shipType.code);
     const canTorpedo = TORPEDO_CODES.has(shipType.code);
     detailPanel.querySelectorAll('[data-requires="guns"]').forEach((row) => { row.hidden = !canAttack; });
@@ -1047,6 +1055,15 @@
     detailSalvo.previousElementSibling.textContent = privateState ? "Loaded salvo" : "Salvo";
     [detailAmmo, detailLastSalvo].forEach((field) => { field.parentElement.hidden = !canAttack || !privateState; });
     detailConcealment.textContent = privateState ? detailConcealment.textContent : `${shipType.concealmentRange} hexes`;
+    const skillsRow = detailPanel.querySelector("#unit-detail-skills-row");
+    skillsRow.hidden = shipType.skills.length === 0;
+    const skillStatuses = detailPanel.querySelector("#unit-detail-skills");
+    skillStatuses.replaceChildren(...shipType.skills.map((id) => {
+      const entry = document.createElement("span");
+      const skill = skillRules.definitions[id];
+      entry.textContent = skill.name + (privateState ? ` · ${skillStatus(shipType, id)}` : "");
+      return entry;
+    }));
     const canOrder = battleFlow.canControl(shipType);
     gunOrderButton.hidden = !canAttack || !canOrder;
     gunOrderButton.disabled = !gunsReady(shipType);
@@ -1078,6 +1095,34 @@
       button.classList.toggle("is-loaded", current);
       button.setAttribute("aria-pressed", String(Boolean(current)));
     });
+    consumableButtons.forEach((button) => {
+      const id = button.dataset.consumable, skill = skillRules.definitions[id];
+      button.hidden = !skillRules.hasSkill(selectedUnit, id);
+      button.disabled = !canControl || !skillRules.canActivate(selectedUnit, id);
+      const active = skillRules.turnsRemaining(selectedUnit, id) > 0;
+      button.classList.toggle("is-loaded", active);
+      button.setAttribute("aria-pressed", String(active));
+      button.title = `${skill.name} (${skill.hotkey.toUpperCase()})${selectedUnit ? ` · ${skillStatus(selectedUnit, id)}` : ""}`;
+    });
+  }
+
+  function skillStatus(ship, id) {
+    const skill = skillRules.definitions[id];
+    if (skill.kind === "passive") return skillRules.adrenalineActive(ship) ? "Active · +1 salvo / turn" : "Below 50% HP to activate";
+    const remaining = skillRules.turnsRemaining(ship, id), cooldown = skillRules.cooldownRemaining(ship, id);
+    const uses = skillRules.usesRemaining(ship, id);
+    return `${remaining ? `Active · ${remaining} Next Turn${remaining === 1 ? "" : "s"} remaining`
+      : cooldown ? `Cooldown · ${cooldown} Next Turns remaining` : uses ? "Ready" : "No uses remaining"} · ${uses}/${skill.charges} uses left`;
+  }
+
+  function activateConsumable(id) {
+    if (!battleFlow.canControl(selectedUnit) || isAnimating || !skillRules.activate(selectedUnit, id)) return;
+    const skill = skillRules.definitions[id];
+    updateDetection();
+    refreshUnitDisplay(selectedUnit);
+    updateDetailPanel(selectedUnit, `${skill.name} active`);
+    unitReadout.textContent = `${selectedUnit.label} · ${skill.name} active`;
+    recordEvent(`${selectedUnit.label} activated ${skill.name}.`, [], [selectedUnit.team]);
   }
 
   function loadAmmunition(type) {
@@ -1484,6 +1529,11 @@
     const witnesses = target ? ["friendly", "enemy"].filter((team) => visibleToTeam(target, team)) : [];
     const damageDealt = combatRules.applyHullDamage(target, amount, attacker);
     if (!damageDealt) return 0;
+    const oldAllowance = target.gunAttacksAllowance;
+    skillRules.syncSalvoAllowance(target);
+    if (target.health > 0 && target.gunAttacksAllowance > oldAllowance && skillRules.adrenalineActive(target)) {
+      recordEvent(`${target.label}'s Adrenaline Rush activated: +1 salvo per turn.`, [], [target.team]);
+    }
     if (target.health === 0) {
       target.sunkTurn = battleFlow.turn;
       target.knownSunkTeams = witnesses;
@@ -1761,7 +1811,7 @@
   }
 
   async function resolveLaunchReactions(ship, spread) {
-    if (!combatRules.isDetected(ship, shipTypes)) return;
+    if (!shipIsDetected(ship)) return;
     const key = cellKey(ship.column, ship.row);
     const reactions = shipTypes.filter((enemy) =>
       enemy.health > 0 && enemy.team !== ship.team && ATTACK_CODES.has(enemy.code) && !enemy.gunReloadPending &&
@@ -2023,10 +2073,14 @@
 
   function restoreTurnActions() {
     shipTypes.forEach((ship) => {
+      const expired = ship.skills.filter((id) => skillRules.turnsRemaining(ship, id) === 1);
+      const ready = ship.skills.filter((id) => skillRules.cooldownRemaining(ship, id) === 1 && skillRules.usesRemaining(ship, id) > 0);
+      skillRules.endTurn(ship);
+      expired.forEach((id) => recordEvent(`${ship.label}'s ${skillRules.definitions[id].name} expired; four-turn cooldown began.`, [], [ship.team]));
+      ready.forEach((id) => recordEvent(`${ship.label}'s ${skillRules.definitions[id].name} is ready.`, [], [ship.team]));
       if (ship.health > 0) {
         ship.moved = false;
         ship.attacked = false;
-        ship.gunAttacksRemaining = ship.gunAttacksPerTurn;
         ship.gunReloadPending = false;
         ship.airUsed = false;
         if (ship.torpedoReloadRemaining > 0) {
@@ -2157,14 +2211,17 @@
   fireRemainingButton.addEventListener("click", activateFireRemainingSkill);
   apButton.addEventListener("click", () => loadAmmunition("AP"));
   heButton.addEventListener("click", () => loadAmmunition("HE"));
+  consumableButtons.forEach((button) => button.addEventListener("click", () => activateConsumable(button.dataset.consumable)));
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
-    if (!["e", "1", "2", "q"].includes(key) || event.altKey || event.ctrlKey || event.metaKey || event.repeat ||
+    if (!["e", "1", "2", "q", "y", "o"].includes(key) || event.altKey || event.ctrlKey || event.metaKey || event.repeat ||
         event.target.closest("input, select, textarea, [contenteditable]")) return;
     event.preventDefault();
     if (key === "1") loadAmmunition("AP");
     else if (key === "2") loadAmmunition("HE");
     else if (key === "q") advancePhase();
+    else if (key === "y") activateConsumable("surveillance-radar");
+    else if (key === "o") activateConsumable("main-battery-reload-booster");
     else activateFireRemainingSkill();
   });
   developerPanelToggle.addEventListener("click", () => {

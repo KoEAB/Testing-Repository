@@ -38,6 +38,10 @@ The current transparent anime artwork is stored in `images/warships/` and mapped
 
 The Shipyard primary/alternate portrait choice is saved in this browser by `ship-portraits.js`. The In game ship info pop up window uses the same portrait mapping and choice, including an empty frame when that picture is unavailable. It displays the actual ship type (such as Destroyer or Heavy cruiser) and omits speed, shell velocity, and torpedo speed; those statistics remain in the Shipyard and gameplay calculations.
 
+Shipyard combat statistics are grouped into Hull & mobility, Main battery (with AP and HE ammunition subsections), and Torpedoes when equipped. Helena's traits are Scouting and Barrage Fire. Her capabilities and consumable icons come from the shared definitions in `combat-skills.js`.
+
+Helena's Surveillance Radar (`Y`) reveals opposing warships within 10 hexes until Next Turn, including through land. Main Battery Reload Booster (`O`) immediately adds one salvo per turn until the second Next Turn. Each consumable has three charges; after its effect expires, four additional Next Turns are required before reuse. Change Phase does not tick durations or cooldowns. Adrenaline Rush passively adds one salvo per turn while HP is below 50% and stacks with Reload Booster, for up to five salvos. Bonuses preserve salvos already spent and do not bypass ammunition reloading. Consumable buttons match the square ammunition buttons; remaining charges and durations are available in tooltips and the ship info popup.
+
 - Selection card: 3:4
 - Detail image: 3:4
 

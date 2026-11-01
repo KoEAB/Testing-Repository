@@ -15,7 +15,7 @@
         <p class="eyebrow">Archive error</p>
         <h1>This vessel is not in the archive.</h1>
         <p>The warship record you requested could not be found.</p>
-        <a class="primary-button" href="shipyard.html?v=navy-73">Return to Shipyard</a>
+        <a class="primary-button" href="shipyard.html?v=navy-74">Return to Shipyard</a>
       </section>
     `;
     return;
@@ -40,7 +40,7 @@
 
       <nav class="character-navigation empty-navigation" aria-label="Browse warships">
         ${renderAdjacentLink(character, -1, "上一项")}
-        <a class="all-characters" href="shipyard.html?v=navy-73">全部档案</a>
+        <a class="all-characters" href="shipyard.html?v=navy-74">全部档案</a>
         ${renderAdjacentLink(character, 1, "下一项")}
       </nav>
     `;
@@ -51,7 +51,7 @@
     .map(
       (ability, index) => `
         <article class="ability">
-          <span class="ability-number">0${index + 1}</span>
+          ${ability.icon ? `<span class="ability-icon"><img src="${ability.icon}" alt="" /></span>` : `<span class="ability-number">0${index + 1}</span>`}
           <div>
             <h3>${ability.name}</h3>
             <p>${ability.text}</p>
@@ -66,39 +66,52 @@
     .join("");
 
   const combatStats = character.combatStats;
+  function statRows(entries) {
+    return `<dl class="combat-stats-grid">${entries.map(([label, value]) =>
+      `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("")}</dl>`;
+  }
+  function statGroup(id, title, entries, extra = "") {
+    return `<section class="combat-stat-group" data-stat-group="${id}" aria-labelledby="stats-${id}">
+      <h3 id="stats-${id}">${title}</h3>${statRows(entries)}${extra}</section>`;
+  }
   const combatStatsSection = combatStats ? `
     <section class="combat-stats-section" aria-label="Current combat statistics">
       <p class="section-label">Combat statistics</p>
-      <dl class="combat-stats-grid">
-        ${[
+      <div class="combat-stat-groups">
+        ${statGroup("hull", "Hull &amp; mobility", [
           ["HP", combatStats.health], ["Speed", `${combatStats.speedKnots} knots`],
           ["Movement", `${combatStats.movementRange} hexes / turn`],
-          ["Concealment", `${combatStats.concealmentRange} hexes`],
+          ["Concealment", `${combatStats.concealmentRange} hexes`]
+        ])}
+        ${statGroup("guns", "Main battery", [
+          ["Main gun caliber", `${combatStats.mainGunCaliberMm} mm`],
           ["Gun range", `${combatStats.gunRange} hexes`],
           ["Salvos / turn", combatStats.gunAttacksPerTurn],
           ["Shells / salvo", combatStats.shellCount],
           ["Turrets / salvo", combatStats.salvoPattern.length],
           ["Shells / turret", combatStats.salvoPattern.every((count) => count === combatStats.salvoPattern[0])
             ? `${combatStats.salvoPattern[0]} each` : combatStats.salvoPattern.join(" / ")],
-          ["Turret arrangement", `${combatStats.turretPositions.filter((position) => position === "forward").length} forward · ${combatStats.turretPositions.filter((position) => position === "aft").length} aft`],
-          ["AP alpha / shell", combatStats.alphaDamage],
-          ["AP shell velocity", `${combatStats.apShellVelocity} m/s`],
-          ["HE alpha / shell", combatStats.heAlphaDamage],
-          ["HE shell velocity", `${combatStats.heShellVelocity} m/s`],
-          ["Main gun caliber", `${combatStats.mainGunCaliberMm} mm`],
+          ["Turret arrangement", `${combatStats.turretPositions.filter((p) => p === "forward").length} forward · ${combatStats.turretPositions.filter((p) => p === "aft").length} aft`],
           ["Forward firing angle", `${combatStats.forwardFiringAngle}°`],
-          ["Backward firing angle", `${combatStats.backwardFiringAngle}°`],
-          ...(combatStats.torpedoRange == null ? [] : [
-            ["Torpedo range", `${combatStats.torpedoRange} hexes`],
-            ["Torpedoes / launch", combatStats.torpedoCount],
-            ["Torpedo alpha / hit", combatStats.torpedoAlphaDamage],
-            ["Torpedo speed", `${combatStats.torpedoSpeedKnots} knots`],
-            ["Torpedo concealment range", `${combatStats.torpedoConcealmentRange} hexes`],
-            ["Torpedo reload", `${combatStats.torpedoReloadDuration} turns`],
-            ["Torpedo travel N", combatStats.torpedoTravelN]
-          ])
-        ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("")}
-      </dl>
+          ["Backward firing angle", `${combatStats.backwardFiringAngle}°`]
+        ], `<div class="stat-ammunition">
+          <section aria-label="AP ammunition"><h4>AP shells</h4>${statRows([
+            ["AP alpha / shell", combatStats.alphaDamage], ["AP shell velocity", `${combatStats.apShellVelocity} m/s`]
+          ])}</section>
+          <section aria-label="HE ammunition"><h4>HE shells</h4>${statRows([
+            ["HE alpha / shell", combatStats.heAlphaDamage], ["HE shell velocity", `${combatStats.heShellVelocity} m/s`]
+          ])}</section>
+        </div>`)}
+        ${combatStats.torpedoRange == null ? "" : statGroup("torpedoes", "Torpedoes", [
+          ["Torpedoes / launch", combatStats.torpedoCount],
+          ["Torpedo alpha / hit", combatStats.torpedoAlphaDamage],
+          ["Torpedo range", `${combatStats.torpedoRange} hexes`],
+          ["Torpedo speed", `${combatStats.torpedoSpeedKnots} knots`],
+          ["Torpedo concealment range", `${combatStats.torpedoConcealmentRange} hexes`],
+          ["Torpedo reload", `${combatStats.torpedoReloadDuration} turns`],
+          ["Torpedo travel N", combatStats.torpedoTravelN]
+        ])}
+      </div>
     </section>
   ` : "";
 
@@ -146,7 +159,7 @@
 
     <nav class="character-navigation" aria-label="Browse warships">
       ${renderAdjacentLink(character, -1, "Previous")}
-      <a class="all-characters" href="shipyard.html?v=navy-73">All profiles</a>
+      <a class="all-characters" href="shipyard.html?v=navy-74">All profiles</a>
       ${renderAdjacentLink(character, 1, "Next")}
     </nav>
   `;
@@ -159,7 +172,7 @@
     const classes = offset < 0 ? "adjacent-link previous-link" : "adjacent-link next-link";
 
     return `
-      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-73">
+      <a class="${classes}" href="character.html?id=${encodeURIComponent(adjacent.id)}&portrait=${portraitMode}&v=navy-74">
         <span>${label}</span>
         <strong>${offset < 0 ? `${arrow} ${adjacent.name}` : `${adjacent.name} ${arrow}`}</strong>
       </a>

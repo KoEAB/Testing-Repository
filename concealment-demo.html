@@ -5,22 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Locate concealed enemy ships on the tactical map." />
     <title>Concealment Demo — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-73" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-73" />
-    <script src="ship-combat-data.js?v=navy-73" defer></script>
-    <script src="data.js?v=navy-73" defer></script>
-    <script src="ship-portraits.js?v=navy-73" defer></script>
-    <script src="combat-rules.js?v=navy-73" defer></script>
-    <script src="combat-phases.js?v=navy-73" defer></script>
-    <script src="torpedo-rules.js?v=navy-73" defer></script>
-    <script src="map-terrain-data.js?v=navy-73" defer></script>
-    <script src="combat-demo.js?v=navy-73" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-74" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-74" />
+    <script src="ship-combat-data.js?v=navy-74" defer></script>
+    <script src="combat-skills.js?v=navy-74" defer></script>
+    <script src="data.js?v=navy-74" defer></script>
+    <script src="ship-portraits.js?v=navy-74" defer></script>
+    <script src="combat-rules.js?v=navy-74" defer></script>
+    <script src="combat-phases.js?v=navy-74" defer></script>
+    <script src="torpedo-rules.js?v=navy-74" defer></script>
+    <script src="map-terrain-data.js?v=navy-74" defer></script>
+    <script src="combat-demo.js?v=navy-74" defer></script>
   </head>
   <body class="combat-map-page" data-mode="concealment" data-phase="green">
     <main class="combat-map-shell">
       <section class="tactical-board" aria-label="Interactive combat map">
         <div class="combat-turn-hud">
-          <a href="campaign.html?v=navy-73"><span aria-hidden="true">←</span> Exit combat</a>
+          <a href="campaign.html?v=navy-74"><span aria-hidden="true">←</span> Exit combat</a>
           <div class="turn-counter" aria-live="polite"><span>Turn <strong id="turn-number">1</strong></span><span id="phase-name" class="phase-name">Green phase</span></div>
           <button id="next-turn" type="button" aria-keyshortcuts="Q" title="Next Phase (Q)"><span id="phase-button-label">Next Phase</span> <kbd>Q</kbd></button>
         </div>
@@ -74,6 +75,8 @@
         <div class="combat-skills" aria-label="Ship skills">
           <button id="load-ap-shells" data-ammo="AP" class="ammo-button" type="button" aria-label="Load AP shells" aria-keyshortcuts="1" aria-pressed="false" title="Load AP shells (1)" disabled><img src="images/ammo/ap.png" alt="" /><kbd>1</kbd></button>
           <button id="load-he-shells" data-ammo="HE" class="ammo-button" type="button" aria-label="Load HE shells" aria-keyshortcuts="2" aria-pressed="false" title="Load HE shells (2)" disabled><img src="images/ammo/he.png" alt="" /><kbd>2</kbd></button>
+          <button id="surveillance-radar" data-consumable="surveillance-radar" class="ammo-button consumable-button" type="button" aria-label="Activate Surveillance Radar" aria-keyshortcuts="Y" aria-pressed="false" hidden disabled><img src="images/consumables/surveillance-radar.png" alt="" /><kbd>Y</kbd></button>
+          <button id="main-battery-reload-booster" data-consumable="main-battery-reload-booster" class="ammo-button consumable-button" type="button" aria-label="Activate Main Battery Reload Booster" aria-keyshortcuts="O" aria-pressed="false" hidden disabled><img src="images/consumables/main-battery-reload-booster.png" alt="" /><kbd>O</kbd></button>
           <button id="fire-remaining-salvos" type="button" aria-keyshortcuts="E" aria-pressed="false" disabled title="Select a ship with guns, then choose a hostile target">
             Fire remaining salvos <kbd>E</kbd>
           </button>
@@ -111,6 +114,7 @@
             <div data-requires="torpedoes"><dt>Torpedo travel</dt><dd id="unit-detail-torpedo-travel">—</dd></div>
             <div data-requires="torpedoes"><dt>Torpedo concealment range</dt><dd id="unit-detail-torpedo-concealment">—</dd></div>
             <div><dt>Status</dt><dd id="unit-detail-status">Awaiting orders</dd></div>
+            <div id="unit-detail-skills-row" hidden><dt>Skills</dt><dd id="unit-detail-skills" class="unit-skill-status">—</dd></div>
           </dl>
           <div class="unit-order-actions">
             <button id="gun-order" type="button">Gun range</button>
