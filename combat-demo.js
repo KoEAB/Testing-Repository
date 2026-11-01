@@ -14,11 +14,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-75",
-    hit: "images/sounds/hit.mp3?v=navy-75",
-    hit2: "images/sounds/hit-2.mp3?v=navy-75",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-75",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-75`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-76",
+    hit: "images/sounds/hit.mp3?v=navy-76",
+    hit2: "images/sounds/hit-2.mp3?v=navy-76",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-76",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-76`)
   };
   let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -1127,21 +1127,58 @@
   }
 
   function animateRadarSweep(ship, range) {
-    const sweep = createEffect(`radar-sweep team-${ship.team}`, cellCenter(ship.column, ship.row));
+    const svgNS = "http://www.w3.org/2000/svg";
+    const sweep = document.createElementNS(svgNS, "svg");
+    const center = cellCenter(ship.column, ship.row);
+    const radius = range * HEX_HEIGHT;
+    const factionColor = getComputedStyle(map).getPropertyValue(ship.team === "enemy"
+      ? "--enemy-unit-color" : "--friendly-unit-color").trim();
+    const color = factionColor || (ship.team === "enemy" ? "#ed625a" : "#79d99a");
+    sweep.setAttribute("class", `radar-sweep team-${ship.team}`);
     sweep.setAttribute("aria-hidden", "true");
-    sweep.style.width = sweep.style.height = `${range * HEX_HEIGHT * 2}px`;
-    const beam = document.createElement("span");
-    beam.className = "radar-sweep-beam";
-    sweep.appendChild(beam);
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const rotation = beam.animate([
-      { transform: "rotate(0deg)" }, { transform: `rotate(${reducedMotion ? 0 : 360}deg)` }
-    ], { duration: reducedMotion ? 350 : 1050, easing: "linear", fill: "forwards" });
-    const fade = sweep.animate([
-      { opacity: 0 }, { opacity: 1, offset: 0.12 },
-      { opacity: 0.85, offset: 0.75 }, { opacity: 0 }
-    ], { duration: reducedMotion ? 350 : 1250, easing: "linear" });
-    Promise.all([rotation.finished, fade.finished]).then(() => sweep.remove(), () => sweep.remove());
+    sweep.setAttribute("viewBox", `${-radius} ${-radius} ${radius * 2} ${radius * 2}`);
+    sweep.dataset.ownerId = ship.id;
+    // Inline positioning and ordinary SVG colors keep the sweep visible with older cached stylesheets.
+    Object.assign(sweep.style, {
+      position: "absolute", left: `${center.x}px`, top: `${center.y}px`,
+      width: `${radius * 2}px`, height: `${radius * 2}px`,
+      transform: "translate(-50%, -50%)", pointerEvents: "none", zIndex: "9", overflow: "visible"
+    });
+    function shape(tag, attributes, parent = sweep) {
+      const element = document.createElementNS(svgNS, tag);
+      Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, String(value)));
+      parent.appendChild(element);
+      return element;
+    }
+    for (const fraction of [1 / 3, 2 / 3, 1]) {
+      shape("circle", { cx: 0, cy: 0, r: radius * fraction, fill: "none", stroke: color,
+        "stroke-opacity": fraction === 1 ? 0.7 : 0.3, "stroke-width": fraction === 1 ? 2 : 1,
+        "vector-effect": "non-scaling-stroke" });
+    }
+    const beam = shape("g", { class: "radar-sweep-beam" });
+    for (let index = 0; index < 30; index += 1) {
+      const start = (-75 + index * 2.5) * Math.PI / 180;
+      const end = (-75 + (index + 1) * 2.5) * Math.PI / 180;
+      shape("path", {
+        d: `M 0 0 L ${Math.cos(start) * radius} ${Math.sin(start) * radius} A ${radius} ${radius} 0 0 1 ${Math.cos(end) * radius} ${Math.sin(end) * radius} Z`,
+        fill: color, "fill-opacity": 0.035 + 0.4 * (index / 29) ** 2
+      }, beam);
+    }
+    shape("line", { x1: 0, y1: 0, x2: radius, y2: 0, stroke: color, "stroke-width": 3,
+      "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" }, beam);
+    map.appendChild(sweep);
+    let startedAt = null;
+    function frame(now) {
+      if (!sweep.isConnected) return;
+      if (startedAt === null) startedAt = now;
+      const elapsed = now - startedAt;
+      // Rotate in SVG coordinates without relying on CSS gradients or transform origins.
+      beam.setAttribute("transform", `rotate(${Math.min(1, elapsed / 1600) * 360})`);
+      sweep.style.opacity = String(Math.min(1, elapsed / 80, Math.max(0, (1800 - elapsed) / 200)));
+      if (elapsed < 1800) requestAnimationFrame(frame);
+      else sweep.remove();
+    }
+    requestAnimationFrame(frame);
   }
 
   function loadAmmunition(type) {
