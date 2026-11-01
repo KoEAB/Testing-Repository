@@ -14,11 +14,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-74",
-    hit: "images/sounds/hit.mp3?v=navy-74",
-    hit2: "images/sounds/hit-2.mp3?v=navy-74",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-74",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-74`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-75",
+    hit: "images/sounds/hit.mp3?v=navy-75",
+    hit2: "images/sounds/hit-2.mp3?v=navy-75",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-75",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-75`)
   };
   let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -1118,11 +1118,30 @@
   function activateConsumable(id) {
     if (!battleFlow.canControl(selectedUnit) || isAnimating || !skillRules.activate(selectedUnit, id)) return;
     const skill = skillRules.definitions[id];
+    if (id === "surveillance-radar") animateRadarSweep(selectedUnit, skill.range);
     updateDetection();
     refreshUnitDisplay(selectedUnit);
     updateDetailPanel(selectedUnit, `${skill.name} active`);
     unitReadout.textContent = `${selectedUnit.label} · ${skill.name} active`;
     recordEvent(`${selectedUnit.label} activated ${skill.name}.`, [], [selectedUnit.team]);
+  }
+
+  function animateRadarSweep(ship, range) {
+    const sweep = createEffect(`radar-sweep team-${ship.team}`, cellCenter(ship.column, ship.row));
+    sweep.setAttribute("aria-hidden", "true");
+    sweep.style.width = sweep.style.height = `${range * HEX_HEIGHT * 2}px`;
+    const beam = document.createElement("span");
+    beam.className = "radar-sweep-beam";
+    sweep.appendChild(beam);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const rotation = beam.animate([
+      { transform: "rotate(0deg)" }, { transform: `rotate(${reducedMotion ? 0 : 360}deg)` }
+    ], { duration: reducedMotion ? 350 : 1050, easing: "linear", fill: "forwards" });
+    const fade = sweep.animate([
+      { opacity: 0 }, { opacity: 1, offset: 0.12 },
+      { opacity: 0.85, offset: 0.75 }, { opacity: 0 }
+    ], { duration: reducedMotion ? 350 : 1250, easing: "linear" });
+    Promise.all([rotation.finished, fade.finished]).then(() => sweep.remove(), () => sweep.remove());
   }
 
   function loadAmmunition(type) {
@@ -2045,6 +2064,7 @@
 
   async function advancePhase() {
     if (isAnimating || setupMode || terrainMode) return;
+    map.querySelectorAll(".radar-sweep").forEach((sweep) => sweep.remove());
     deselectUnit();
     setLogOpen(false);
     isAnimating = true;

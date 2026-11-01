@@ -2824,6 +2824,31 @@ p {
   transform: translate(-50%, -50%);
 }
 
+.radar-sweep {
+  --radar-color: var(--friendly-unit-color);
+  z-index: 4;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--radar-color) 45%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    transparent 32%, color-mix(in srgb, var(--radar-color) 18%, transparent) 32.2% 32.5%,
+    transparent 32.7% 65%, color-mix(in srgb, var(--radar-color) 18%, transparent) 65.2% 65.5%,
+    transparent 65.7%);
+}
+
+.radar-sweep.team-enemy { --radar-color: var(--enemy-unit-color); }
+
+.radar-sweep-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(transparent 0deg 285deg,
+    color-mix(in srgb, var(--radar-color) 2%, transparent) 286deg,
+    color-mix(in srgb, var(--radar-color) 16%, transparent) 340deg,
+    color-mix(in srgb, var(--radar-color) 32%, transparent) 358deg,
+    color-mix(in srgb, var(--radar-color) 80%, transparent) 359.5deg, transparent 360deg);
+}
+
 .damage-popup {
   z-index: 14;
   color: #fff2c2;
