@@ -3070,7 +3070,19 @@ p {
   border-bottom: 1px solid var(--line);
 }
 
-.unit-detail-title > span {
+.unit-detail-portrait {
+  width: 90px;
+  aspect-ratio: 3 / 4;
+  flex: 0 0 90px;
+}
+
+.unit-detail-identity {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.unit-detail-identity > span {
   display: grid;
   width: 46px;
   height: 38px;

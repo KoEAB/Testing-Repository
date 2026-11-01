@@ -14,11 +14,11 @@
   };
   const TRAINING_MAP = { name: "Training Waters", kilometers: 48, columns: 56, rows: 48, land: "#56664b", sea: "#0b344a" };
   const SOUND_PATHS = {
-    enterMatch: "images/sounds/enter-match.mp3?v=navy-72",
-    hit: "images/sounds/hit.mp3?v=navy-72",
-    hit2: "images/sounds/hit-2.mp3?v=navy-72",
-    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-72",
-    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-72`)
+    enterMatch: "images/sounds/enter-match.mp3?v=navy-73",
+    hit: "images/sounds/hit.mp3?v=navy-73",
+    hit2: "images/sounds/hit-2.mp3?v=navy-73",
+    enemyDestroyed: "images/sounds/enemy-destroyed.mp3?v=navy-73",
+    reloaded: [1, 2, 3].map((number) => `images/sounds/reloaded-${number}.mp3?v=navy-73`)
   };
   let activeMap = trainingBattle ? TRAINING_MAP : MAPS["northern-lights"];
   let COLUMNS = activeMap.columns;
@@ -150,17 +150,17 @@
   const detailPanel = document.querySelector("#unit-detail-panel");
   const detailCode = document.querySelector("#unit-detail-code");
   const detailName = document.querySelector("#unit-detail-name");
+  const detailPortrait = document.querySelector("#unit-detail-portrait");
+  const profilesByName = new Map(window.CHARACTERS.filter((profile) => !profile.placeholder).map((profile) => [profile.name, profile]));
   const detailCategory = document.querySelector("#unit-detail-category");
   const detailPosition = document.querySelector("#unit-detail-position");
   const detailHealth = document.querySelector("#unit-detail-health");
-  const detailSpeed = document.querySelector("#unit-detail-speed");
   const detailConcealment = document.querySelector("#unit-detail-concealment");
   const detailMovement = document.querySelector("#unit-detail-movement");
   const detailAttack = document.querySelector("#unit-detail-attack");
   const detailAmmo = document.querySelector("#unit-detail-ammo");
   const detailGunArcs = document.querySelector("#unit-detail-gun-arcs");
   const detailSalvo = document.querySelector("#unit-detail-salvo");
-  const detailShellVelocity = document.querySelector("#unit-detail-shell-velocity");
   const detailLastSalvo = document.querySelector("#unit-detail-last-salvo");
   const detailTorpedo = document.querySelector("#unit-detail-torpedo");
   const detailStatus = document.querySelector("#unit-detail-status");
@@ -976,6 +976,33 @@
     updateDetailPanel(selectedUnit, `Target ${coordinateLabel(target.column, target.row)} · Choose facing`);
   }
 
+  function updateDetailPortrait(shipName) {
+    const profile = profilesByName.get(shipName);
+    const artwork = window.NAVAL_PORTRAITS.imageFor(profile);
+    if (detailPortrait.dataset.shipName === shipName && detailPortrait.dataset.artwork === (artwork || "")) return;
+    detailPortrait.dataset.shipName = shipName;
+    detailPortrait.dataset.artwork = artwork || "";
+    detailPortrait.replaceChildren();
+    detailPortrait.style.setProperty("--accent-rgb", profile?.rgb || "135, 182, 210");
+    if (artwork) {
+      const image = document.createElement("img");
+      image.className = "ship-art detail-ship-art";
+      image.src = artwork;
+      image.alt = `${shipName} portrait`;
+      detailPortrait.appendChild(image);
+    } else {
+      const placeholder = document.createElement("span");
+      placeholder.className = "empty-profile-mark";
+      placeholder.setAttribute("role", "img");
+      placeholder.setAttribute("aria-label", `${shipName} portrait pending`);
+      detailPortrait.appendChild(placeholder);
+    }
+  }
+
+  window.addEventListener(window.NAVAL_PORTRAITS.changeEvent, () => {
+    if (!detailPanel.hidden) updateDetailPortrait(detailName.textContent);
+  });
+
   function updateDetailPanel(shipType, status = "Awaiting orders") {
     const canAttack = ATTACK_CODES.has(shipType.code);
     const canTorpedo = TORPEDO_CODES.has(shipType.code);
@@ -983,10 +1010,10 @@
     detailPanel.querySelectorAll('[data-requires="torpedoes"]').forEach((row) => { row.hidden = !canTorpedo; });
     detailCode.textContent = shipType.code;
     detailName.textContent = shipType.label;
-    detailCategory.textContent = shipType.group.charAt(0).toUpperCase() + shipType.group.slice(1);
+    updateDetailPortrait(shipType.label);
+    detailCategory.textContent = unitTypeByCode.get(shipType.code).label;
     detailPosition.textContent = coordinateLabel(shipType.column, shipType.row);
     detailHealth.textContent = `${shipType.health} / ${shipType.maxHealth}`;
-    detailSpeed.textContent = shipType.speedKnots == null ? "Not specified" : `${shipType.speedKnots} knots`;
     detailConcealment.textContent = `${shipType.concealmentRange} hexes · ${unitElements.get(shipType.id)?.classList.contains("is-detected") ? "Detected" : "Undetected"}`;
     detailMovement.textContent = shipType.moved ? "Spent" : `Ready · ${shipType.movementRange} hexes`;
     const shotsRemaining = shipType.gunAttacksRemaining;
@@ -998,7 +1025,6 @@
     detailGunArcs.textContent = shipType.forwardFiringAngle == null ? "Not specified"
       : `FFA ${shipType.forwardFiringAngle}° · BFA ${shipType.backwardFiringAngle}°`;
     detailSalvo.textContent = canAttack ? `${shipType.shellType} · ${shipType.shellCount} shells · ${loadedAlpha(shipType)} alpha each` : "Unavailable";
-    detailShellVelocity.textContent = canAttack && loadedShellVelocity(shipType) != null ? `${loadedShellVelocity(shipType)} m/s` : "Not specified";
     detailLastSalvo.textContent = shipType.lastSalvo ? summarizeSalvo(shipType.lastSalvo) : "—";
     detailTorpedo.textContent = canTorpedo
       ? (shipType.torpedoReloadRemaining > 0
@@ -1007,7 +1033,6 @@
       : "Unavailable";
     if (canTorpedo) {
       document.querySelector("#unit-detail-torpedo-launch").textContent = `${shipType.torpedoCount} torpedoes · ${shipType.torpedoAlphaDamage} alpha each`;
-      document.querySelector("#unit-detail-torpedo-speed").textContent = shipType.torpedoSpeedKnots == null ? "Not specified" : `${shipType.torpedoSpeedKnots} knots`;
       document.querySelector("#unit-detail-torpedo-travel").textContent = `N = ${shipType.torpedoTravelN} · ${shipType.torpedoRange / shipType.torpedoTravelN} hexes per owner phase`;
       document.querySelector("#unit-detail-torpedo-concealment").textContent = `${shipType.torpedoConcealmentRange} hexes`;
     }
@@ -1018,7 +1043,6 @@
       detailAttack.textContent = `${shipType.gunRange} tiles · ${shipType.gunAttacksPerTurn} salvos per turn`;
       detailTorpedo.textContent = `${shipType.torpedoRange} tiles`;
       detailSalvo.textContent = `${shipType.shellCount} shells · AP ${shipType.alphaDamage} / HE ${shipType.heAlphaDamage} alpha`;
-      detailShellVelocity.textContent = `AP ${shipType.apShellVelocity ?? "—"} / HE ${shipType.heShellVelocity ?? "—"} m/s`;
     }
     detailSalvo.previousElementSibling.textContent = privateState ? "Loaded salvo" : "Salvo";
     [detailAmmo, detailLastSalvo].forEach((field) => { field.parentElement.hidden = !canAttack || !privateState; });

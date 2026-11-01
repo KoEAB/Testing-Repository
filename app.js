@@ -40,7 +40,7 @@
     link.dataset.characterId = character.id;
     link.dataset.shipType = character.typeCode || "";
     link.dataset.rarity = character.rarity || "";
-    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-72`;
+    link.href = `character.html?id=${encodeURIComponent(character.id)}&portrait=default&v=navy-73`;
     link.style.setProperty("--accent", character.accent);
     link.style.setProperty("--accent-rgb", character.rgb);
     link.style.setProperty(
@@ -204,16 +204,22 @@
     }
   });
 
-  alternateToggle.addEventListener("click", () => {
-    const isAlternate = document.body.classList.toggle("show-alternate-portraits");
-    const portraitMode = isAlternate ? "alternate" : "default";
+  function applyPortraitMode(portraitMode) {
+    const isAlternate = portraitMode === "alternate";
+    document.body.classList.toggle("show-alternate-portraits", isAlternate);
     alternateToggle.setAttribute("aria-pressed", String(isAlternate));
     alternateToggle.querySelector(".toggle-label").textContent = isAlternate
       ? "返回主图"
       : "切换副图";
 
     roster.querySelectorAll(".character-card").forEach((link) => {
-      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-72`;
+      link.href = `character.html?id=${encodeURIComponent(link.dataset.characterId)}&portrait=${portraitMode}&v=navy-73`;
     });
+  }
+
+  alternateToggle.addEventListener("click", () => {
+    window.NAVAL_PORTRAITS.setMode(window.NAVAL_PORTRAITS.getMode() === "alternate" ? "default" : "alternate");
   });
+  window.addEventListener(window.NAVAL_PORTRAITS.changeEvent, () => applyPortraitMode(window.NAVAL_PORTRAITS.getMode()));
+  applyPortraitMode(window.NAVAL_PORTRAITS.getMode());
 })();

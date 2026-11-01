@@ -36,6 +36,8 @@ Then open `http://localhost:8000`.
 
 The current transparent anime artwork is stored in `images/warships/` and mapped through each ship's `alternateImage` field in `data.js`. Future primary artwork belongs in `defaultImage`. Both image frames use the artwork's native 3:4 ratio and `object-fit: contain`, so supplied PNGs are never cropped.
 
+The Shipyard primary/alternate portrait choice is saved in this browser by `ship-portraits.js`. The In game ship info pop up window uses the same portrait mapping and choice, including an empty frame when that picture is unavailable. It displays the actual ship type (such as Destroyer or Heavy cruiser) and omits speed, shell velocity, and torpedo speed; those statistics remain in the Shipyard and gameplay calculations.
+
 - Selection card: 3:4
 - Detail image: 3:4
 

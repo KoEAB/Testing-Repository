@@ -5,20 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Locate concealed enemy ships on the tactical map." />
     <title>Concealment Demo — Naval Command</title>
-    <link rel="icon" href="favicon.svg?v=navy-72" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=navy-72" />
-    <script src="ship-combat-data.js?v=navy-72" defer></script>
-    <script src="combat-rules.js?v=navy-72" defer></script>
-    <script src="combat-phases.js?v=navy-72" defer></script>
-    <script src="torpedo-rules.js?v=navy-72" defer></script>
-    <script src="map-terrain-data.js?v=navy-72" defer></script>
-    <script src="combat-demo.js?v=navy-72" defer></script>
+    <link rel="icon" href="favicon.svg?v=navy-73" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=navy-73" />
+    <script src="ship-combat-data.js?v=navy-73" defer></script>
+    <script src="data.js?v=navy-73" defer></script>
+    <script src="ship-portraits.js?v=navy-73" defer></script>
+    <script src="combat-rules.js?v=navy-73" defer></script>
+    <script src="combat-phases.js?v=navy-73" defer></script>
+    <script src="torpedo-rules.js?v=navy-73" defer></script>
+    <script src="map-terrain-data.js?v=navy-73" defer></script>
+    <script src="combat-demo.js?v=navy-73" defer></script>
   </head>
   <body class="combat-map-page" data-mode="concealment" data-phase="green">
     <main class="combat-map-shell">
       <section class="tactical-board" aria-label="Interactive combat map">
         <div class="combat-turn-hud">
-          <a href="campaign.html?v=navy-72"><span aria-hidden="true">←</span> Exit combat</a>
+          <a href="campaign.html?v=navy-73"><span aria-hidden="true">←</span> Exit combat</a>
           <div class="turn-counter" aria-live="polite"><span>Turn <strong id="turn-number">1</strong></span><span id="phase-name" class="phase-name">Green phase</span></div>
           <button id="next-turn" type="button" aria-keyshortcuts="Q" title="Next Phase (Q)"><span id="phase-button-label">Next Phase</span> <kbd>Q</kbd></button>
         </div>
@@ -86,26 +88,26 @@
             </div>
           </div>
           <div class="unit-detail-title">
-            <span id="unit-detail-code">—</span>
-            <h2 id="unit-detail-name">No ship selected</h2>
+            <div class="unit-detail-portrait portrait-placeholder" id="unit-detail-portrait"></div>
+            <div class="unit-detail-identity">
+              <span id="unit-detail-code">—</span>
+              <h2 id="unit-detail-name">No ship selected</h2>
+            </div>
           </div>
           <div class="unit-detail-body" id="unit-detail-body">
           <dl>
             <div><dt>Ship type</dt><dd id="unit-detail-category">—</dd></div>
             <div><dt>Position</dt><dd id="unit-detail-position">—</dd></div>
             <div><dt>Health</dt><dd id="unit-detail-health">100 / 100</dd></div>
-            <div><dt>Speed</dt><dd id="unit-detail-speed">—</dd></div>
             <div><dt>Concealment</dt><dd id="unit-detail-concealment">10 hexes</dd></div>
             <div><dt>Movement</dt><dd id="unit-detail-movement">Ready</dd></div>
             <div data-requires="guns"><dt>Guns</dt><dd id="unit-detail-attack">Ready</dd></div>
             <div data-requires="guns"><dt>Loaded ammunition</dt><dd id="unit-detail-ammo">—</dd></div>
             <div data-requires="guns"><dt>Firing angles</dt><dd id="unit-detail-gun-arcs">—</dd></div>
             <div data-requires="guns"><dt>Loaded salvo</dt><dd id="unit-detail-salvo">—</dd></div>
-            <div data-requires="guns"><dt>Shell velocity</dt><dd id="unit-detail-shell-velocity">—</dd></div>
             <div data-requires="guns"><dt>Last salvo</dt><dd id="unit-detail-last-salvo">—</dd></div>
             <div data-requires="torpedoes"><dt>Torpedoes</dt><dd id="unit-detail-torpedo">Unavailable</dd></div>
             <div data-requires="torpedoes"><dt>Torpedo launch</dt><dd id="unit-detail-torpedo-launch">—</dd></div>
-            <div data-requires="torpedoes"><dt>Torpedo speed</dt><dd id="unit-detail-torpedo-speed">—</dd></div>
             <div data-requires="torpedoes"><dt>Torpedo travel</dt><dd id="unit-detail-torpedo-travel">—</dd></div>
             <div data-requires="torpedoes"><dt>Torpedo concealment range</dt><dd id="unit-detail-torpedo-concealment">—</dd></div>
             <div><dt>Status</dt><dd id="unit-detail-status">Awaiting orders</dd></div>
