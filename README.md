@@ -47,6 +47,8 @@ Helena's Surveillance Radar (`Y`) reveals opposing warships within 10 hexes unti
 
 Ship names, historical summaries, type codes, rarities, placeholder capabilities, colors, and links are all managed in `data.js`.
 
+The six portraits supplied in ShipyardIcons v2 belong to the existing Astoria, Minneapolis, Quincy, San Francisco, Vincennes, and Tuscaloosa records. All six are deployable named combat units, with provisional statistics copied from New Orleans in `ship-combat-data.js` until individual data is supplied. Their artwork belongs to the alternate portrait set. Their combat-history-based rarity assignments are documented in [docs/rarity-decisions.md](docs/rarity-decisions.md).
+
 ## Combat code
 
 `ship-combat-data.js` defines ship types and named combat statistics shared by the Shipyard and combat demos. Adding a named combat ship there makes it available in the developer panel; add its historical profile in `data.js` to show it in the Shipyard. `combat-rules.js` contains damage, detection, and shell calculations. `combat-phases.js` defines turn progression and control/view permissions for all three modes. `torpedo-rules.js` contains spread geometry, collision planning, and hit probabilities. Run their checks with `node --test tests/*.test.js`.

@@ -146,32 +146,38 @@
       origin: "New York Navy Yard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Astoria", hullNumber: "CA-34", shipClass: "New Orleans",
+      name: "USS Astoria", hullNumber: "CA-34", shipClass: "New Orleans", rarity: "SR",
+      alternateImage: "images/warships/astoria-shipyard-icon.png",
       description: "USS Astoria fought at the Coral Sea and Midway before covering the Guadalcanal landings. Japanese cruisers devastated her during the Battle of Savo Island, and she sank on 9 August 1942.",
       origin: "Puget Sound Navy Yard", affinity: "Pacific Theater"
     },
     {
       name: "USS Minneapolis", hullNumber: "CA-36", shipClass: "New Orleans", rarity: "UR",
-      description: "USS Minneapolis participated in the Coral Sea, Midway, and Guadalcanal campaigns. Two torpedo hits at Tassafaronga destroyed her bow, but temporary repairs kept the ship afloat.",
+      alternateImage: "images/warships/minneapolis-shipyard-icon.png",
+      description: "USS Minneapolis fought at the Coral Sea, Midway, and throughout the Pacific campaign. She survived devastating torpedo damage at Tassafaronga, returned to combat, and earned seventeen battle stars during World War II.",
       origin: "Philadelphia Navy Yard", affinity: "Pacific Theater"
     },
     {
       name: "USS Tuscaloosa", hullNumber: "CA-37", shipClass: "New Orleans", rarity: "SR",
-      description: "USS Tuscaloosa spent much of 1942 in the Atlantic, serving with the British Home Fleet, escorting convoys, and supporting Allied operations connected with the invasion of North Africa.",
-      origin: "New York Shipbuilding", affinity: "Atlantic Theater"
+      alternateImage: "images/warships/tuscaloosa-shipyard-icon.png",
+      description: "USS Tuscaloosa escorted Atlantic convoys and provided gunfire support during operations in North Africa, Normandy, southern France, Iwo Jima, and Okinawa. She earned seven battle stars during World War II.",
+      origin: "New York Shipbuilding", affinity: "Atlantic and Pacific"
     },
     {
       name: "USS San Francisco", hullNumber: "CA-38", shipClass: "New Orleans", rarity: "UR",
-      description: "USS San Francisco fought at Cape Esperance and served as Admiral Callaghan's flagship in the Naval Battle of Guadalcanal. She survived a brutal close-range action on 13 November 1942.",
+      alternateImage: "images/warships/san-francisco-shipyard-icon.png",
+      description: "USS San Francisco fought at Cape Esperance and survived the close-range Naval Battle of Guadalcanal as Admiral Callaghan's flagship. Her wartime service earned seventeen battle stars and a Presidential Unit Citation.",
       origin: "Mare Island Navy Yard", affinity: "Pacific Theater"
     },
     {
       name: "USS Quincy", hullNumber: "CA-39", shipClass: "New Orleans", rarity: "R",
+      alternateImage: "images/warships/quincy-shipyard-icon.png",
       description: "After Atlantic service, USS Quincy transferred to the Pacific and covered the Guadalcanal invasion. She was caught by surprise and sunk during the Battle of Savo Island in August 1942.",
       origin: "Fore River Shipyard", affinity: "Pacific Theater"
     },
     {
-      name: "USS Vincennes", hullNumber: "CA-44", shipClass: "New Orleans",
+      name: "USS Vincennes", hullNumber: "CA-44", shipClass: "New Orleans", rarity: "R",
+      alternateImage: "images/warships/vincennes-shipyard-icon.png",
       description: "USS Vincennes supported the Doolittle Raid and fought at Midway before joining the Guadalcanal operation. She was sunk alongside Astoria and Quincy at Savo Island.",
       origin: "Fore River Shipyard", affinity: "Pacific Theater"
     },

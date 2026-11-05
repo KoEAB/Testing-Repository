@@ -68,4 +68,14 @@
       torpedoSpeedKnots: 66, torpedoReloadDuration: 3, torpedoTravelN: 2, torpedoConcealmentRange: 2
     }
   };
+  // Provisional combat values requested for the six portraits supplied in ShipyardIcons v2.
+  // Keep one baseline until individual statistics are supplied; copy turret arrays independently.
+  const newOrleansBaseline = globalThis.SHIP_COMBAT_DATA["USS New Orleans"];
+  for (const name of ["USS Astoria", "USS Minneapolis", "USS Quincy", "USS San Francisco", "USS Vincennes", "USS Tuscaloosa"]) {
+    globalThis.SHIP_COMBAT_DATA[name] = {
+      ...newOrleansBaseline,
+      salvoPattern: [...newOrleansBaseline.salvoPattern],
+      turretPositions: [...newOrleansBaseline.turretPositions]
+    };
+  }
 })();
