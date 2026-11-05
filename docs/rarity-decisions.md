@@ -11,4 +11,4 @@ Rarity follows combat history and achievement across the ship's lifetime. Hardwa
 | USS Vincennes (CA-44) | R | Doolittle Raid escort, Midway, and Guadalcanal service before being sunk at Savo Island; two WWII battle stars and a comparatively short combat career. |
 | USS Tuscaloosa (CA-37) | SR | Extensive convoy and shore-bombardment service across the Atlantic, Mediterranean, and Pacific, including Normandy, Iwo Jima, and Okinawa; seven WWII battle stars. |
 
-Battle stars support these judgments; they are not a numerical rarity formula. The existing fleet already includes lower-rarity ships, so this artwork batch does not require adding unrelated characters to balance its rarity distribution.
+Battle stars support these judgments; they are not a numerical rarity formula. The subsequently requested [low-rarity expansion](low-rarity-expansion.md) balances the overall distribution with additional C, U, and R Shipyard records.

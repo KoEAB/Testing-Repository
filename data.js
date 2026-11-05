@@ -20,7 +20,11 @@
     Benham: { shipType: "Destroyer", typeCode: "DD", rarity: "U", weapon: "4 × 5-inch guns", accent: "#829bab", rgb: "130, 155, 171" },
     Sims: { shipType: "Destroyer", typeCode: "DD", rarity: "R", weapon: "5 × 5-inch guns", accent: "#7395ad", rgb: "115, 149, 173" },
     Benson: { shipType: "Destroyer", typeCode: "DD", rarity: "U", weapon: "5 × 5-inch guns", accent: "#8196a6", rgb: "129, 150, 166" },
-    Fletcher: { shipType: "Destroyer", typeCode: "DD", rarity: "SSR", weapon: "5 × 5-inch guns", accent: "#799bac", rgb: "121, 155, 172" }
+    Fletcher: { shipType: "Destroyer", typeCode: "DD", rarity: "SSR", weapon: "5 × 5-inch guns", accent: "#799bac", rgb: "121, 155, 172" },
+    Sampson: { shipType: "Destroyer", typeCode: "DD", rarity: "C", weapon: "4 × 4-inch guns (original fit)", accent: "#829bab", rgb: "130, 155, 171" },
+    Caldwell: { shipType: "Destroyer", typeCode: "DD", rarity: "R", weapon: "4 × 4-inch guns (original fit)", accent: "#829bab", rgb: "130, 155, 171" },
+    Wickes: { shipType: "Destroyer", typeCode: "DD", rarity: "U", weapon: "4 × 4-inch guns (original fit)", accent: "#829bab", rgb: "130, 155, 171" },
+    Clemson: { shipType: "Destroyer", typeCode: "DD", rarity: "U", weapon: "4 × 4-inch guns (original fit)", accent: "#829bab", rgb: "130, 155, 171" }
   };
 
   const ships = [
@@ -341,6 +345,77 @@
     }
   ];
 
+  // Shipyard-only additions: rarity reflects service history, not invented combat statistics.
+  const lowerRarityShips = [
+    { name: "USS Allen", hullNumber: "DD-66", shipClass: "Sampson", rarity: "C", affinity: "Pacific Theater",
+      description: "USS Allen was a veteran destroyer retained for local escort, patrol, and antisubmarine training around Hawaii during World War II. Her service emphasized supporting fleet readiness rather than major surface engagements." },
+    { name: "USS Chew", hullNumber: "DD-106", shipClass: "Wickes", rarity: "C", affinity: "Pacific Theater",
+      description: "USS Chew was present at Pearl Harbor and spent much of World War II conducting Hawaiian patrols, local escort work, and antisubmarine training. Her wartime role was primarily defensive and instructional." },
+    { name: "USS Kennison", hullNumber: "DD-138", shipClass: "Wickes", rarity: "C", affinity: "Pacific Theater",
+      description: "USS Kennison performed patrol and escort assignments in the Pacific before serving as an auxiliary and training target. Her contribution centered on local defense and preparing other ships for antisubmarine operations." },
+    { name: "USS Fox", hullNumber: "DD-234", shipClass: "Clemson", rarity: "C", affinity: "Pacific Theater",
+      description: "USS Fox carried out escort and patrol work in Alaska and the eastern Pacific before taking on training duties. Her long service supported routine naval operations without a major surface-battle record." },
+    { name: "USS King", hullNumber: "DD-242", shipClass: "Clemson", rarity: "C", affinity: "Pacific Theater",
+      description: "USS King served on Pacific escort and patrol assignments, including work in northern waters, and later supported antisubmarine training. Her wartime employment was largely supporting and defensive." },
+    { name: "USS McCormick", hullNumber: "DD-223", shipClass: "Clemson", rarity: "C", affinity: "Pacific Theater",
+      description: "USS McCormick protected shipping and operated in the North Pacific and Aleutian area during World War II. Her record reflects sustained escort and patrol service rather than prominent fleet actions." },
+    { name: "USS Semmes", hullNumber: "DD-189", shipClass: "Clemson", rarity: "C", affinity: "Atlantic Theater",
+      description: "USS Semmes became an experimental and training auxiliary, helping develop and test antisubmarine equipment. This technical support role contributed to fleet preparation without an extensive combat career." },
+    { name: "USS Dahlgren", hullNumber: "DD-187", shipClass: "Clemson", rarity: "C", affinity: "Atlantic Theater",
+      description: "USS Dahlgren performed Atlantic patrol and escort duties and spent much of her later service supporting training. Her principal contribution was maintaining coastal defense and naval readiness." },
+    { name: "USS Lawrence", hullNumber: "DD-250", shipClass: "Clemson", rarity: "C", affinity: "Pacific Theater",
+      description: "USS Lawrence served on Pacific escort and patrol assignments before later training employment. This older four-stack destroyer helped protect shipping and prepare crews for wartime operations." },
+    { name: "USS MacLeish", hullNumber: "DD-220", shipClass: "Clemson", rarity: "C", affinity: "Atlantic Theater",
+      description: "USS MacLeish escorted Atlantic shipping and supported antisubmarine operations during World War II. She later helped prepare crews for antisubmarine warfare through training assignments." },
+    { name: "USS Simpson", hullNumber: "DD-221", shipClass: "Clemson", rarity: "C", affinity: "Atlantic Theater",
+      description: "USS Simpson carried out convoy escort, coastal patrol, and antisubmarine training during World War II. Her wartime record was dominated by routine protection and instructional duties." },
+
+    { name: "USS Decatur", hullNumber: "DD-341", shipClass: "Clemson", rarity: "U", affinity: "Atlantic and Pacific",
+      description: "USS Decatur protected shipping in Atlantic and northern Pacific waters during World War II. Her assignments included convoy protection, patrols, and support duties as an older four-stack destroyer." },
+    { name: "USS Broome", hullNumber: "DD-210", shipClass: "Clemson", rarity: "U", affinity: "Atlantic Theater",
+      description: "USS Broome escorted Atlantic convoys and participated in antisubmarine operations before later training service. She helped sustain the shipping routes supporting Allied operations." },
+    { name: "USS Pruitt", hullNumber: "DD-347", shipClass: "Clemson", rarity: "U", affinity: "Pacific Theater",
+      description: "Converted to a minesweeper, USS Pruitt combined training duties with operational work in the Pacific and Aleutians. Her service supported amphibious operations and the maintenance of safe sea routes." },
+    { name: "USS Goldsborough", hullNumber: "DD-188", shipClass: "Clemson", rarity: "U", affinity: "Pacific Theater",
+      description: "USS Goldsborough served as a seaplane tender and supported patrol aviation, including operations in the Aleutians. Her contribution came through aviation support and northern operations rather than major gun battles." },
+    { name: "USS Hulbert", hullNumber: "DD-342", shipClass: "Clemson", rarity: "U", affinity: "Pacific Theater",
+      description: "USS Hulbert was converted to a seaplane tender and supported patrol aircraft in the Pacific and Alaska. She was present at Pearl Harbor and continued in aviation-support and training roles." },
+    { name: "USS William B. Preston", hullNumber: "DD-344", shipClass: "Clemson", rarity: "U", affinity: "Pacific Theater",
+      description: "As a seaplane tender, USS William B. Preston supported the Asiatic Fleet's patrol aircraft and survived the Japanese attack on Darwin. Her wartime record combines exposed forward support with a limited surface-combat role." },
+    { name: "USS Barker", hullNumber: "DD-213", shipClass: "Clemson", rarity: "U", affinity: "Pacific and Atlantic",
+      description: "USS Barker served with the Asiatic Fleet during the retreat through the Netherlands East Indies, then continued escort and antisubmarine work. Her record includes frontline service without a major individual surface victory." },
+    { name: "USS Bulmer", hullNumber: "DD-222", shipClass: "Clemson", rarity: "U", affinity: "Pacific and Atlantic",
+      description: "USS Bulmer operated in the Philippines and Netherlands East Indies early in the Pacific War before moving to escort duties elsewhere. Her service reflects an active early campaign followed by convoy protection." },
+    { name: "USS Babbitt", hullNumber: "DD-128", shipClass: "Wickes", rarity: "U", affinity: "Atlantic Theater",
+      description: "USS Babbitt escorted Atlantic convoys and conducted antisubmarine patrols during World War II. Her service helped protect the supply routes on which Allied campaigns depended." },
+    { name: "USS Badger", hullNumber: "DD-126", shipClass: "Wickes", rarity: "U", affinity: "Atlantic Theater",
+      description: "USS Badger performed neutrality patrols, convoy escort, and antisubmarine duties in the Atlantic. Her operational wartime service was substantial but did not include a distinguished series of major fleet battles." },
+    { name: "USS Stribling", hullNumber: "DD-96", shipClass: "Wickes", rarity: "U", affinity: "Atlantic and Mediterranean",
+      description: "USS Stribling escorted convoys and supported Allied operations in the Atlantic and Mediterranean. Her work included amphibious-support duties alongside the routine protection of shipping." },
+    { name: "USS Satterlee", hullNumber: "DD-190", shipClass: "Clemson", rarity: "U", affinity: "Atlantic Theater",
+      description: "Transferred to Britain as HMS Belmont, the former USS Satterlee escorted Atlantic shipping until a German submarine sank her in January 1942. Her complete service record centers on convoy defense rather than major fleet victories." },
+
+    { name: "USS Cole", hullNumber: "DD-155", shipClass: "Wickes", rarity: "R", affinity: "Atlantic and Mediterranean",
+      description: "USS Cole took part in the hazardous harbor assault at Safi during Operation Torch and earned a Presidential Unit Citation. Her amphibious and escort service gives her a stronger combat distinction than routine patrol destroyers." },
+    { name: "USS Greer", hullNumber: "DD-145", shipClass: "Wickes", rarity: "R", affinity: "Atlantic Theater",
+      description: "USS Greer's September 1941 encounter with U-652 became a significant incident in the undeclared Atlantic naval conflict. She subsequently protected convoys and performed antisubmarine duties." },
+    { name: "USS Elliot", hullNumber: "DD-146", shipClass: "Wickes", rarity: "R", affinity: "Pacific Theater",
+      description: "Converted to the fast transport APD-2, USS Elliot carried Marines into the Guadalcanal operation. A Japanese air attack fatally damaged her in August 1942, ending a brief but direct amphibious combat career." },
+    { name: "USS Stringham", hullNumber: "DD-83", shipClass: "Wickes", rarity: "R", affinity: "Pacific Theater",
+      description: "As fast transport APD-6, USS Stringham carried troops and supplies through repeated Pacific amphibious operations. Her extensive assault-support service distinguished her from older destroyers used mainly for training or local patrols." },
+    { name: "USS Little", hullNumber: "DD-79", shipClass: "Wickes", rarity: "R", affinity: "Pacific Theater",
+      description: "USS Little served as fast transport APD-4 in the Guadalcanal campaign. Japanese destroyers sank her with Gregory in September 1942 while the transports were operating in contested waters." },
+    { name: "USS Gregory", hullNumber: "DD-82", shipClass: "Wickes", rarity: "R", affinity: "Pacific Theater",
+      description: "USS Gregory became fast transport APD-3 and supported the Guadalcanal landings. She was sunk alongside Little in a September 1942 encounter with Japanese destroyers, after frontline transport and support work." },
+    { name: "USS Manley", hullNumber: "DD-74", shipClass: "Caldwell", rarity: "R", affinity: "Atlantic and Pacific",
+      description: "USS Manley pioneered the American fast-transport conversion as APD-1 and later supported wartime amphibious operations. Her conversion helped establish a role used to carry troops and supplies into contested landing areas." },
+    { name: "USS Dent", hullNumber: "DD-116", shipClass: "Wickes", rarity: "R", affinity: "Pacific Theater",
+      description: "Converted to fast transport APD-9, USS Dent carried troops and supplies during Pacific amphibious campaigns. Repeated work near contested landing areas gives her a more substantial combat-support record than rear-area training ships." },
+    { name: "USS Dickerson", hullNumber: "DD-157", shipClass: "Clemson", rarity: "R", affinity: "Atlantic and Pacific",
+      description: "USS Dickerson served on Atlantic escort assignments before becoming fast transport APD-21. She supported amphibious operations and was fatally damaged by Japanese aircraft during the Okinawa campaign." }
+  ];
+  ships.push(...lowerRarityShips.map((ship) => ({ origin: "建造资料待补", ...ship })));
+
   function createAbilities(shipType) {
     const category = shipType.toLowerCase();
     return [
@@ -391,7 +466,8 @@
     { accent: "#7e8797", rgb: "126, 135, 151" }
   ];
 
-  placeholderNames.slice(0, Math.max(0, 64 - ships.length)).forEach((name, index) => {
+  const reserveSlots = (8 - ships.length % 8) % 8;
+  Array.from({ length: reserveSlots }, (_, index) => placeholderNames[index % placeholderNames.length]).forEach((name, index) => {
     const number = ships.length + index + 1;
     const color = placeholderPalette[index % placeholderPalette.length];
     window.CHARACTERS.push({
